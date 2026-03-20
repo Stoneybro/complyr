@@ -1,0 +1,14 @@
+{
+  "name": "complyr",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "forge:build": "pnpm --filter contract build",
+    "forge:test": "pnpm --filter contract test",
+    "clean": "pnpm -r run clean"
+  },
+  "packageManager": "pnpm@10.30.3"
+}

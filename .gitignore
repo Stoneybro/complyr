@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Build
+dist/
+build/
+
+# Foundry
+packages/contract/cache/
+packages/contract/out/
+packages/contract/lib/
+
+# Environment
+.env
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Keys
+*.pem
+
+# AI Agent configs (auto-generated)
+AGENTS.md
+CLAUDE.md
