@@ -1,7 +1,10 @@
 import { db } from "../db/db";
 import { contacts, contactAddresses } from "../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { generateId } from "ai";
+
+function generateId(): string {
+    return crypto.randomUUID();
+}
 
 // Compliance metadata for contacts (optional fields)
 export type ContactCompliance = {
