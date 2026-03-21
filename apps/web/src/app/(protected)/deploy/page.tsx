@@ -19,10 +19,10 @@ function Page() {
         <div className='w-full max-w-md flex flex-col gap-6 justify-center items-center text-center'>
 
           <div className=' text-3xl font-semibold text-center'>
-            Activate your MantlePay account
+            Activate your Complyr account
           </div>
           <div className=' flex flex-col'>
-            <div className="">MantlePay is built on ERC-4337 smart accounts.</div>
+            <div className="">Complyr is built on ERC-4337 smart accounts.</div>
             <div className=""> Only one Account per social login.</div>
             <div className="">All transactions are gasless</div>
 

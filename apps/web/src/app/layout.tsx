@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MantlePay",
+  title: "Complyr",
   description: "Compliance-ready payment Infrastructure",
 };
 

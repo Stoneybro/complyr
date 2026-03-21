@@ -1,9 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import * as schema from "./schema";
-import { config } from "dotenv";
-
-config({ path: ".env" });
 
 // Configure WebSocket for serverless environments (Node.js)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -17,7 +14,7 @@ const globalForDb = globalThis as unknown as {
 const pool =
     globalForDb.pool ??
     new Pool({
-        connectionString: process.env.DATABASE_URL!,
+        connectionString: process.env.COMPLYR_DATABASE_URL!,
         connectionTimeoutMillis: 10000, // 10 seconds - helps with cold starts
         max: 10, // max connections in pool
     });

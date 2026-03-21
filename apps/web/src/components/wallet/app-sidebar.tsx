@@ -32,12 +32,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TransactionList } from "@/components/transaction-history/TransactionList";
 import { ContactList } from "@/components/contacts/ContactList";
 
-type Chat = {
-  id: string;
-  title: string | null;
-  createdAt: Date;
-  userId: string | null;
-};
 
 type AppSidebarProps = {
   walletAddress?: string;
@@ -45,12 +39,6 @@ type AppSidebarProps = {
 
 const data = {
   navMain: [
-    {
-      title: "Chats",
-      url: "#",
-      icon: Inbox,
-      isActive: true,
-    },
     {
       title: "Transactions",
       url: "#",
