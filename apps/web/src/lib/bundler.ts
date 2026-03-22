@@ -1,8 +1,8 @@
 import { createPublicClient, http } from "viem";
 import { flowTestnet } from "viem/chains";
 
-// Skandha self-hosted bundler on Flow EVM testnet
-export const bundlerUrl = `http://localhost:14337/rpc`;
+// Skandha bundler on Railway
+export const bundlerUrl = `https://complyr-bundler-production.up.railway.app/rpc`;
 export const bundlerTransport = http(bundlerUrl);
 
 // Public client for standard JSON-RPC calls
