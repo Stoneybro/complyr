@@ -118,33 +118,6 @@ export const IntentRegistryABI = [
         "name": "revertOnFailure",
         "type": "bool",
         "internalType": "bool"
-      },
-      {
-        "name": "complianceData",
-        "type": "tuple",
-        "internalType": "struct IntentRegistry.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
       }
     ],
     "outputs": [
@@ -270,33 +243,6 @@ export const IntentRegistryABI = [
             "name": "failedAmount",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "compliance",
-            "type": "tuple",
-            "internalType": "struct IntentRegistry.ComplianceMetadata",
-            "components": [
-              {
-                "name": "entityIds",
-                "type": "string[]",
-                "internalType": "string[]"
-              },
-              {
-                "name": "jurisdictions",
-                "type": "uint8[]",
-                "internalType": "enum IntentRegistry.Jurisdiction[]"
-              },
-              {
-                "name": "categories",
-                "type": "uint8[]",
-                "internalType": "enum IntentRegistry.Category[]"
-              },
-              {
-                "name": "referenceId",
-                "type": "string",
-                "internalType": "string"
-              }
-            ]
           }
         ]
       }
@@ -508,33 +454,6 @@ export const IntentRegistryABI = [
         "name": "failedAmount",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "compliance",
-        "type": "tuple",
-        "internalType": "struct IntentRegistry.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
       }
     ],
     "stateMutability": "view"
@@ -657,34 +576,6 @@ export const IntentRegistryABI = [
         "type": "uint256[]",
         "indexed": false,
         "internalType": "uint256[]"
-      },
-      {
-        "name": "compliance",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct IntentRegistry.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum IntentRegistry.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
       }
     ],
     "anonymous": false
@@ -771,11 +662,6 @@ export const IntentRegistryABI = [
   },
   {
     "type": "error",
-    "name": "IntentRegistry__InvalidComplianceMetadata",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "IntentRegistry__InvalidDuration",
     "inputs": []
   },
@@ -824,5 +710,4 @@ export const IntentRegistryABI = [
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   }
-] as const
-
+] as const;

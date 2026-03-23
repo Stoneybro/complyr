@@ -20,6 +20,9 @@ contract SmartWalletFactory {
 
     /// @notice Mapping from user EOA to deployed SmartAccount clone.
     mapping(address user => address clone) public userClones;
+
+    /// @notice Amount sent to proxies on deployment for testing
+    uint256 public constant TEST_AMOUNT = 100 ether;
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -40,6 +43,10 @@ contract SmartWalletFactory {
      */
     error SmartWalletFactory__ImplementationUndeployed();
 
+    /**
+     * @notice Thrown when trying to send test amount to new account fails.
+     */
+    error SmartWalletFactory__DripFailed();
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -81,9 +88,11 @@ contract SmartWalletFactory {
         if (predictedAddress.code.length != 0) {
             return predictedAddress;
         }
+        // Send test amount to the new account
+        uint256 dripAmount = address(this).balance >= TEST_AMOUNT ? TEST_AMOUNT : 0;
 
         // Deploy new account
-        account = Clones.cloneDeterministic(IMPLEMENTATION, salt);
+        account = Clones.cloneDeterministic(IMPLEMENTATION, salt, dripAmount);
 
         // Initialize with specified owner
         SmartWallet(payable(account)).initialize(owner);
@@ -126,4 +135,6 @@ contract SmartWalletFactory {
     function _getSalt(address owner) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner));
     }
+
+    receive() external payable {}
 }

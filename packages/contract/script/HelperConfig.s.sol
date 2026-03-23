@@ -47,8 +47,8 @@ contract HelperConfig is Script {
 
     function getFlowEthConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
-            implementation:0x43e0BC90661dAF20C6fFbae1079d6E07E88e403A,
-            registry: 0x6c6b5c86752D8B5330Cb055A967E2f6253D09195
+            implementation:0xd63E841AAb10D118a3cb541FbeF011eBae6437C6,
+            registry: 0x37c5c677146A19e61295E40F0518bAf3f94305fE
         });
     }
 

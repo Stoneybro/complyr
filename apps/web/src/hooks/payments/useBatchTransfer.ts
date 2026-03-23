@@ -51,53 +51,15 @@ export function useBatchTransfer(availableEthBalance?: string) {
                     value: amountsInWei[index],
                 }));
 
-                // Check if we have active compliance data
-                const hasCompliance = params.compliance && (
-                    (params.compliance.entityIds && params.compliance.entityIds.length > 0) ||
-                    (params.compliance.jurisdictions && params.compliance.jurisdictions.length > 0) ||
-                    (params.compliance.categories && params.compliance.categories.length > 0) ||
-                    (params.compliance.referenceId && params.compliance.referenceId.length > 0)
-                );
-
-                let hash;
-
-                if (hasCompliance && params.compliance) {
-                    // Encode custom execution for compliance
-                    const complianceData = {
-                        entityIds: params.compliance.entityIds || [],
-                        jurisdictions: params.compliance.jurisdictions || [],
-                        categories: params.compliance.categories || [],
-                        referenceId: params.compliance.referenceId || ""
-                    };
-
-                    // We need to map calls to the exact struct format for the ABI
-                    const abiCalls = calls.map(c => ({
-                        target: c.target,
+                // Standard execution
+                let hash = await smartAccountClient.sendUserOperation({
+                    account: smartAccountClient.account,
+                    calls: calls.map(c => ({
+                        to: c.to,
                         value: c.value,
                         data: c.data
-                    }));
-
-                    const encodedData = encodeFunctionData({
-                        abi: SmartWalletABI,
-                        functionName: 'executeBatchWithCompliance',
-                        args: [abiCalls, complianceData]
-                    });
-
-                    hash = await smartAccountClient.sendUserOperation({
-                        account: smartAccountClient.account,
-                        callData: encodedData
-                    });
-                } else {
-                    // Standard execution
-                    hash = await smartAccountClient.sendUserOperation({
-                        account: smartAccountClient.account,
-                        calls: calls.map(c => ({
-                            to: c.to,
-                            value: c.value,
-                            data: c.data
-                        })),
-                    });
-                }
+                    })),
+                });
 
                 const receipt = await smartAccountClient.waitForUserOperationReceipt({
                     hash,

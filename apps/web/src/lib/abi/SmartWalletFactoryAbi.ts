@@ -1,4 +1,4 @@
-export const SmartWalletFactoryABI =[
+export const SmartWalletFactoryABI = [
   {
     "type": "constructor",
     "inputs": [
@@ -9,6 +9,36 @@ export const SmartWalletFactoryABI =[
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "IMPLEMENTATION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "TEST_AMOUNT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -58,19 +88,6 @@ export const SmartWalletFactoryABI =[
         "internalType": "address"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "implementation",
-    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -141,7 +158,12 @@ export const SmartWalletFactoryABI =[
   },
   {
     "type": "error",
+    "name": "SmartWalletFactory__DripFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "SmartWalletFactory__ImplementationUndeployed",
     "inputs": []
   }
-] as const
+] as const;

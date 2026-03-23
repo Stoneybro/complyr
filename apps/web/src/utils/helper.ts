@@ -20,7 +20,7 @@ export async function fetchWalletBalance(smartAccountAddress: `0x${string}`) {
   const committedFunds = await readContract({
     address: smartAccountAddress,
     abi: SmartWalletABI,
-    functionName: "s_committedFunds",
+    functionName: "sCommittedFunds",
     args: [zeroAddress],
   }) as bigint;
 

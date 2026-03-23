@@ -20,6 +20,19 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
+    "name": "INTENT_REGISTRY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "decreaseCommitment",
     "inputs": [
       {
@@ -135,33 +148,6 @@ export const SmartWalletABI = [
         "name": "revertOnFailure",
         "type": "bool",
         "internalType": "bool"
-      },
-      {
-        "name": "compliance",
-        "type": "tuple",
-        "internalType": "struct ISmartWallet.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
       }
     ],
     "outputs": [
@@ -172,113 +158,6 @@ export const SmartWalletABI = [
       }
     ],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "executeBatchWithCompliance",
-    "inputs": [
-      {
-        "name": "calls",
-        "type": "tuple[]",
-        "internalType": "struct SmartWallet.Call[]",
-        "components": [
-          {
-            "name": "target",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "value",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "data",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      },
-      {
-        "name": "compliance",
-        "type": "tuple",
-        "internalType": "struct ISmartWallet.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "executeWithCompliance",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "compliance",
-        "type": "tuple",
-        "internalType": "struct ISmartWallet.ComplianceMetadata",
-        "components": [
-          {
-            "name": "entityIds",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "jurisdictions",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Jurisdiction[]"
-          },
-          {
-            "name": "categories",
-            "type": "uint8[]",
-            "internalType": "enum ISmartWallet.Category[]"
-          },
-          {
-            "name": "referenceId",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -332,19 +211,6 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "intentRegistry",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "isValidSignature",
     "inputs": [
       {
@@ -369,7 +235,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "s_committedFunds",
+    "name": "sCommittedFunds",
     "inputs": [
       {
         "name": "",
@@ -388,7 +254,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "s_owner",
+    "name": "sOwner",
     "inputs": [],
     "outputs": [
       {
@@ -521,43 +387,6 @@ export const SmartWalletABI = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ComplianceExecuted",
-    "inputs": [
-      {
-        "name": "txType",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "entityIds",
-        "type": "string[]",
-        "indexed": false,
-        "internalType": "string[]"
-      },
-      {
-        "name": "jurisdictions",
-        "type": "uint8[]",
-        "indexed": false,
-        "internalType": "enum ISmartWallet.Jurisdiction[]"
-      },
-      {
-        "name": "categories",
-        "type": "uint8[]",
-        "indexed": false,
-        "internalType": "enum ISmartWallet.Category[]"
-      },
-      {
-        "name": "referenceId",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
       }
     ],
     "anonymous": false
@@ -813,6 +642,16 @@ export const SmartWalletABI = [
   },
   {
     "type": "error",
+    "name": "NotInitializing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "SmartWallet__InsufficientUncommittedFunds",
     "inputs": []
   },
@@ -871,15 +710,5 @@ export const SmartWalletABI = [
     "type": "error",
     "name": "SmartWallet__Unauthorized",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotInitializing",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ReentrancyGuardReentrantCall",
-    "inputs": []
   }
-] as const
+] as const;

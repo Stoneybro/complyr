@@ -1,2 +1,2 @@
-export const RegistryAddress="0x6c6b5c86752D8B5330Cb055A967E2f6253D09195"
-export const SmartWalletFactoryAddress="0x5D16F29E70e90ac48C7F4fb2c1145911a774eFbF"
+export const RegistryAddress="0x37c5c677146A19e61295E40F0518bAf3f94305fE"
+export const SmartWalletFactoryAddress="0x3a0D8422378310f6fc16916Bea39b453Bd10Ec0f"

@@ -40,56 +40,21 @@ export function useSingleTransfer(availableEthBalance?: string) {
 
                 const amountInWei = parseEther(params.amount);
 
-                // Check for compliance data (checking for meaningful data inside)
-                const hasCompliance = params.compliance && (
-                    (params.compliance.entityIds && params.compliance.entityIds.length > 0) ||
-                    (params.compliance.jurisdictions && params.compliance.jurisdictions.length > 0) ||
-                    (params.compliance.categories && params.compliance.categories.length > 0) ||
-                    (params.compliance.referenceId && params.compliance.referenceId.length > 0)
-                );
-
-                let hash;
-
-                if (hasCompliance && params.compliance) {
-                    const complianceData = {
-                        entityIds: params.compliance.entityIds || [],
-                        jurisdictions: params.compliance.jurisdictions || [],
-                        categories: params.compliance.categories || [],
-                        referenceId: params.compliance.referenceId || ""
-                    };
-
-                    const encodedData = encodeFunctionData({
-                        abi: SmartWalletABI,
-                        functionName: 'executeWithCompliance',
-                        args: [
-                            params.to,
-                            amountInWei,
-                            "0x", // data
-                            complianceData
-                        ]
-                    });
-
-                    hash = await smartAccountClient.sendUserOperation({
-                        account: smartAccountClient.account,
-                        callData: encodedData
-                    });
-                } else {
-                    hash = await smartAccountClient.sendUserOperation({
-                        account: smartAccountClient.account,
-                        calls: [
-                            {
-                                to: params.to,
-                                data: "0x",
-                                value: amountInWei,
-                            },
-                        ],
-                    });
-                }
+                let hash = await smartAccountClient.sendUserOperation({
+                    account: smartAccountClient.account,
+                    calls: [
+                        {
+                            to: params.to,
+                            data: "0x",
+                            value: amountInWei,
+                        },
+                    ],
+                });
 
                 const receipt = await smartAccountClient.waitForUserOperationReceipt({
                     hash,
                 });
-
+                console.log(receipt);
                 toast.success("FLOW transfer sent successfully!");
                 return receipt;
             } catch (error) {
