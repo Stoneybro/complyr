@@ -12,47 +12,6 @@ interface ISmartWallet {
                                 TYPES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Jurisdiction codes for compliance tracking
-    enum Jurisdiction {
-        NONE,
-        US_CA,
-        US_NY,
-        US_TX,
-        US_FL,
-        US_OTHER,
-        UK,
-        EU_DE,
-        EU_FR,
-        EU_OTHER,
-        NG,
-        SG,
-        AE,
-        OTHER
-    }
-
-    /// @notice Compliance categories for payment classification
-    enum Category {
-        NONE,
-        PAYROLL_W2,
-        PAYROLL_1099,
-        CONTRACTOR,
-        BONUS,
-        INVOICE,
-        VENDOR,
-        GRANT,
-        DIVIDEND,
-        REIMBURSEMENT,
-        OTHER
-    }
-
-    /// @notice Universal compliance metadata for jurisdiction-aware payment tracking
-    /// @dev All array fields MUST match recipients.length for batch/recurring payments
-    struct ComplianceMetadata {
-        string[] entityIds;
-        Jurisdiction[] jurisdictions;
-        Category[] categories;
-        string referenceId;
-    }
 
     /*//////////////////////////////////////////////////////////////
                                 FUNCTIONS
@@ -80,7 +39,6 @@ interface ISmartWallet {
      * @param intentId The unique identifier for the intent being executed.
      * @param transactionCount The current transaction number within the intent.
      * @param revertOnFailure Whether to revert entire transaction on any failure.
-     * @param compliance Compliance metadata for tracking.
      * @return failedAmount The total amount that failed to transfer (only in skip mode)
      */
     function executeBatchIntentTransfer(
@@ -89,8 +47,7 @@ interface ISmartWallet {
         uint256[] calldata amounts,
         bytes32 intentId,
         uint256 transactionCount,
-        bool revertOnFailure,
-        ComplianceMetadata calldata compliance
+        bool revertOnFailure
     ) external returns (uint256 failedAmount);
 
     /**

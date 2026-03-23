@@ -16,7 +16,7 @@ contract SmartWalletFactory {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Address of the ERC-1167 implementation used as implementation for new accounts.
-    address public immutable implementation;
+    address public immutable IMPLEMENTATION;
 
     /// @notice Mapping from user EOA to deployed SmartAccount clone.
     mapping(address user => address clone) public userClones;
@@ -53,7 +53,7 @@ contract SmartWalletFactory {
         if (_implementation.code.length == 0) {
             revert SmartWalletFactory__ImplementationUndeployed();
         }
-        implementation = _implementation;
+        IMPLEMENTATION = _implementation;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -75,7 +75,7 @@ contract SmartWalletFactory {
      */
     function createSmartAccount(address owner) public returns (address account) {
         bytes32 salt = _getSalt(owner);
-        address predictedAddress = Clones.predictDeterministicAddress(implementation, salt, address(this));
+        address predictedAddress = Clones.predictDeterministicAddress(IMPLEMENTATION, salt, address(this));
 
         // Return existing account if already deployed
         if (predictedAddress.code.length != 0) {
@@ -83,7 +83,7 @@ contract SmartWalletFactory {
         }
 
         // Deploy new account
-        account = Clones.cloneDeterministic(implementation, salt);
+        account = Clones.cloneDeterministic(IMPLEMENTATION, salt);
 
         // Initialize with specified owner
         SmartWallet(payable(account)).initialize(owner);
@@ -102,7 +102,7 @@ contract SmartWalletFactory {
      */
     function getPredictedAddress(address owner) external view returns (address) {
         bytes32 salt = _getSalt(owner);
-        return Clones.predictDeterministicAddress(implementation, salt, address(this));
+        return Clones.predictDeterministicAddress(IMPLEMENTATION, salt, address(this));
     }
 
     /**

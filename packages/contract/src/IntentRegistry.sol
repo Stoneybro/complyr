@@ -17,59 +17,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                 TYPES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Jurisdiction codes for compliance tracking
-    /// @dev Add new jurisdictions as needed (requires contract upgrade)
-    enum Jurisdiction {
-        NONE, // 0 - Not specified
-        US_CA, // 1 - United States - California
-        US_NY, // 2 - United States - New York
-        US_TX, // 3 - United States - Texas
-        US_FL, // 4 - United States - Florida
-        US_OTHER, // 5 - United States - Other
-        UK, // 6 - United Kingdom
-        EU_DE, // 7 - Germany
-        EU_FR, // 8 - France
-        EU_OTHER, // 9 - Other EU
-        NG, // 10 - Nigeria
-        SG, // 11 - Singapore
-        AE, // 12 - UAE
-        OTHER // 13 - Other
-    }
-
-    /// @notice Compliance categories for payment classification
-    /// @dev Add new categories as needed (requires contract upgrade)
-    enum Category {
-        NONE, // 0 - Not specified
-        PAYROLL_W2, // 1 - W2 Employee Payroll
-        PAYROLL_1099, // 2 - 1099 Contractor Payroll
-        CONTRACTOR, // 3 - General Contractor
-        BONUS, // 4 - Bonus Payment
-        INVOICE, // 5 - Invoice Payment
-        VENDOR, // 6 - Vendor Payment
-        GRANT, // 7 - Grant/Funding
-        DIVIDEND, // 8 - Dividend Distribution
-        REIMBURSEMENT, // 9 - Expense Reimbursement
-        OTHER // 10 - Other
-    }
-
-    /// @notice Universal compliance metadata for jurisdiction-aware payment tracking
-    /// @dev All array fields MUST match recipients.length for batch/recurring payments
-    struct ComplianceMetadata {
-        /// @notice Per-recipient identifiers (employee ID, vendor ID, customer ID, etc.)
-        /// @dev Length MUST match recipients.length for intents, or be empty for non-compliant
-        string[] entityIds;
-        /// @notice Per-recipient jurisdiction codes
-        /// @dev Length MUST match recipients.length for intents, or be empty for non-compliant
-        Jurisdiction[] jurisdictions;
-        /// @notice Per-recipient compliance categories
-        /// @dev Length MUST match recipients.length for intents, or be empty for non-compliant
-        Category[] categories;
-        /// @notice Shared reference identifier (e.g., "2025-01", "INV-001", "PO-123")
-        /// @dev This is shared across all recipients in the payment (pay period, invoice batch, etc.)
-        string referenceId;
-    }
-
     struct Intent {
         /// @notice The unique identifier for this intent
         bytes32 id;
@@ -101,8 +48,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         bool revertOnFailure;
         /// @notice Total amount that failed to transfer (for recovery)
         uint256 failedAmount;
-        /// @notice Universal compliance metadata (empty for non-compliant transactions)
-        ComplianceMetadata compliance;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -153,8 +98,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         uint256 transactionStartTime,
         uint256 transactionEndTime,
         address[] recipients,
-        uint256[] amounts,
-        ComplianceMetadata compliance
+        uint256[] amounts
     );
 
     /// @notice The event emitted when an intent is executed
@@ -224,9 +168,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
     /// @notice Thrown when intent not found for wallet
     error IntentRegistry__IntentNotFound();
 
-    /// @notice Thrown when compliance metadata is invalid (e.g., entityIds length mismatch)
-    error IntentRegistry__InvalidComplianceMetadata();
-
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -234,7 +175,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
     /**
      * @notice Creates a new multi-recipient intent for the sender/wallet
      *
-     * @param token The token address (address(0) for ETH, PYUSD address for PYUSD, other ERC20 addresses supported)
+     * @param token The token address
      * @param name The name of the intent
      * @param recipients The array of recipient addresses
      * @param amounts The array of amounts corresponding to each recipient
@@ -242,8 +183,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
      * @param interval The interval between transactions in seconds
      * @param transactionStartTime The start time of the transaction (0 for immediate start)
      * @param revertOnFailure Whether to revert entire transaction on any failure (true) or skip failed transfers (false)
-     * @param complianceData Universal compliance metadata (pass empty for non-compliant transactions)
-     *
      * @return intentId The unique identifier for the created intent
      */
     function createIntent(
@@ -254,8 +193,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         uint256 duration,
         uint256 interval,
         uint256 transactionStartTime,
-        bool revertOnFailure,
-        ComplianceMetadata memory complianceData
+        bool revertOnFailure
     ) external returns (bytes32) {
         address wallet = msg.sender;
 
@@ -284,11 +222,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         ///@notice Validate start time is not in the past (unless it's 0 for immediate start)
         if (transactionStartTime != 0 && transactionStartTime < block.timestamp) {
             revert IntentRegistry__StartTimeInPast();
-        }
-
-        ///@notice Validate compliance metadata: entityIds length must match recipients if provided
-        if (complianceData.entityIds.length > 0 && complianceData.entityIds.length != recipients.length) {
-            revert IntentRegistry__InvalidComplianceMetadata();
         }
 
         ///@notice Calculate total amount per execution and validate each recipient/amount
@@ -335,8 +268,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
             latestTransactionTime: 0,
             active: true,
             revertOnFailure: revertOnFailure,
-            failedAmount: 0,
-            compliance: complianceData
+            failedAmount: 0
         });
 
         ///@notice Update the wallet's committed funds for this token
@@ -358,8 +290,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
             actualStartTime,
             actualEndTime,
             recipients,
-            amounts,
-            complianceData
+            amounts
         );
         return intentId;
     }
@@ -502,8 +433,7 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
                 intent.amounts,
                 intentId,
                 currentTransactionCount,
-                intent.revertOnFailure,
-                _convertCompliance(intent.compliance)
+                intent.revertOnFailure
             );
 
         ///@notice Track failed amounts for recovery
@@ -512,37 +442,6 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         }
 
         emit IntentExecuted(wallet, intentId, intent.name, currentTransactionCount, totalAmount);
-    }
-
-    /**
-     * @notice Converts local ComplianceMetadata to interface format
-     * @dev Required because Solidity doesn't allow direct struct conversion between contracts
-     * @param local The local ComplianceMetadata struct
-     * @return The interface-compatible ComplianceMetadata struct
-     */
-    function _convertCompliance(ComplianceMetadata storage local)
-        internal
-        view
-        returns (ISmartWallet.ComplianceMetadata memory)
-    {
-        // Convert local enums to interface enums (same values, different types)
-        ISmartWallet.Jurisdiction[] memory jurisdictions =
-            new ISmartWallet.Jurisdiction[](local.jurisdictions.length);
-        for (uint256 i = 0; i < local.jurisdictions.length; i++) {
-            jurisdictions[i] = ISmartWallet.Jurisdiction(uint8(local.jurisdictions[i]));
-        }
-
-        ISmartWallet.Category[] memory categories = new ISmartWallet.Category[](local.categories.length);
-        for (uint256 i = 0; i < local.categories.length; i++) {
-            categories[i] = ISmartWallet.Category(uint8(local.categories[i]));
-        }
-
-        return ISmartWallet.ComplianceMetadata({
-            entityIds: local.entityIds,
-            jurisdictions: jurisdictions,
-            categories: categories,
-            referenceId: local.referenceId
-        });
     }
 
     /**

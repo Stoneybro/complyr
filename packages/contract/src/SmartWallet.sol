@@ -40,14 +40,14 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Account owner address. Signer of UserOperations.
-    address public s_owner;
+    address public sOwner;
 
     /// @notice Intent registry authorized to trigger scheduled transfers.
-    address public immutable intentRegistry;
+    address public immutable INTENT_REGISTRY;
 
     /// @notice Amount of funds committed to intents per token (locked)
     /// @dev address(0) represents ETH, other addresses represent ERC20 tokens
-    mapping(address => uint256) public s_committedFunds;
+    mapping(address => uint256) public sCommittedFunds;
 
     /// @notice EIP-1271 magic return value for valid signatures.
     bytes4 internal constant _EIP1271_MAGICVALUE = 0x1626ba7e;
@@ -77,14 +77,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Emitted when a batch execute is performed
     event ExecutedBatch(uint256 indexed batchSize, uint256 totalValue);
 
-    /// @notice Emitted when a transaction includes compliance metadata
-    event ComplianceExecuted(
-        bytes32 indexed txType,
-        string[] entityIds,
-        ISmartWallet.Jurisdiction[] jurisdictions,
-        ISmartWallet.Category[] categories,
-        string referenceId
-    );
+
 
     /// @notice The event emitted when a wallet action is performed
     event WalletAction(
@@ -160,7 +153,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
 
     /// @notice Reverts if the caller is neither the EntryPoint nor the owner.
     modifier onlyEntryPointOrOwner() {
-        if (msg.sender != entryPoint() && msg.sender != s_owner) {
+        if (msg.sender != entryPoint() && msg.sender != sOwner) {
             revert SmartWallet__Unauthorized();
         }
         _;
@@ -168,7 +161,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
 
     /// @notice Reverts if the caller is not the registry.
     modifier onlyRegistry() {
-        if (msg.sender != intentRegistry) {
+        if (msg.sender != INTENT_REGISTRY) {
             revert SmartWallet__NotFromRegistry();
         }
         _;
@@ -203,7 +196,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Constructor prevents initialization of implementation contract.
     constructor(address registry) {
         if (registry == address(0)) revert SmartWallet__IntentRegistryZeroAddress();
-        intentRegistry = registry;
+        INTENT_REGISTRY = registry;
         _disableInitializers();
     }
 
@@ -216,7 +209,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      */
     function initialize(address _owner) external initializer {
         if (_owner == address(0)) revert SmartWallet__OwnerIsZeroAddress();
-        s_owner = _owner;
+        sOwner = _owner;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -255,7 +248,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             return _packValidationData(true, 0, 0);
         }
 
-        if (signer != s_owner) {
+        if (signer != sOwner) {
             return _packValidationData(true, 0, 0);
         }
 
@@ -269,8 +262,8 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      * @param amount The amount to add to committed funds.
      */
     function increaseCommitment(address token, uint256 amount) external onlyRegistry {
-        s_committedFunds[token] += amount;
-        emit CommitmentIncreased(token, amount, s_committedFunds[token]);
+        sCommittedFunds[token] += amount;
+        emit CommitmentIncreased(token, amount, sCommittedFunds[token]);
     }
 
     /**
@@ -280,11 +273,11 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      * @param amount The amount to subtract from committed funds.
      */
     function decreaseCommitment(address token, uint256 amount) external onlyRegistry {
-        if (amount > s_committedFunds[token]) {
+        if (amount > sCommittedFunds[token]) {
             revert SmartWallet__InvalidCommitmentDecrease();
         }
-        s_committedFunds[token] -= amount;
-        emit CommitmentDecreased(token, amount, s_committedFunds[token]);
+        sCommittedFunds[token] -= amount;
+        emit CommitmentDecreased(token, amount, sCommittedFunds[token]);
     }
 
     /**
@@ -317,23 +310,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      * @param target The address to call.
      * @param value  The value to send with the call.
      * @param data   The data of the call.
-     * @param compliance Compliance metadata for tracking.
      */
-    function executeWithCompliance(
-        address target,
-        uint256 value,
-        bytes calldata data,
-        ISmartWallet.ComplianceMetadata calldata compliance
-    ) external payable nonReentrant onlyEntryPointOrOwner {
-        _checkCommitment(address(0), value);
-        bytes4 selector = data.length >= 4 ? bytes4(data[:4]) : bytes4(0);
-        _call(target, value, data);
-        emit WalletAction(msg.sender, target, value, selector, true, "EXECUTE");
-        emit Executed(target, value, data);
-        emit ComplianceExecuted(
-            "SINGLE", compliance.entityIds, compliance.jurisdictions, compliance.categories, compliance.referenceId
-        );
-    }
 
     /**
      * @notice Executes a batch of calls from this account.
@@ -358,35 +335,6 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         emit ExecutedBatch(calls.length, totalValue);
     }
 
-    /**
-     * @notice Executes a batch of calls with compliance metadata.
-     * @dev Can only be called by the EntryPoint or the owner of this account.
-     * @param calls The list of `Call`s to execute.
-     * @param compliance Compliance metadata for tracking.
-     */
-    function executeBatchWithCompliance(Call[] calldata calls, ISmartWallet.ComplianceMetadata calldata compliance)
-        external
-        payable
-        nonReentrant
-        onlyEntryPointOrOwner
-    {
-        uint256 totalValue = 0;
-        for (uint256 i; i < calls.length; i++) {
-            totalValue += calls[i].value;
-        }
-
-        _checkCommitment(address(0), totalValue);
-
-        for (uint256 i; i < calls.length; i++) {
-            bytes4 selector = calls[i].data.length >= 4 ? bytes4(calls[i].data[:4]) : bytes4(0);
-            _call(calls[i].target, calls[i].value, calls[i].data);
-            emit WalletAction(msg.sender, calls[i].target, calls[i].value, selector, true, "BATCH");
-        }
-        emit ExecutedBatch(calls.length, totalValue);
-        emit ComplianceExecuted(
-            "BATCH", compliance.entityIds, compliance.jurisdictions, compliance.categories, compliance.referenceId
-        );
-    }
 
     /**
      * @notice Executes a batch of transfers as part of an intent.
@@ -397,7 +345,6 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      * @param intentId The unique identifier for the intent being executed.
      * @param transactionCount The current transaction number within the intent.
      * @param revertOnFailure Whether to revert entire transaction on any failure (true) or skip failed transfers (false).
-     * @param compliance Compliance metadata for tracking.
      *
      * @return failedAmount The total amount that failed to transfer (only in skip mode)
      */
@@ -407,8 +354,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         uint256[] calldata amounts,
         bytes32 intentId,
         uint256 transactionCount,
-        bool revertOnFailure,
-        ISmartWallet.ComplianceMetadata calldata compliance
+        bool revertOnFailure
     ) external nonReentrant onlyRegistry returns (uint256 failedAmount) {
         if (recipients.length == 0 || recipients.length != amounts.length) {
             revert SmartWallet__InvalidBatchInput();
@@ -456,13 +402,6 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
 
         emit IntentBatchTransferExecuted(intentId, transactionCount, token, recipients.length, totalValue, totalFailed);
 
-        // Emit compliance event if categories are provided
-        if (compliance.categories.length > 0) {
-            emit ComplianceExecuted(
-                "INTENT", compliance.entityIds, compliance.jurisdictions, compliance.categories, compliance.referenceId
-            );
-        }
-
         return totalFailed;
     }
 
@@ -476,10 +415,10 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     function getAvailableBalance(address token) external view returns (uint256) {
         if (token == address(0)) {
             // ETH balance
-            return address(this).balance - s_committedFunds[address(0)];
+            return address(this).balance - sCommittedFunds[address(0)];
         } else {
             // ERC20 token balance
-            return IERC20(token).balanceOf(address(this)) - s_committedFunds[token];
+            return IERC20(token).balanceOf(address(this)) - sCommittedFunds[token];
         }
     }
 
@@ -505,7 +444,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
         address recovered = ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(hash), signature);
 
-        if (recovered == s_owner) {
+        if (recovered == sOwner) {
             return _EIP1271_MAGICVALUE;
         }
 
@@ -522,9 +461,9 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         if (value > 0) {
             uint256 availableBalance;
             if (token == address(0)) {
-                availableBalance = address(this).balance - s_committedFunds[address(0)];
+                availableBalance = address(this).balance - sCommittedFunds[address(0)];
             } else {
-                availableBalance = IERC20(token).balanceOf(address(this)) - s_committedFunds[token];
+                availableBalance = IERC20(token).balanceOf(address(this)) - sCommittedFunds[token];
             }
 
             if (value > availableBalance) {
