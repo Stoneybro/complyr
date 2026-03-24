@@ -44,7 +44,7 @@ export default function Page() {
         <header className="bg-background sticky top-0 flex shrink-0 items-center gap-2 border-b p-4 z-20">
           <SidebarTrigger className="-ml-1" />
           <div className="flex justify-center w-full mr-4">
-            <Image src="/complyr.svg" alt="Complyr" width={120} height={32} className="h-8 w-auto" />
+            <Image src="/complyrlogo.svg" alt="Complyr" width={120} height={32} className="h-8 w-auto" />
           </div>
         </header>
         <div className="flex  flex-1 flex-col gap-4 p-4">

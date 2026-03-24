@@ -4,6 +4,8 @@
 
 **Confidential audit infrastructure for onchain business finance.**
 
+<img src="./apps/web/public/complyrlogo.svg" alt="Complyr Logo" width="200"/>
+
 [Live Demo](https://usecomplyr.vercel.app)
 
 ---

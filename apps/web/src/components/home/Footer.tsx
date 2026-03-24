@@ -1,11 +1,14 @@
+import Link from 'next/link';
+import Image from 'next/image';
+
 export default function Footer() {
   return (
     <footer className="py-16 px-6 lg:px-8 border-t border-gray-200">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-12 gap-12 mb-12">
-          <div className="md:col-span-4">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">complyr</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+          <div className="col-span-1 md:col-span-2">
+            <Image src="/complyrlogo.svg" alt="Complyr" width={120} height={32} className="h-8 w-auto mb-4" />
+            <p className="text-sm text-gray-600 max-w-xs leading-relaxed">
               Private, compliant, automated payroll for global teams — built on Flow EVM and Zama fhEVM.
             </p>
           </div>
