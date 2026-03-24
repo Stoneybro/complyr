@@ -4,6 +4,10 @@ pragma solidity ^0.8.19;
 import {SmartWallet} from "./SmartWallet.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
+interface IComplianceBridge {
+    function registerCompanyOnZama(address proxyAccount, address masterEOA, bytes calldata _options) external payable;
+}
+
 /**
  * @title Smart Wallet Factory
  * @author stoneybro
@@ -17,6 +21,9 @@ contract SmartWalletFactory {
 
     /// @notice Address of the ERC-1167 implementation used as implementation for new accounts.
     address public immutable IMPLEMENTATION;
+
+    /// @notice Address of the LayerZero ComplianceBridge for auto-registration
+    address public complianceBridge;
 
     /// @notice Mapping from user EOA to deployed SmartAccount clone.
     mapping(address user => address clone) public userClones;
@@ -47,6 +54,7 @@ contract SmartWalletFactory {
      * @notice Thrown when trying to send test amount to new account fails.
      */
     error SmartWalletFactory__DripFailed();
+
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -56,11 +64,12 @@ contract SmartWalletFactory {
      *
      * @param _implementation The address of the SmartWallet implementation which new accounts will proxy to.
      */
-    constructor(address _implementation) {
+    constructor(address _implementation, address _complianceBridge) {
         if (_implementation.code.length == 0) {
             revert SmartWalletFactory__ImplementationUndeployed();
         }
         IMPLEMENTATION = _implementation;
+        complianceBridge = _complianceBridge;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -80,7 +89,7 @@ contract SmartWalletFactory {
      * @return account The address of the ERC-1167 proxy created for `owner`, or the existing
      *                 account address if already deployed.
      */
-    function createSmartAccount(address owner) public returns (address account) {
+    function createSmartAccount(address owner) public payable returns (address account) {
         bytes32 salt = _getSalt(owner);
         address predictedAddress = Clones.predictDeterministicAddress(IMPLEMENTATION, salt, address(this));
 
@@ -99,6 +108,12 @@ contract SmartWalletFactory {
 
         // Record mapping and emit after successful initialize
         userClones[owner] = account;
+
+        // Auto-Register the company on Zama Sepolia if bridge exists and msg.value is passed
+        if (complianceBridge != address(0) && msg.value > 0) {
+            IComplianceBridge(complianceBridge).registerCompanyOnZama{value: msg.value}(account, owner, "");
+        }
+
         emit AccountCreated(account, owner);
     }
 

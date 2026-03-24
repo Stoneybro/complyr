@@ -354,13 +354,20 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         uint256[] calldata amounts,
         bytes32 intentId,
         uint256 transactionCount,
-        bool revertOnFailure
+        bool revertOnFailure,
+        uint256 bridgeFee
     ) external nonReentrant onlyRegistry returns (uint256 failedAmount) {
         if (recipients.length == 0 || recipients.length != amounts.length) {
             revert SmartWallet__InvalidBatchInput();
         }
         uint256 totalValue = 0;
         uint256 totalFailed = 0;
+
+        if (bridgeFee > 0) {
+            _checkCommitment(address(0), bridgeFee);
+            (bool feeSuccess,) = msg.sender.call{value: bridgeFee}("");
+            if (!feeSuccess) revert SmartWallet__TransferFailed(msg.sender, address(0), bridgeFee);
+        }
 
         for (uint256 i; i < recipients.length; i++) {
             address recipient = recipients[i];

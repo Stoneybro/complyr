@@ -9,6 +9,7 @@ contract HelperConfig is Script {
     struct NetworkConfig {
         address implementation;
         address registry;
+        address complianceBridge;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -47,8 +48,9 @@ contract HelperConfig is Script {
 
     function getFlowEthConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
-            implementation:0xd63E841AAb10D118a3cb541FbeF011eBae6437C6,
-            registry: 0x37c5c677146A19e61295E40F0518bAf3f94305fE
+            implementation: 0xd63E841AAb10D118a3cb541FbeF011eBae6437C6,
+            registry: 0x37c5c677146A19e61295E40F0518bAf3f94305fE,
+            complianceBridge: address(0) // Default to 0, update when deployed
         });
     }
 
@@ -57,7 +59,7 @@ contract HelperConfig is Script {
             return localNetwork;
         }
 
-        localNetwork = NetworkConfig({implementation: address(0), registry: address(0)});
+        localNetwork = NetworkConfig({implementation: address(0), registry: address(0), complianceBridge: address(0)});
 
         return localNetwork;
     }

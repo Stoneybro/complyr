@@ -38,7 +38,9 @@ interface ISmartWallet {
      * @param amounts The array of amounts corresponding to each recipient.
      * @param intentId The unique identifier for the intent being executed.
      * @param transactionCount The current transaction number within the intent.
+     * @param transactionCount The current transaction number within the intent.
      * @param revertOnFailure Whether to revert entire transaction on any failure.
+     * @param bridgeFee The fee forwarded to the IntentRegistry for Zama pre-encrypted messaging payloads.
      * @return failedAmount The total amount that failed to transfer (only in skip mode)
      */
     function executeBatchIntentTransfer(
@@ -47,7 +49,8 @@ interface ISmartWallet {
         uint256[] calldata amounts,
         bytes32 intentId,
         uint256 transactionCount,
-        bool revertOnFailure
+        bool revertOnFailure,
+        uint256 bridgeFee
     ) external returns (uint256 failedAmount);
 
     /**

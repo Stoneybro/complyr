@@ -10,10 +10,10 @@ dist/
 build/
 
 # Foundry
-packages/contract/cache/
-packages/contract/out/
-packages/contract/lib/
-packages/contract/broadcast/
+packages/*/cache/
+packages/*/out/
+packages/*/lib/
+packages/*/broadcast/
 
 # Environment
 .env

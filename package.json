@@ -6,9 +6,16 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
-    "forge:build": "pnpm --filter contract build",
-    "forge:test": "pnpm --filter contract test",
+    "forge:build": "pnpm --filter contracts-flow build",
+    "forge:test": "pnpm --filter contracts-flow test",
     "clean": "pnpm -r run clean"
   },
-  "packageManager": "pnpm@10.30.3"
+  "packageManager": "pnpm@10.30.3",
+  "dependencies": {
+    "@layerzerolabs/lz-evm-messagelib-v2": "^3.0.167",
+    "@layerzerolabs/lz-evm-oapp-v2": "^3.0.167",
+    "@layerzerolabs/lz-evm-protocol-v2": "^3.0.167",
+    "@layerzerolabs/oapp-evm": "^0.4.1",
+    "solidity-bytes-utils": "^0.8.4"
+  }
 }

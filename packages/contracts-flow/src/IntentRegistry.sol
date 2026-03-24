@@ -13,6 +13,27 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Integrates with Chainlink Automation for decentralized intent execution. Supports ETH and ERC20 tokens.
  * @custom:security-contact stoneybrocrypto@gmail.com
  */
+
+interface IComplianceBridge {
+    struct ComplianceReport {
+        bytes32 flowTxHash;
+        address proxyAccount;
+        address[] recipients;
+        uint256[] amounts;
+        bytes32 categoryHandle;
+        bytes categoryProof;
+        bytes32 jurisdictionHandle;
+        bytes jurisdictionProof;
+    }
+
+    struct MessagingFee {
+        uint256 nativeFee;
+        uint256 lzTokenFee;
+    }
+
+    function quoteComplianceCheck(ComplianceReport calldata report, bytes calldata _options) external view returns (MessagingFee memory fee);
+    function sendComplianceReport(ComplianceReport calldata report, bytes calldata _options) external payable;
+}
 contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                 TYPES
@@ -48,11 +69,25 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         bool revertOnFailure;
         /// @notice Total amount that failed to transfer (for recovery)
         uint256 failedAmount;
+        /// @notice Cross-chain Zama category ciphertext
+        bytes32 categoryHandle;
+        /// @notice Cross-chain Zama category proof
+        bytes categoryProof;
+        /// @notice Cross-chain Zama jurisdiction ciphertext
+        bytes32 jurisdictionHandle;
+        /// @notice Cross-chain Zama jurisdiction proof
+        bytes jurisdictionProof;
     }
 
     /*//////////////////////////////////////////////////////////////
                            STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice The owner for admin functions
+    address public owner;
+
+    /// @notice Address of the ComplianceBridge for logging
+    address public complianceBridge;
 
     /// @notice The list of registered wallets
     address[] public registeredWallets;
@@ -169,6 +204,22 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
     error IntentRegistry__IntentNotFound();
 
     /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function setComplianceBridge(address _bridge) external {
+        if (msg.sender != owner) revert IntentRegistry__Unauthorized();
+        complianceBridge = _bridge;
+    }
+
+    /// @notice Receive native fees from proxy accounts to forward to LayerZero
+    receive() external payable {}
+
+    /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -193,7 +244,11 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         uint256 duration,
         uint256 interval,
         uint256 transactionStartTime,
-        bool revertOnFailure
+        bool revertOnFailure,
+        bytes32 categoryHandle,
+        bytes calldata categoryProof,
+        bytes32 jurisdictionHandle,
+        bytes calldata jurisdictionProof
     ) external returns (bytes32) {
         address wallet = msg.sender;
 
@@ -268,7 +323,11 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
             latestTransactionTime: 0,
             active: true,
             revertOnFailure: revertOnFailure,
-            failedAmount: 0
+            failedAmount: 0,
+            categoryHandle: categoryHandle,
+            categoryProof: categoryProof,
+            jurisdictionHandle: jurisdictionHandle,
+            jurisdictionProof: jurisdictionProof
         });
 
         ///@notice Update the wallet's committed funds for this token
@@ -425,6 +484,26 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
         walletCommittedFunds[wallet][intent.token] -= totalAmount;
         ISmartWallet(wallet).decreaseCommitment(intent.token, totalAmount);
 
+        ///@notice Quote the required bridging fee for compliance logging
+        uint256 bridgeFee = 0;
+        IComplianceBridge.ComplianceReport memory report;
+
+        if (complianceBridge != address(0)) {
+            report = IComplianceBridge.ComplianceReport({
+                flowTxHash: keccak256(abi.encode(intentId, currentTransactionCount)),
+                proxyAccount: wallet,
+                recipients: intent.recipients,
+                amounts: intent.amounts,
+                categoryHandle: intent.categoryHandle,
+                categoryProof: intent.categoryProof,
+                jurisdictionHandle: intent.jurisdictionHandle,
+                jurisdictionProof: intent.jurisdictionProof
+            });
+
+            IComplianceBridge.MessagingFee memory msgFee = IComplianceBridge(complianceBridge).quoteComplianceCheck(report, "");
+            bridgeFee = msgFee.nativeFee;
+        }
+
         ///@notice Execute the batch intent transfer with token, intentId and transaction count
         uint256 failedAmount = ISmartWallet(wallet)
             .executeBatchIntentTransfer(
@@ -433,8 +512,14 @@ contract IntentRegistry is AutomationCompatibleInterface, ReentrancyGuard {
                 intent.amounts,
                 intentId,
                 currentTransactionCount,
-                intent.revertOnFailure
+                intent.revertOnFailure,
+                bridgeFee
             );
+
+        ///@notice Forward the compliance payload via LayerZero natively using the withdrawn fee
+        if (bridgeFee > 0) {
+            IComplianceBridge(complianceBridge).sendComplianceReport{value: bridgeFee}(report, "");
+        }
 
         ///@notice Track failed amounts for recovery
         if (failedAmount > 0) {

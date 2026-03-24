@@ -10,7 +10,7 @@ contract DeploySmartWalletFactory is Script {
         HelperConfig helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory networkConfig = helperConfig.getConfig();
         vm.startBroadcast();
-        SmartWalletFactory factory = new SmartWalletFactory(networkConfig.implementation);
+        SmartWalletFactory factory = new SmartWalletFactory(networkConfig.implementation, networkConfig.complianceBridge);
         vm.stopBroadcast();
         console.log("Factory deployed to: ", address(factory));
         console.log("Implementation: ", networkConfig.implementation);
