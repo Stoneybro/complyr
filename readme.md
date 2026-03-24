@@ -34,6 +34,8 @@ Complyr transforms a smart wallet into a compliant corporate finance instrument 
 
 ## System architecture
 
+<img width="1410" height="1078" alt="image" src="https://github.com/user-attachments/assets/263987a8-ab92-40fa-9dbc-8f1f6de1c31e" />
+
 The overall system spans three layers:---
 
 ## Smart contract layer — Flow EVM
@@ -65,6 +67,9 @@ The bridge is trustless by design. LayerZero does not discard failed messages �
 ---
 
 ## Confidential record layer — Zama Sepolia
+
+<img width="1410" height="830" alt="image" src="https://github.com/user-attachments/assets/7256c3f8-2b5d-474f-bfd6-7c3c0513532c" />
+
 
 The Zama layer is responsible for storing compliance records in a form that is auditable but not publicly readable. It uses Fully Homomorphic Encryption to keep sensitive business metadata encrypted at all times, including during on-chain computation.
 
