@@ -19,5 +19,16 @@
     "solidity-bytes-utils": "^0.8.4"
   },
   "devDependencies": {
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "@reown/appkit",
+      "bigint-buffer",
+      "bufferutil",
+      "keccak",
+      "utf-8-validate"
+    ]
   }
 }
