@@ -19,6 +19,5 @@
     "solidity-bytes-utils": "^0.8.4"
   },
   "devDependencies": {
-    "next": "16.1.1"
   }
 }
