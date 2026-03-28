@@ -1,3 +1,6 @@
 [submodule "skandha"]
 	path = skandha
 	url = https://github.com/Stoneybro/complyr-bundler
+[submodule "packages/contracts-zama/lib/forge-fhevm"]
+	path = packages/contracts-zama/lib/forge-fhevm
+	url = https://github.com/zama-ai/forge-fhevm
