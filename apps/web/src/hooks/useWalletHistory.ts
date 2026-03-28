@@ -143,8 +143,8 @@ export const useWalletHistory = (walletAddress?: string) => {
 
             return data.Wallet?.[0] || null;
         },
-        enabled: false, // !!walletAddress, // Temporarily disabled to prevent incessant calls
-        refetchInterval: false, // 10000,
+        enabled: !!walletAddress,
+        refetchInterval: 10000,
     });
 
     const transactions = useMemo(() => {
