@@ -2,12 +2,12 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { encodeFunctionData, parseEther } from "viem";
+import { encodeFunctionData, parseEther, bytesToHex } from "viem";
 import { IntentRegistryABI } from "@/lib/abi/IntentRegistryABI";
 import { RegistryAddress } from "@/lib/CA";
 import { RecurringPaymentParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { useZamaWorker } from "../useZamaWorker";
+import { getFhevmInstance } from "@/lib/fhevm";
 
 const ZAMA_CONTRACT_ADDRESS = "0x722aD9117477Ad4Cb345F1419bd60FAFEACAfB00";
 
@@ -16,7 +16,6 @@ export function useRecurringPayment(availableEthBalance?: string) {
     const { wallets } = useWallets();
     const owner = wallets?.find((wallet) => wallet.walletClientType === "privy");
     const queryClient = useQueryClient();
-    const { encryptBatch } = useZamaWorker();
 
     return useMutation({
         mutationFn: async (params: RecurringPaymentParams) => {
@@ -38,23 +37,40 @@ export function useRecurringPayment(availableEthBalance?: string) {
                 const amountsInWei = params.amounts.map((amount) => parseEther(amount));
                 const proxyAddress = smartAccountClient.account!.address;
 
-                // 1. Client-side FHEVM Web Worker Encryption
+                // 1. Client-side Next/Dynamic FHEVM Encryption (SSR-safe)
                 let encryptedData = null;
                 const hasComplianceData = params.compliance && (params.compliance.categories?.length || params.compliance.jurisdictions?.length);
 
                 if (hasComplianceData) {
                     const loadingId = toast.loading("Encrypting recurring compliance rules locally (fhEVM)...");
                     try {
-                        encryptedData = await encryptBatch({
-                            contractAddress: ZAMA_CONTRACT_ADDRESS,
-                            userAddress: owner.address,
-                            recipients: params.recipients,
-                            compliance: params.compliance,
-                        });
+                        const fhevm = await getFhevmInstance();
+                        const categories = params.compliance?.categories || [];
+                        const jurisdictions = params.compliance?.jurisdictions || [];
+
+                        const handles: { categories: string[], jurisdictions: string[] } = { categories: [], jurisdictions: [] };
+                        const proofs: { categories: string[], jurisdictions: string[] } = { categories: [], jurisdictions: [] };
+
+                        for (let i = 0; i < params.recipients.length; i++) {
+                            const catInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                            catInput.add8(categories[i] !== undefined ? categories[i] : 0);
+                            const catEnc = await catInput.encrypt();
+                            handles.categories.push(bytesToHex(catEnc.handles[0]));
+                            proofs.categories.push(bytesToHex(catEnc.inputProof));
+
+                            const jurInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                            jurInput.add8(jurisdictions[i] !== undefined ? jurisdictions[i] : 0);
+                            const jurEnc = await jurInput.encrypt();
+                            handles.jurisdictions.push(bytesToHex(jurEnc.handles[0]));
+                            proofs.jurisdictions.push(bytesToHex(jurEnc.inputProof));
+                        }
+
+                        encryptedData = { handles, proofs };
                         toast.dismiss(loadingId);
                     } catch (e) {
+                        console.error(e);
                         toast.dismiss(loadingId);
-                        throw new Error("Failed to encrypt compliance parameters. Wait for worker initialization.");
+                        throw new Error("Failed to encrypt compliance parameters. Check network connections.");
                     }
                 }
 

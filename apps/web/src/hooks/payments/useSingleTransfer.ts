@@ -2,10 +2,10 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { parseEther } from "viem";
+import { parseEther, bytesToHex } from "viem";
 import { SingleTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { useZamaWorker } from "../useZamaWorker";
+import { getFhevmInstance } from "@/lib/fhevm";
 
 const ZAMA_CONTRACT_ADDRESS = "0x722aD9117477Ad4Cb345F1419bd60FAFEACAfB00";
 
@@ -14,7 +14,6 @@ export function useSingleTransfer(availableEthBalance?: string) {
     const { wallets } = useWallets();
     const owner = wallets?.find((wallet) => wallet.walletClientType === "privy");
     const queryClient = useQueryClient();
-    const { encryptBatch } = useZamaWorker();
 
     return useMutation({
         mutationFn: async (params: SingleTransferParams) => {
@@ -53,23 +52,40 @@ export function useSingleTransfer(availableEthBalance?: string) {
                     },
                 ];
 
-                // 2. Client-side FHEVM Web Worker Encryption
+                // 2. Client-side Next/Dynamic FHEVM Encryption (SSR-safe)
                 let encryptedData = null;
                 const hasComplianceData = params.compliance && (params.compliance.categories?.length || params.compliance.jurisdictions?.length);
 
                 if (hasComplianceData) {
                     const loadingId = toast.loading("Encrypting compliance payload locally (fhEVM)...");
                     try {
-                        encryptedData = await encryptBatch({
-                            contractAddress: ZAMA_CONTRACT_ADDRESS,
-                            userAddress: owner.address,
-                            recipients: [params.to],
-                            compliance: params.compliance,
-                        });
+                        const fhevm = await getFhevmInstance();
+                        const categories = params.compliance?.categories || [];
+                        const jurisdictions = params.compliance?.jurisdictions || [];
+
+                        const catInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                        catInput.add8(categories[0] !== undefined ? categories[0] : 0);
+                        const catEnc = await catInput.encrypt();
+
+                        const jurInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                        jurInput.add8(jurisdictions[0] !== undefined ? jurisdictions[0] : 0);
+                        const jurEnc = await jurInput.encrypt();
+
+                        encryptedData = {
+                            handles: {
+                                categories: [bytesToHex(catEnc.handles[0])],
+                                jurisdictions: [bytesToHex(jurEnc.handles[0])]
+                            },
+                            proofs: {
+                                categories: [bytesToHex(catEnc.inputProof)],
+                                jurisdictions: [bytesToHex(jurEnc.inputProof)]
+                            }
+                        };
                         toast.dismiss(loadingId);
                     } catch (e) {
+                        console.error(e);
                         toast.dismiss(loadingId);
-                        throw new Error("Failed to encrypt compliance parameters. Wait for worker initialization.");
+                        throw new Error("Failed to encrypt compliance parameters dynamically.");
                     }
                 }
 
@@ -84,7 +100,7 @@ export function useSingleTransfer(availableEthBalance?: string) {
                 toast.dismiss(txLoading);
                 const txHash = receipt.receipt.transactionHash;
 
-                // 4. Relay directly to Zama (Bypassing DVN Bridge since it's temporarily down)
+                // 4. Relay directly to Zama 
                 if (encryptedData) {
                     toast.loading("Submitting ciphertexts and Zero-Knowledge Proofs to Zama Sepolia...", { id: "relay-toast" });
 
