@@ -2,18 +2,19 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { parseEther, encodeFunctionData } from "viem";
+import { parseEther } from "viem";
 import { SingleTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
+import { useZamaWorker } from "../useZamaWorker";
 
-import { bytesToHex } from "viem";
+const ZAMA_CONTRACT_ADDRESS = "0x722aD9117477Ad4Cb345F1419bd60FAFEACAfB00";
 
 export function useSingleTransfer(availableEthBalance?: string) {
     const { getClient } = useSmartAccountContext();
     const { wallets } = useWallets();
     const owner = wallets?.find((wallet) => wallet.walletClientType === "privy");
     const queryClient = useQueryClient();
+    const { encryptBatch } = useZamaWorker();
 
     return useMutation({
         mutationFn: async (params: SingleTransferParams) => {
@@ -41,8 +42,9 @@ export function useSingleTransfer(availableEthBalance?: string) {
                 }
 
                 const amountInWei = parseEther(params.amount);
+                const proxyAddress = smartAccountClient.account!.address;
 
-                // Setup default single call
+                // 1. Setup single call
                 const calls = [
                     {
                         to: params.to,
@@ -51,42 +53,72 @@ export function useSingleTransfer(availableEthBalance?: string) {
                     },
                 ];
 
-                // If compliance metadata exists, bundle the reportCompliance call
-                if (params.compliance && (params.compliance.categories?.length || params.compliance.jurisdictions?.length)) {
-                    const reportCallData = encodeFunctionData({
-                        abi: SmartWalletABI,
-                        functionName: "reportCompliance",
-                        args: [
-                            {
-                                flowTxHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-                                proxyAccount: smartAccountClient.account!.address as `0x${string}`,
-                                recipients: [params.to],
-                                amounts: [amountInWei],
-                                categoryHandles: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
-                                categoryProofs: ["0x"],
-                                jurisdictionHandles: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
-                                jurisdictionProofs: ["0x"]
-                            }
-                        ]
-                    });
+                // 2. Client-side FHEVM Web Worker Encryption
+                let encryptedData = null;
+                const hasComplianceData = params.compliance && (params.compliance.categories?.length || params.compliance.jurisdictions?.length);
 
-                    calls.push({
-                        to: smartAccountClient.account!.address as `0x${string}`,
-                        data: reportCallData,
-                        value: 0n,
-                    });
+                if (hasComplianceData) {
+                    const loadingId = toast.loading("Encrypting compliance payload locally (fhEVM)...");
+                    try {
+                        encryptedData = await encryptBatch({
+                            contractAddress: ZAMA_CONTRACT_ADDRESS,
+                            userAddress: owner.address,
+                            recipients: [params.to],
+                            compliance: params.compliance,
+                        });
+                        toast.dismiss(loadingId);
+                    } catch (e) {
+                        toast.dismiss(loadingId);
+                        throw new Error("Failed to encrypt compliance parameters. Wait for worker initialization.");
+                    }
                 }
 
+                // 3. Send Base Flow Transaction
+                const txLoading = toast.loading("Signing and sending standard Flow transfer...");
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,
                 });
 
-                const receipt = await smartAccountClient.waitForUserOperationReceipt({
-                    hash,
-                });
-                console.log(receipt);
-                toast.success("FLOW transfer sent successfully!");
+                const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
+                toast.dismiss(txLoading);
+                const txHash = receipt.receipt.transactionHash;
+
+                // 4. Relay directly to Zama (Bypassing DVN Bridge since it's temporarily down)
+                if (encryptedData) {
+                    toast.loading("Submitting ciphertexts and Zero-Knowledge Proofs to Zama Sepolia...", { id: "relay-toast" });
+
+                    try {
+                        const relayRes = await fetch("/api/relay/compliance-record", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                flowTxHash: txHash,
+                                proxyAccount: proxyAddress,
+                                recipients: [params.to],
+                                amounts: [amountInWei.toString()],
+                                categoryHandles: encryptedData.handles.categories,
+                                categoryProofs: encryptedData.proofs.categories,
+                                jurisdictionHandles: encryptedData.handles.jurisdictions,
+                                jurisdictionProofs: encryptedData.proofs.jurisdictions,
+                            }),
+                        });
+
+                        const relayData = await relayRes.json();
+                        if (!relayData.success) {
+                            console.warn("[relay] Compliance recording did not succeed:", relayData.error);
+                            toast.error("Transfer succeeded, but Zama compliance failed.", { id: "relay-toast" });
+                        } else {
+                            toast.success("Transfer and compliance securely recorded cross-chain!", { id: "relay-toast" });
+                        }
+                    } catch (relayErr) {
+                        console.error("[relay] Relay API call failed:", relayErr);
+                        toast.error("Transfer succeeded, but Zama relay endpoint failed.", { id: "relay-toast" });
+                    }
+                } else {
+                    toast.success("FLOW transfer sent successfully!");
+                }
+
                 return receipt;
             } catch (error) {
                 console.error("Error sending FLOW transfer:", error);
