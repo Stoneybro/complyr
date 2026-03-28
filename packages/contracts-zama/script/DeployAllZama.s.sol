@@ -20,18 +20,18 @@ import {ComplianceReceiver} from "../src/ComplianceReceiver.sol";
 contract DeployAllZama is Script {
     function run() external {
         ZamaHelperConfig helperConfig = new ZamaHelperConfig();
-        ZamaHelperConfig.NetworkConfig memory config = helperConfig.activeNetworkConfig();
+        (address lzEndpoint, address owner) = helperConfig.activeNetworkConfig();
 
         vm.startBroadcast();
 
         // 1. Deploy the FHE Registry
-        ComplianceRegistry registry = new ComplianceRegistry(config.owner);
+        ComplianceRegistry registry = new ComplianceRegistry(owner);
         console.log("1. ComplianceRegistry: ", address(registry));
 
         // 2. Deploy the OApp Receiver
         ComplianceReceiver receiver = new ComplianceReceiver(
-            config.lzEndpoint,
-            config.owner,
+            lzEndpoint,
+            owner,
             address(registry)
         );
         console.log("2. ComplianceReceiver: ", address(receiver));

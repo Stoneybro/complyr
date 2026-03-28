@@ -24,7 +24,7 @@ const REGISTRY_ABI = [
 ] as const;
 
 // ComplianceRegistry on Zama Sepolia
-const REGISTRY_ADDRESS = "0x722aD9117477Ad4Cb345F1419bd60FAFEACAfB00" as const;
+const REGISTRY_ADDRESS = "0x231Fcd3ae69f723B3AeFfe7B9B876Bb37C4Db4D6" as const;
 
 export async function POST(req: NextRequest) {
   try {

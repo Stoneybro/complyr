@@ -7,7 +7,8 @@ import { BatchTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
 import { getFhevmInstance } from "@/lib/fhevm";
 
-const ZAMA_CONTRACT_ADDRESS = "0x722aD9117477Ad4Cb345F1419bd60FAFEACAfB00";
+const ZAMA_CONTRACT_ADDRESS = "0x231Fcd3ae69f723B3AeFfe7B9B876Bb37C4Db4D6";
+const RELAY_ADDRESS = "0x0D96081998fd583334fd1757645B40fdD989B267";
 
 export function useBatchTransfer(availableEthBalance?: string) {
     const { getClient } = useSmartAccountContext();
@@ -68,13 +69,13 @@ export function useBatchTransfer(availableEthBalance?: string) {
                         const proofs: { categories: string[], jurisdictions: string[] } = { categories: [], jurisdictions: [] };
 
                         for (let i = 0; i < params.recipients.length; i++) {
-                            const catInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                            const catInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, RELAY_ADDRESS);
                             catInput.add8(categories[i] !== undefined ? categories[i] : 0);
                             const catEnc = await catInput.encrypt();
                             handles.categories.push(bytesToHex(catEnc.handles[0]));
                             proofs.categories.push(bytesToHex(catEnc.inputProof));
 
-                            const jurInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, owner.address);
+                            const jurInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, RELAY_ADDRESS);
                             jurInput.add8(jurisdictions[i] !== undefined ? jurisdictions[i] : 0);
                             const jurEnc = await jurInput.encrypt();
                             handles.jurisdictions.push(bytesToHex(jurEnc.handles[0]));

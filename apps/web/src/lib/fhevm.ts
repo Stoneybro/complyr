@@ -1,35 +1,37 @@
-// lib/fhevm.ts — globally loaded client-side via UMD bundle
-
-const ZAMA_RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
-const GATEWAY_URL = "https://gateway.sepolia.zama.ai/";
-
-// Sepolia KMS and ACL addresses
-const KMS_CONTRACT_ADDRESS = "0x9D6891A6240D6130c54ae243d8A811eaacDE8A89"; 
-const ACL_CONTRACT_ADDRESS = "0xFee8407e2f5e3Ee68ad77cAE98c434e637f516e5"; 
+// lib/fhevm.ts — loaded client-side via Zama official CDN (relayer-sdk-js UMD)
+// CDN: https://cdn.zama.org/relayer-sdk-js/0.3.0-8/relayer-sdk-js.umd.cjs
+// Global: window.relayerSDK
 
 let instance: any = null;
+let initialized = false;
 
-// Extend Window interface for the global fhevm object injected by the layout script
+// Extend Window interface for the global relayerSDK object injected by layout.tsx
 declare global {
   interface Window {
-    fhevm: any;
+    relayerSDK: any;
   }
 }
 
 export async function getFhevmInstance() {
     if (instance) return instance;
 
-    // Use Zama's official prebundled CDN to completely bypass Turbopack's WASM trace!
-    if (typeof window === "undefined" || !window.fhevm) {
-        throw new Error("fhevmjs bundle not loaded. Check the <Script> tag in your layout.");
+    if (typeof window === "undefined" || !window.relayerSDK) {
+        throw new Error("Zama relayer-sdk-js bundle not loaded. Check the <Script> tag in your layout.");
     }
 
-    instance = await window.fhevm.createInstance({ 
-        networkUrl: ZAMA_RPC_URL,
-        gatewayUrl: GATEWAY_URL,
-        kmsContractAddress: KMS_CONTRACT_ADDRESS,
-        aclContractAddress: ACL_CONTRACT_ADDRESS,
-        chainId: 11155111
+    const { initSDK, createInstance, SepoliaConfig } = window.relayerSDK;
+
+    // initSDK loads the WASM — only needs to run once
+    if (!initialized) {
+        await initSDK();
+        initialized = true;
+    }
+
+    // SepoliaConfig already contains the correct KMS, ACL, gateway addresses
+    // We spread it so we could override fields if needed in the future
+    instance = await createInstance({
+        ...SepoliaConfig,
+        // Provider is not needed for input encryption (only for re-encryption/decryption)
     });
 
     return instance;

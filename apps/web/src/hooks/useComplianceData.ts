@@ -197,6 +197,6 @@ export const useComplianceData = (walletAddress?: string) => {
 
             return { transactions, stats };
         },
-        enabled: !!walletAddress
+        enabled: false // !!walletAddress, // Temporarily disabled to prevent incessant calls
     });
 };

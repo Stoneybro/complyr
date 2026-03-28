@@ -8,7 +8,7 @@ contract DeployComplianceRegistry is Script {
     function run() external {
         vm.startBroadcast();
 
-        ComplianceRegistry registry = new ComplianceRegistry();
+        ComplianceRegistry registry = new ComplianceRegistry(msg.sender);
 
         vm.stopBroadcast();
 

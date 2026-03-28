@@ -5,6 +5,7 @@ import {FHE} from "@fhevm/solidity/lib/FHE.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import "encrypted-types/EncryptedTypes.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /**
  * @title ComplianceRegistry
@@ -16,7 +17,7 @@ import "encrypted-types/EncryptedTypes.sol";
  *
  * @custom:security-contact stoneybrocrypto@gmail.com
  */
-contract ComplianceRegistry is Ownable {
+contract ComplianceRegistry is Ownable, ZamaEthereumConfig {
     using FHE for *;
 
     /*//////////////////////////////////////////////////////////////
@@ -111,7 +112,7 @@ contract ComplianceRegistry is Ownable {
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address _initialOwner) Ownable(_initialOwner) {}
 
     /*//////////////////////////////////////////////////////////////
                      COMPANY MANAGEMENT FUNCTIONS

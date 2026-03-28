@@ -52,7 +52,10 @@ export default function RootLayout({
         className={`${outfit.variable} ${geistMono.variable} antialiased font-sans`}
         suppressHydrationWarning
       >
-        <Script src="https://unpkg.com/fhevmjs/bundle/fhevm.umd.cjs" strategy="beforeInteractive" />
+        <Script 
+          src="https://cdn.zama.org/relayer-sdk-js/0.3.0-8/relayer-sdk-js.umd.cjs" 
+          strategy="beforeInteractive" 
+        />
         <Provider>{children}</Provider>
       </body>
     </html>
