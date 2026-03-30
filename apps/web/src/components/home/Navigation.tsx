@@ -20,16 +20,6 @@ export default function Navigation() {
         </div>
       </div>
       <nav className="hidden md:flex gap-8 items-center">
-
-        <Link
-          href="https://github.com/Stoneybro/complyr#readme"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-inter tracking-tight font-semibold uppercase text-xs text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors duration-150"
-        >
-          Docs
-        </Link>
-
       </nav>
       <Link
         href="/login"
