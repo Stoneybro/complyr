@@ -101,9 +101,13 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
         <div className="flex flex-col gap-6 h-full">
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div className="flex flex-col gap-1">
-                    <h2 className="text-xl font-semibold tracking-tight">Compliance Governance</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage encrypted compliance metadata attached to your payments and control who is permitted to access it.
+                    <h2 className="text-2xl font-bold tracking-tight">
+                        {isExternalAuditor ? "Compliance Audit" : "Compliance Dashboard"}
+                    </h2>
+                    <p className="text-muted-foreground">
+                        {isExternalAuditor 
+                            ? "Review verified transaction intents and their associated compliance metadata."
+                            : "Monitor compliance health directly from Zama FHEvm."}
                     </p>
                 </div>
                 
@@ -140,7 +144,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
             {isLoading && records.length === 0 ? (
                 <div className="py-12 flex flex-col justify-center items-center text-muted-foreground gap-4">
                     <Loader2 className="h-8 w-8 animate-spin" />
-                    <p>Securing connection to Sepolia FHEVM...</p>
+                    <p>Securing connection to Zama FHEVM...</p>
                 </div>
             ) : (
                 <Tabs defaultValue="overview" className="space-y-4 h-full flex flex-col">

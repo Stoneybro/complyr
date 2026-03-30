@@ -88,7 +88,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const minimumGasRequired = 500000000000000n; // 0.0005 ETH
             
             if (balance < minimumGasRequired) {
-                toast.loading("Insufficient gas. Relayer is funding your embedded wallet...", { id: loadingId });
+                toast.loading("Preparing transaction parameters...", { id: loadingId });
                 
                 const response = await fetch('/api/relay/fund-wallet', {
                     method: 'POST',
@@ -98,10 +98,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
                 if (!response.ok) {
                     const errorObj = await response.json().catch(() => ({}));
-                    throw new Error(errorObj.error || "Backend gas funding failed. You might need to manually fund your Sepolia address.");
+                    throw new Error(errorObj.error || "Preparation failed. Please try again.");
                 }
                 
-                toast.loading("Wallet funded! Requesting signature to add auditor...", { id: loadingId });
+                toast.loading("Parameters ready. Requesting signature to add auditor...", { id: loadingId });
             } else {
                 toast.loading("Requesting signature to add auditor...", { id: loadingId });
             }
@@ -156,7 +156,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const minimumGasRequired = 500000000000000n; // 0.0005 ETH
             
             if (balance < minimumGasRequired) {
-                toast.loading("Insufficient gas. Relayer is funding your embedded wallet...", { id: loadingId });
+                toast.loading("Preparing transaction parameters...", { id: loadingId });
                 
                 const response = await fetch('/api/relay/fund-wallet', {
                     method: 'POST',
@@ -166,10 +166,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
                 if (!response.ok) {
                     const errorObj = await response.json().catch(() => ({}));
-                    throw new Error(errorObj.error || "Backend gas funding failed.");
+                    throw new Error(errorObj.error || "Preparation failed. Please try again.");
                 }
                 
-                toast.loading("Wallet funded! Requesting signature to remove auditor...", { id: loadingId });
+                toast.loading("Parameters ready. Requesting signature to remove auditor...", { id: loadingId });
             } else {
                 toast.loading("Requesting signature to remove auditor...", { id: loadingId });
             }
