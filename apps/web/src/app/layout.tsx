@@ -5,6 +5,7 @@ import { Provider } from "./provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next"
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -57,6 +58,7 @@ export default function RootLayout({
           strategy="beforeInteractive" 
         />
         <Provider>{children}</Provider>
+        <Analytics />
       </body>
     </html>
   );
