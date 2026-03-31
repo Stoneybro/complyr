@@ -18,9 +18,9 @@ networks:
         events:
           - event: Executed(address indexed target, uint256 value, bytes data)
           - event: ExecutedBatch(uint256 indexed batchSize, uint256 totalValue)
-          - event: IntentBatchTransferExecuted(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed token, uint256 recipientCount, uint256 totalValue, uint256 failedAmount)
-          - event: IntentTransferSuccess(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, address token, uint256 amount)
-          - event: TransferFailed(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, address token, uint256 amount)
+          - event: IntentBatchTransferExecuted(bytes32 indexed intentId, uint256 indexed transactionCount, uint256 recipientCount, uint256 totalValue, uint256 failedAmount)
+          - event: IntentTransferSuccess(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, uint256 amount)
+          - event: TransferFailed(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, uint256 amount)
           - event: WalletAction(address indexed initiator, address indexed target, uint256 value, bytes4 indexed selector, bool success, bytes32 actionType)
       - name: SmartWalletFactory
         address:
@@ -33,6 +33,6 @@ networks:
           - 0x8bd539be7554752dc16b4d96ac857f3752b39cc1
         handler: src/EventHandlers.ts
         events:
-          - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, address indexed token, string name, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
+          - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
           - event: IntentExecuted(address indexed wallet, bytes32 indexed intentId, string name, uint256 transactionCount, uint256 totalAmount)
-          - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, address indexed token, string name, uint256 amountRefunded, uint256 failedAmountRecovered)
+          - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, string name, uint256 amountRefunded, uint256 failedAmountRecovered)

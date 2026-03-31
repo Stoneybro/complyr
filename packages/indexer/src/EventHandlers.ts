@@ -259,7 +259,7 @@ IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   const intent: Intent = {
     id: intentId,
     wallet: walletId,
-    token: event.params.token.toString(),
+    token: "FLOW",
     name: event.params.name,
     totalTransactionCount: event.params.totalTransactionCount,
     recipients: event.params.recipients.map(r => r.toString().toLowerCase()),
