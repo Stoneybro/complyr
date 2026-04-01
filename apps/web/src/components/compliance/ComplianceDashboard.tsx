@@ -23,7 +23,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
         isDecrypting,
         fetchLogs,
         decryptLedger
-    } = useSepoliaAuditLogs(walletAddress);
+    } = useSepoliaAuditLogs(walletAddress, isExternalAuditor);
 
     useEffect(() => {
         if (walletAddress) {

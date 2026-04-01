@@ -58,8 +58,9 @@ function Page() {
             {bridgeStatus === "idle" && "Activate account"}
           </Button>
 
-          <div className="mt-2 text-xs text-muted-foreground bg-muted p-3 rounded text-left leading-relaxed">
-             <strong>Best on Desktop:</strong> Complyr is highly optimized for desktop and may encounter UI anomalies on mobile devices.
+          <div className="mt-2 text-xs text-muted-foreground bg-muted p-3 rounded text-left flex flex-col gap-2">
+             <p><strong>Activation Time:</strong> Initializing cross-chain registration takes ~10-15 seconds. Please do not close the window.</p>
+             <p><strong>Recommended View:</strong> Complyr is highly optimized for desktop and may have UI issues on mobile devices.</p>
           </div>
 
         </div>

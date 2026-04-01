@@ -8,10 +8,10 @@ import {IComplianceBridge} from "./IComplianceBridge.sol";
 
 /**
  * @title Intent Registry
- * @author stoneybro
+ * @author zion Livingstone
  * @notice Central registry for managing automated payment intents across all wallets.
- * @dev Integrates with a custom Keeper for decentralized intent execution. Supports ETH and ERC20 tokens.
- * @custom:security-contact stoneybrocrypto@gmail.com
+ * @dev Integrates with a custom Keeper for decentralized intent execution. Supports Flow tokens.
+ * @custom:security-contact zionlivingstone4@gmail.com
  */
 
 

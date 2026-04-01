@@ -8,7 +8,6 @@ import { PaymentForm } from "@/components/payment-form/PaymentForm";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Separator } from "@radix-ui/react-separator";
 import Image from "next/image";
 import {
   Tabs,
@@ -18,18 +17,12 @@ import {
 } from "@/components/ui/tabs"
 
 export default function Page() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const [walletAddress, setWalletAddress] = useState<`0x${string}` | undefined>(undefined);
 
   useEffect(() => {
     const saved = localStorage.getItem("wallet-deployed");
     if (saved) setWalletAddress(saved as `0x${string}`);
   }, []);
-
-
-
-
 
   return (
     <SidebarProvider

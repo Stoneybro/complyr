@@ -76,8 +76,8 @@ async function main() {
         });
     }
 
-    // Poll every 30 seconds
-    setInterval(checkAndExecute, 30000);
+    // Poll every 12 seconds
+    setInterval(checkAndExecute, 12000);
 
     // Run immediately on start
     await checkAndExecute();

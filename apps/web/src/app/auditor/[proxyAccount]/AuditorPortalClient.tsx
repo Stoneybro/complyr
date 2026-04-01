@@ -46,7 +46,6 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
     useEffect(() => {
         fetchAuditors();
         
-        // Check if already connected via window.ethereum
         const checkConnection = async () => {
             if (typeof window !== "undefined" && (window as any).ethereum) {
                 try {

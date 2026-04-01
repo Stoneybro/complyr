@@ -23,7 +23,7 @@ export type SepoliaAuditRecord = {
     jurisdictions?: string[];
 };
 
-export function useSepoliaAuditLogs(proxyAccount?: string) {
+export function useSepoliaAuditLogs(proxyAccount?: string, isExternalAuditor: boolean = false) {
     const [records, setRecords] = useState<SepoliaAuditRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isDecrypting, setIsDecrypting] = useState(false);
@@ -118,7 +118,7 @@ export function useSepoliaAuditLogs(proxyAccount?: string) {
         let provider: any;
         let address: string | undefined;
 
-        const ownerWallet = wallets?.find((w) => w.walletClientType === "privy");
+        const ownerWallet = !isExternalAuditor ? wallets?.find((w) => w.walletClientType === "privy") : null;
         if (ownerWallet) {
             provider = await ownerWallet.getEthereumProvider();
             address = ownerWallet.address;
