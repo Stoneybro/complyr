@@ -102,7 +102,7 @@ To fully integrate the new contracts, the following frontend changes are require
 
  i want to make a list of objectives for this project:
 1. all payment transactions work (single and batch is critical, recurring is not priority but should work)
-2. the indexer should work
+2. the indexer should work correctly
 3. the encrypting and decrypting for compliance should work.
 4. the auditor portal should work
 5. making the demo
