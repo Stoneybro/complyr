@@ -8,25 +8,25 @@ const steps = [
     num: '01',
     title: 'Smart Vaults',
     label: '01 / SYSTEM TREASURY',
-    body: 'Deploy a compliance-aware smart account on Flow EVM to act as your business\'s primary on-chain treasury.',
+    body: 'Deploy a compliance-aware smart account on HashKey Chain to act as your business\'s primary on-chain treasury.',
   },
   {
     num: '02',
     title: 'Encryption',
     label: '02 / SECURE METADATA',
-    body: 'Attach necessary compliance data to your payment. Zama’s Fully Homomorphic Encryption keeps this sensitive information completely hidden on-chain.',
+    body: 'Attach necessary compliance data to your payment. AES-256-GCM encryption keeps this sensitive information completely hidden on-chain.',
   },
   {
     num: '03',
     title: 'Settlement',
-    label: '03 / CROSS-CHAIN EXECUTION',
-    body: 'The payment settles natively on Flow while LayerZero seamlessly bridges your encrypted records to the Zama network.',
+    label: '03 / NATIVE EXECUTION',
+    body: 'The payment settles natively on HashKey Chain while your encrypted compliance records are permanently anchored in the same transaction.',
   },
   {
     num: '04',
     title: 'Audit',
     label: '04 / VERIFIABLE PROOFS',
-    body: 'Generate cryptographic proofs for regulators. Auditors can verify the legality of your transactions without exposing your underlying company data.',
+    body: 'Authorize specific auditors. They can decrypt and verify the legality of your transactions without exposing your underlying company data to the public.',
   },
 ];
 

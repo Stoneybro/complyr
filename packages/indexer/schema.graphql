@@ -6,10 +6,10 @@ type Transaction @entity {
   blockNumber: BigInt!
   txHash: String!
   logIndex: Int!
-  
+
   # Title for display
   title: String!
-  
+
   # Store complete details as JSON string (matches your frontend template exactly)
   details: String!
 }

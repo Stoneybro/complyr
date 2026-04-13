@@ -52,14 +52,13 @@ function Page() {
             disabled={!checked || isPending}
           >
             {isPending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
-            {bridgeStatus === "flow_tx_pending" && "Activating..."}
-            {bridgeStatus === "lz_bridging" && "Securing..."}
-            {bridgeStatus === "zama_confirmed" && "Success"}
+            {bridgeStatus === "hsk_tx_pending" && "Activating..."}
+            {bridgeStatus === "confirmed" && "Success"}
             {bridgeStatus === "idle" && "Activate account"}
           </Button>
 
           <div className="mt-2 text-xs text-muted-foreground bg-muted p-3 rounded text-left flex flex-col gap-2">
-             <p><strong>Activation Time:</strong> Initializing cross-chain registration takes ~10-15 seconds. Please do not close the window.</p>
+             <p><strong>Activation Time:</strong> Initializing registration takes ~5-10 seconds. Please do not close the window.</p>
              <p><strong>Recommended View:</strong> Complyr is highly optimized for desktop and may have UI issues on mobile devices.</p>
           </div>
 

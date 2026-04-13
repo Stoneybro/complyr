@@ -48,7 +48,7 @@ NEXT_PUBLIC_ENVIO_API_URL=https://indexer.dev.hyperindex.xyz/86c2f35/v1/graphql
 ### Build contracts
 
 ```bash
-# Flow EVM contracts
+# HashKey Chain contracts
 pnpm forge:build
 
 # Run tests
@@ -72,7 +72,7 @@ The keeper runs on a 30-second poll interval. For production use, deploy it as a
 
 ### Account abstraction setup
 
-Complyr uses a self-hosted Skandha bundler deployed on Railway because no public bundler currently supports Flow EVM testnet. The bundler endpoint is configured in `apps/web/src/lib/bundler.ts`.
+Complyr uses a self-hosted Skandha bundler deployed on Railway because no public bundler currently supports HashKey Chain testnet. The bundler endpoint is configured in `apps/web/src/lib/bundler.ts`.
 
 If you are deploying to a new environment, you will need to:
 

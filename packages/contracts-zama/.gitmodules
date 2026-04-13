@@ -1,3 +1,0 @@
-[submodule "lib/forge-fhevm"]
-	path = lib/forge-fhevm
-	url = https://github.com/zama-ai/forge-fhevm

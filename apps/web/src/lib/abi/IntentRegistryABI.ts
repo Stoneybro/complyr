@@ -92,7 +92,7 @@ export const IntentRegistryABI = [
   },
   {
     "type": "function",
-    "name": "complianceBridge",
+    "name": "complianceRegistry",
     "inputs": [],
     "outputs": [
       {
@@ -111,6 +111,11 @@ export const IntentRegistryABI = [
         "name": "name",
         "type": "string",
         "internalType": "string"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       },
       {
         "name": "recipients",
@@ -138,24 +143,9 @@ export const IntentRegistryABI = [
         "internalType": "uint256"
       },
       {
-        "name": "categoryHandles",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "categoryProofs",
-        "type": "bytes[]",
-        "internalType": "bytes[]"
-      },
-      {
-        "name": "jurisdictionHandles",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "jurisdictionProofs",
-        "type": "bytes[]",
-        "internalType": "bytes[]"
+        "name": "encryptedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
@@ -221,6 +211,11 @@ export const IntentRegistryABI = [
             "name": "name",
             "type": "string",
             "internalType": "string"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
           },
           {
             "name": "recipients",
@@ -369,10 +364,10 @@ export const IntentRegistryABI = [
   },
   {
     "type": "function",
-    "name": "setComplianceBridge",
+    "name": "setComplianceRegistry",
     "inputs": [
       {
-        "name": "_bridge",
+        "name": "_registry",
         "type": "address",
         "internalType": "address"
       }
@@ -400,25 +395,6 @@ export const IntentRegistryABI = [
         "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "walletCommittedFunds",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -453,6 +429,11 @@ export const IntentRegistryABI = [
         "name": "name",
         "type": "string",
         "internalType": "string"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
       },
       {
         "name": "transactionCount",
@@ -555,6 +536,12 @@ export const IntentRegistryABI = [
         "type": "string",
         "indexed": false,
         "internalType": "string"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       },
       {
         "name": "totalCommitment",

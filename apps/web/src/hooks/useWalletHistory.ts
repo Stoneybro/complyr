@@ -85,11 +85,35 @@ const mapTransactionToItem = (tx: Transaction): TransactionItemProps => {
             return {
                 ...base,
                 type: ActivityType.EXECUTE,
-                description: details.functionCall === 'Token Transfer'
+                description: details.functionCall === 'Token Transfer' || details.functionCall === 'Native HSK Transfer'
                     ? `Transfer to ${details.recipient?.slice(0, 6)}...` // Use recipient, NOT target (which is token contract)
                     : `${details.functionCall}`,
                 details: details,
 
+            };
+            
+        case ActivityType.ERC20_TRANSFER:
+            return {
+                ...base,
+                type: ActivityType.ERC20_TRANSFER,
+                description: `Transfer to ${details.recipient?.slice(0, 6)}...`,
+                details: details,
+            };
+            
+        case ActivityType.COMPLIANCE_RECORDED:
+            return {
+                ...base,
+                type: ActivityType.COMPLIANCE_RECORDED,
+                description: `Metadata securely anchored`,
+                details: details,
+            };
+            
+        case ActivityType.ACCOUNT_REGISTERED:
+            return {
+                ...base,
+                type: ActivityType.ACCOUNT_REGISTERED,
+                description: `Auditor configuration created`,
+                details: details,
             };
 
         case ActivityType.EXECUTE_BATCH:
@@ -156,7 +180,7 @@ export const useWalletHistory = (walletAddress?: string) => {
             .filter((tx: TransactionItemProps) => {
                 // Filter out contract calls (non-transfer EXECUTE transactions)
                 if (tx.type === ActivityType.EXECUTE) {
-                    const isTransfer = tx.details.functionCall === 'Token Transfer' || tx.details.functionCall === 'Native FLOW Transfer';
+                    const isTransfer = tx.details.functionCall === 'Token Transfer' || tx.details.functionCall === 'Native HSK Transfer';
                     if (!isTransfer) return false;
                 }
 

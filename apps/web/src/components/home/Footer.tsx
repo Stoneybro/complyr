@@ -41,9 +41,8 @@ export default function Footer() {
         <div>
           <h4 className="font-inter text-[10px] font-bold uppercase tracking-widest mb-8 text-black dark:text-white">Powered By</h4>
           <ul className="space-y-4">
-            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">FLOW EVM</span></li>
-            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">ZAMA FHEVM</span></li>
-            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">LAYERZERO V2</span></li>
+            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">HASHKEY CHAIN</span></li>
+            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">AES-256</span></li>
             <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">ENVIO</span></li>
           </ul>
         </div>

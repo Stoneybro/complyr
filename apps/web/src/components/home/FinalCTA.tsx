@@ -26,7 +26,7 @@ export default function FinalCTA() {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="text-lg md:text-xl font-light mb-16 opacity-70"
         >
-          Complyr is live on Flow EVM and Zama fhEVM testnets. Experience the future of institutional-grade onchain finance today.
+          Complyr is live on the HashKey Chain testnet. Experience the future of institutional-grade onchain finance today.
         </motion.p>
         
         <motion.div 

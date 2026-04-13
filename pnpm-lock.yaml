@@ -217,9 +217,7 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  packages/contracts-flow: {}
-
-  packages/contracts-zama: {}
+  packages/contracts: {}
 
   packages/indexer:
     dependencies:

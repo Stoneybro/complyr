@@ -6,6 +6,7 @@ import {
   SmartWallet,
   SmartWalletFactory,
   IntentRegistry,
+  MockUSDC,
   Transaction,
   TransactionType,
   Wallet,
@@ -24,23 +25,6 @@ function formatTimestamp(timestamp: number): string {
   return new Date(timestamp * 1000).toISOString();
 }
 
-// GLOBAL STORE for Batch Calls in the same block/tx
-let batchCallsCache: Map<string, any[]> = new Map();
-
-// GLOBAL STORE for Compliance data in the same tx
-let complianceCache: Map<string, {
-  entityIds: string[];
-  jurisdiction: string;
-  category: string;
-  referenceId: string;
-}> = new Map();
-
-let currentWalletAction: {
-  selector: string;
-  actionType: string;
-  txHash: string;
-} | null = null;
-
 // ============================================
 // FACTORY EVENTS
 // ============================================
@@ -53,7 +37,6 @@ SmartWalletFactory.AccountCreated.contractRegister(async ({ event, context }) =>
 SmartWalletFactory.AccountCreated.handler(async ({ event, context }) => {
   const walletId = event.params.account.toString().toLowerCase();
 
-  // Create Wallet entity
   const wallet: Wallet = {
     id: walletId,
     owner: event.params.owner.toString(),
@@ -64,7 +47,6 @@ SmartWalletFactory.AccountCreated.handler(async ({ event, context }) => {
   };
   context.Wallet.set(wallet);
 
-  // Create WALLET_CREATED transaction
   const details = JSON.stringify({
     walletAddress: walletId,
     owner: event.params.owner.toString(),
@@ -86,79 +68,78 @@ SmartWalletFactory.AccountCreated.handler(async ({ event, context }) => {
 });
 
 // ============================================
-// SMART WALLET EVENTS
+// MOCK USDC EVENTS
 // ============================================
 
-SmartWallet.WalletAction.handler(async ({ event }) => {
-  currentWalletAction = {
-    selector: event.params.selector,
-    actionType: event.params.actionType,
-    txHash: event.transaction.hash
-  };
-
-  // Aggregate for Batch Calls
-  if (!batchCallsCache.has(event.transaction.hash)) {
-    batchCallsCache.set(event.transaction.hash, []);
-  }
-
-  const actions = batchCallsCache.get(event.transaction.hash);
-  if (actions) {
-    actions.push({
-      target: event.params.target.toString(),
-      value: event.params.value.toString(),
-      selector: event.params.selector,
-      actionType: event.params.actionType
-    });
-  }
-});
-
-SmartWallet.Executed.handler(async ({ event, context }) => {
-  const walletId = event.srcAddress.toString().toLowerCase();
+MockUSDC.Transfer.handler(async ({ event, context }) => {
+  const walletId = event.params.from.toString().toLowerCase();
   const wallet = await context.Wallet.get(walletId);
+  
+  if (!wallet) return;
 
-  if (wallet) {
-    // Ignore initialization transactions (0 value, empty data)
-    if (
-      event.params.value.toString() === "0" &&
-      (event.params.data === "0x" || event.params.data === "")
-    ) {
-      return;
-    }
+  const txHash = event.transaction.hash;
+  const transactionId = `${txHash}`; // One transaction entity per EVM transaction
 
-    const txHash = event.transaction.hash;
-    const selector = event.params.data.slice(0, 10);
-    const logIndex = event.logIndex;
-    const transactionId = `${txHash}-${logIndex}`;
-
-    let title = "Single Payment";
-    let detailsObj: any = {
-      target: event.params.target.toString(),
-      value: event.params.value.toString(),
-      functionCall: SELECTORS[selector] || "native_transfer",
-      selector: selector,
-    };
-
-    // For native FLOW transfers (no data or 0x)
-    if (event.params.data === "0x" || event.params.data.length <= 10) {
-      detailsObj.functionCall = "Native FLOW Transfer";
-      detailsObj.amount = event.params.value.toString();
-      detailsObj.recipient = event.params.target.toString();
-    }
-
-    const transaction: Transaction = {
+  let transaction = await context.Transaction.get(transactionId);
+  
+  if (!transaction) {
+    transaction = {
       id: transactionId,
       wallet_id: walletId,
       transactionType: "EXECUTE",
       timestamp: BigInt(event.block.timestamp),
       blockNumber: BigInt(event.block.number),
       txHash: txHash,
-      logIndex: logIndex,
-      title: title,
-      details: JSON.stringify(detailsObj)
+      logIndex: event.logIndex,
+      title: "Single Payment",
+      details: JSON.stringify({
+        calls: [],
+        batchSize: 0,
+        totalValue: "0"
+      })
     };
+  }
 
-    context.Transaction.set(transaction);
+  const details = JSON.parse(transaction.details);
+  
+  details.calls.push({
+    recipient: event.params.to.toString(),
+    amount: event.params.value.toString(),
+    token: "USDC",
+    functionCall: "Token Transfer"
+  });
+  
+  details.batchSize = details.calls.length;
+  details.totalValue = (BigInt(details.totalValue || "0") + BigInt(event.params.value)).toString();
 
+  let newTxType = transaction.transactionType;
+  let newTitle = transaction.title;
+
+  if (details.batchSize > 1) {
+    newTxType = "EXECUTE_BATCH";
+    newTitle = "Batch Payment";
+    details.token = "USDC";
+  } else {
+    newTxType = "EXECUTE";
+    newTitle = "Single Payment";
+    // Surface the first call's data to the top level for single payments
+    details.recipient = event.params.to.toString();
+    details.amount = event.params.value.toString();
+    details.functionCall = "Token Transfer";
+    details.token = "USDC";
+  }
+
+  const updatedTransaction: Transaction = {
+    ...transaction,
+    transactionType: newTxType,
+    title: newTitle,
+    details: JSON.stringify(details)
+  };
+  
+  context.Transaction.set(updatedTransaction);
+
+  // Note: Only increment totalTransactionCount once per EVM tx to prevent double counting
+  if (details.batchSize === 1) {
     context.Wallet.set({
       ...wallet,
       totalTransactionCount: wallet.totalTransactionCount + 1
@@ -166,56 +147,84 @@ SmartWallet.Executed.handler(async ({ event, context }) => {
   }
 });
 
-SmartWallet.ExecutedBatch.handler(async ({ event, context }) => {
+// ============================================
+// SMART WALLET EVENTS
+// ============================================
+
+SmartWallet.WalletAction.handler(async ({ event, context }) => {
   const walletId = event.srcAddress.toString().toLowerCase();
   const wallet = await context.Wallet.get(walletId);
+  
+  if (!wallet) return;
 
-  if (wallet) {
+  // Only track native HSK transfers (value > 0 and no data sent to contract)
+  if (event.params.value > 0n && event.params.selector === "0x00000000") {
     const txHash = event.transaction.hash;
-    const logIndex = event.logIndex;
-    const transactionId = `${txHash}-${logIndex}`;
+    const transactionId = `${txHash}`;
 
-    // Get wallet actions from cache
-    const walletActions = batchCallsCache.get(txHash) || [];
+    let transaction = await context.Transaction.get(transactionId);
+    
+    if (!transaction) {
+      transaction = {
+        id: transactionId,
+        wallet_id: walletId,
+        transactionType: "EXECUTE",
+        timestamp: BigInt(event.block.timestamp),
+        blockNumber: BigInt(event.block.number),
+        txHash: txHash,
+        logIndex: event.logIndex,
+        title: "Single Payment",
+        details: JSON.stringify({
+          calls: [],
+          batchSize: 0,
+          totalValue: "0"
+        })
+      };
+    }
 
-    // Build calls array from wallet actions (native FLOW transfers)
-    const calls = walletActions.map(action => ({
-      target: action.target,
-      value: action.value,
-      recipient: action.target,
-      functionCall: "Native FLOW Transfer",
-    }));
-
-    // Calculate total value
-    const totalValue = walletActions.reduce((sum, a) => sum + BigInt(a.value), 0n);
-
-    const detailsObj: any = {
-      batchSize: Number(event.params.batchSize),
-      totalValue: totalValue.toString(),
-      calls: calls
-    };
-
-    const transaction: Transaction = {
-      id: transactionId,
-      wallet_id: walletId,
-      transactionType: "EXECUTE_BATCH",
-      timestamp: BigInt(event.block.timestamp),
-      blockNumber: BigInt(event.block.number),
-      txHash: txHash,
-      logIndex: logIndex,
-      title: "Batch Payment",
-      details: JSON.stringify(detailsObj)
-    };
-
-    context.Transaction.set(transaction);
-
-    context.Wallet.set({
-      ...wallet,
-      totalTransactionCount: wallet.totalTransactionCount + 1
+    const details = JSON.parse(transaction.details);
+    
+    details.calls.push({
+      recipient: event.params.target.toString(),
+      amount: event.params.value.toString(),
+      token: "HSK",
+      functionCall: "Native HSK Transfer"
     });
+    
+    details.batchSize = details.calls.length;
+    details.totalValue = (BigInt(details.totalValue || "0") + event.params.value).toString();
 
-    // Clean up cache
-    batchCallsCache.delete(txHash);
+    let newTxType = transaction.transactionType;
+    let newTitle = transaction.title;
+
+    if (details.batchSize > 1) {
+      newTxType = "EXECUTE_BATCH";
+      newTitle = "Batch Payment";
+      details.token = "HSK";
+    } else {
+      newTxType = "EXECUTE";
+      newTitle = "Single Payment";
+      details.recipient = event.params.target.toString();
+      details.amount = event.params.value.toString();
+      details.functionCall = "Native HSK Transfer";
+      details.token = "HSK";
+    }
+
+    const updatedTransaction: Transaction = {
+      ...transaction,
+      transactionType: newTxType,
+      title: newTitle,
+      details: JSON.stringify(details)
+    };
+    
+    context.Transaction.set(updatedTransaction);
+
+    if (details.batchSize === 1) {
+      context.Wallet.set({
+        ...wallet,
+        totalTransactionCount: wallet.totalTransactionCount + 1
+      });
+    }
   }
 });
 
@@ -227,7 +236,7 @@ SmartWallet.TransferFailed.handler(async ({ event, context }) => {
     scheduleName: intent ? intent.name : "Unknown Schedule",
     executionNumber: Number(event.params.transactionCount),
     recipient: event.params.recipient.toString(),
-    token: "FLOW",
+    token: intent ? intent.token : "HSK",
     amount: event.params.amount.toString(),
     reason: "Transfer Failed"
   });
@@ -254,12 +263,15 @@ SmartWallet.TransferFailed.handler(async ({ event, context }) => {
 IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
+  
+  const tokenSymbol = event.params.token.toString() === "0x0000000000000000000000000000000000000000" 
+    ? "HSK" 
+    : event.params.token.toString();
 
-  // Create Intent helper entity
   const intent: Intent = {
     id: intentId,
     wallet: walletId,
-    token: "FLOW",
+    token: tokenSymbol,
     name: event.params.name,
     totalTransactionCount: event.params.totalTransactionCount,
     recipients: event.params.recipients.map(r => r.toString().toLowerCase()),
@@ -269,11 +281,10 @@ IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   };
   context.Intent.set(intent);
 
-  // Build transaction details
   const details = JSON.stringify({
     scheduleName: event.params.name,
     intentId: intentId,
-    token: "FLOW",
+    token: tokenSymbol,
     totalCommitment: event.params.totalCommitment.toString(),
     recipientCount: event.params.recipients.length,
     recipients: event.params.recipients.map((r, i) => ({
@@ -318,7 +329,7 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
     executionNumber: Number(event.params.transactionCount),
     totalExecutions: intent ? Number(intent.totalTransactionCount) : 0,
     recipientCount: intent ? intent.recipients.length : 0,
-    token: "FLOW",
+    token: intent ? intent.token : "HSK",
     totalAmount: event.params.totalAmount.toString(),
     successfulTransfers: recipientsList.length,
     failedTransfers: 0,
@@ -346,7 +357,7 @@ IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
 
   const details = JSON.stringify({
     scheduleName: event.params.name,
-    token: "FLOW",
+    token: intent ? intent.token : "HSK",
     amountRefunded: event.params.amountRefunded.toString(),
     failedAmountRecovered: event.params.failedAmountRecovered.toString(),
     executionsCompleted: intent ? Math.floor(Number(intent.duration) / Number(intent.interval)) : 0,

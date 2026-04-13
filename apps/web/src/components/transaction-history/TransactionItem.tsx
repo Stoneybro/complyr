@@ -1,14 +1,12 @@
-
 import { TransactionItemProps } from '@/hooks/useWalletHistory';
 import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/compliance-enums";
 import { ActivityType } from '@/lib/envio/client';
 import { cn } from '@/lib/utils';
-import { formatEther } from 'viem';
+import { formatUnits } from 'viem';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
-
-import { formatUnits } from 'viem';
+import { MockUSDCAddress } from '@/lib/CA';
 
 // Format currency helper
 const formatCurrency = (amount?: string, token?: string) => {
@@ -17,17 +15,23 @@ const formatCurrency = (amount?: string, token?: string) => {
     if (isNaN(Number(amount))) return amount; // Fallback for non-numeric
 
     let formatted = amount;
+    const tokenLower = token?.toLowerCase() || '';
+    const isUsdc = tokenLower === 'usdc' || tokenLower === MockUSDCAddress.toLowerCase();
+    
     // If it's an integer (no dot) and looks like units, format it.
     // We assume indexer stores raw units.
     if (!amount.includes('.')) {
         try {
-            formatted = formatUnits(BigInt(amount), 18);
+            // Determine decimals: USDC (6) or HSK (18)
+            const decimals = isUsdc ? 6 : 18;
+            
+            formatted = formatUnits(BigInt(amount), decimals);
         } catch (e) {
             // Keep original if BigInt fails
         }
     }
 
-    return `${Number(formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${token || 'FLOW'}`;
+    return `${Number(formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${isUsdc ? 'USDC' : (token || 'HSK')}`;
 };
 
 export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
@@ -75,7 +79,7 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                         <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Tx Hash</span>
                             <a
-                                href={`https://evm-testnet.flowscan.io/tx/${item.id.split('-')[0]}`}
+                                href={`https://testnet.hsk.xyz/tx/${item.id.split('-')[0]}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-primary hover:text-primary/80 truncate block underline text-xs font-mono"
@@ -87,21 +91,21 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                         {/* Dynamic fields based on activity details */}
                         {Object.entries(item.details).map(([key, value]) => {
                             if (key === 'txHash') return null;
-                            if (key === 'recipients' && Array.isArray(value)) {
-                                return (
-                                    <div key={key} className="col-span-2 mt-2">
-                                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Recipients</span>
-                                        <div className="space-y-1">
-                                            {value.map((r: any, idx: number) => (
-                                                <div key={idx} className="flex justify-between text-xs bg-muted/20 p-1.5 rounded">
-                                                    <span className="font-mono text-muted-foreground">{r.address.slice(0, 6)}...{r.address.slice(-4)}</span>
-                                                    <span className="font-medium">{formatCurrency(r.amount, item.details.token)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
+
+                            const skipKeys = ['selector', 'data', 'functionCall', 'scheduleName', 'target', 'value', 'Target', 'Value', 'token', 'Token', 'recipients'];
+                            
+                            // For single payments, hide batch-specific aggregated arrays
+                            if (item.type === ActivityType.EXECUTE) {
+                                skipKeys.push('calls', 'batchSize', 'totalValue');
                             }
+                            
+                            // For batch payments, hide single-payment leaked metadata
+                            if (item.type === ActivityType.EXECUTE_BATCH) {
+                                skipKeys.push('recipient', 'amount');
+                            }
+                            
+                            if (skipKeys.includes(key)) return null;
+
                             if (key === 'compliance' && typeof value === 'object' && value !== null) {
                                 const comp = value as any;
                                 return (
@@ -144,7 +148,7 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
 
                                 return (
                                     <div key={key} className="col-span-2 mt-2">
-                                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Transactions</span>
+                                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Recipients</span>
                                         <div className="space-y-1">
                                             {value.length === 0 ? (
                                                 <span className="text-xs text-muted-foreground italic">Details not available</span>
@@ -154,7 +158,7 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                                                         <span className="font-mono text-muted-foreground">
                                                             {(c.recipient || c.target)?.slice(0, 6)}...{(c.recipient || c.target)?.slice(-4)}
                                                         </span>
-                                                        <span className="font-medium">{formatCurrency(c.value, 'FLOW')}</span>
+                                                        <span className="font-medium">{formatCurrency(c.value || c.amount, c.token || item.details.token)}</span>
                                                     </div>
                                                 ))
                                             )}
@@ -164,13 +168,13 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                             }
                             // Skip these fields for display
                             // Added Case variations just in case
-                            if (['selector', 'data', 'functionCall', 'scheduleName', 'target', 'value', 'Target', 'Value'].includes(key)) return null;
                             if (typeof value === 'object') return null;
 
                             // Update label text for scheduled payments
                             let displayKey = key.replace(/([A-Z])/g, ' $1').trim();
                             if (key === 'executionNumber') displayKey = 'Cycle Count';
                             if (key === 'totalExecutions') displayKey = 'Total Cycles';
+                            if (key === 'totalValue') displayKey = 'Total Amount';
 
                             // Truncate all Ethereum addresses (0x followed by 40 hex characters)
                             let displayValue = String(value);
@@ -190,11 +194,12 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                                     </span>
                                     <span className="text-foreground text-xs font-medium">
                                         {key.toLowerCase().includes('amount') || key.toLowerCase().includes('value') || key.toLowerCase().includes('commitment')
-                                            ? formatCurrency(value as string, item.details.token)
+                                            ? formatCurrency(value as string, item.details.token || (item.details.calls?.[0]?.token))
                                             : displayValue}
                                     </span>
                                 </div>
                             );
+
                         })}
                     </div>
 

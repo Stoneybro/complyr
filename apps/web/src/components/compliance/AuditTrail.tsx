@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, ShieldCheck, ExternalLink, LockIcon, UnlockIcon, RefreshCw, Loader2 } from "lucide-react";
-import { useSepoliaAuditLogs, SepoliaAuditRecord } from "@/hooks/useSepoliaAuditLogs";
+import { useAuditLogs, AuditRecord } from "@/hooks/useAuditLogs";
 import { Input } from "@/components/ui/input";
 
 interface AuditTrailProps {
     walletAddress?: string;
-    recordsOverride?: SepoliaAuditRecord[];
+    recordsOverride?: AuditRecord[];
     onDecrypt?: () => void;
     isDecrypting?: boolean;
     isLoading?: boolean;
@@ -20,7 +20,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
         isDecrypting: hookedIsDecrypting,
         fetchLogs,
         decryptLedger: hookedDecrypt
-    } = useSepoliaAuditLogs(walletAddress);
+    } = useAuditLogs(walletAddress);
 
     const records = recordsOverride || hookedRecords;
     const currentIsLoading = recordsOverride ? isLoading : hookedIsLoading;
@@ -37,7 +37,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
     }, [walletAddress, fetchLogs, recordsOverride]);
 
     const displayRecords = searchTerm 
-        ? records.filter(r => r.flowTxHash.toLowerCase().includes(searchTerm.toLowerCase()) || r.recipients.some(rec => rec.toLowerCase().includes(searchTerm.toLowerCase())))
+        ? records.filter(r => r.hskTxHash.toLowerCase().includes(searchTerm.toLowerCase()) || r.recipients.some(rec => rec.toLowerCase().includes(searchTerm.toLowerCase())))
         : records;
 
     const totalPaid = displayRecords.reduce((sum, item) => {
@@ -108,7 +108,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                 </div>
                                 <div>
                                     <div className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest">VOLUME</div>
-                                    <div className="text-xl font-bold font-mono">{totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 })} FLOW</div>
+                                    <div className="text-xl font-bold font-mono">{totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 })} Tokens</div>
                                 </div>
                             </div>
 
@@ -119,7 +119,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                             <div className="font-medium text-sm flex items-center gap-2">
                                                 {record.timestamp.toLocaleString()}
                                                 <a
-                                                    href={`https://evm-testnet.flowscan.io/tx/${record.flowTxHash}`}
+                                                    href={`https://testnet.hsk.xyz/tx/${record.hskTxHash}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="text-xs text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded"
@@ -143,32 +143,29 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                         <div className="space-y-2 mt-3 pl-2 border-l-2 border-muted">
                                             {record.recipients.map((recipient, i) => (
                                                 <div key={i} className="grid grid-cols-12 gap-2 text-sm items-center py-1">
-                                                    <div className="col-span-4 font-mono text-muted-foreground">
+                                                    <div className="col-span-3 font-mono text-muted-foreground">
                                                         {formatAddress(recipient)}
                                                     </div>
                                                     <div className="col-span-2 font-medium">
-                                                        {record.amounts[i]} FLOW
+                                                        {record.amounts[i]}
                                                     </div>
-                                                    <div className="col-span-3">
-                                                        {record.decrypted && record.categories ? (
-                                                            <span className="px-2 py-1 bg-secondary rounded text-xs">
-                                                                Cat: {record.categories[i]}
-                                                            </span>
+                                                    <div className="col-span-7 flex flex-wrap gap-2 items-center">
+                                                        {record.decrypted && record.categories && record.jurisdictions && record.referenceIds ? (
+                                                            <>
+                                                                <span className="px-2 py-1 bg-secondary rounded text-xs">
+                                                                    Ref: {record.referenceIds[i]}
+                                                                </span>
+                                                                <span className="px-2 py-1 bg-secondary rounded text-xs">
+                                                                    Cat: {record.categories[i]}
+                                                                </span>
+                                                                <span className="px-2 py-1 bg-secondary rounded text-xs">
+                                                                    Jur: {record.jurisdictions[i]}
+                                                                </span>
+                                                            </>
                                                         ) : (
                                                               <span className="px-2 py-0.5 bg-muted rounded text-[10px] font-mono tracking-tighter opacity-10">
-                                                                  {record.encryptedCategories[i].slice(0, 15)}...
+                                                                  {record.encryptedPayload.slice(0, 30)}...
                                                               </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="col-span-3">
-                                                        {record.decrypted && record.jurisdictions ? (
-                                                            <span className="px-2 py-1 bg-secondary rounded text-xs">
-                                                                Jur: {record.jurisdictions[i]}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 bg-muted rounded text-xs font-mono opacity-50 blur-[2px]">
-                                                                {record.encryptedJurisdictions[i].slice(0, 10)}...
-                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>

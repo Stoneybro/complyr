@@ -1,6 +1,6 @@
 import { GraphQLClient, gql } from 'graphql-request';
 
-const ENVIO_API_URL = process.env.NEXT_PUBLIC_ENVIO_API_URL || 'https://indexer.dev.hyperindex.xyz/9b11e14/v1/graphql';
+const ENVIO_API_URL = process.env.NEXT_PUBLIC_ENVIO_API_URL || 'http://localhost:8080/v1/graphql';
 
 export const envioClient = new GraphQLClient(ENVIO_API_URL);
 
@@ -11,7 +11,10 @@ export enum ActivityType {
   INTENT_CREATED = "INTENT_CREATED",
   INTENT_EXECUTION = "INTENT_EXECUTION",
   INTENT_CANCELLED = "INTENT_CANCELLED",
-  TRANSFER_FAILED = "TRANSFER_FAILED"
+  TRANSFER_FAILED = "TRANSFER_FAILED",
+  ERC20_TRANSFER = "ERC20_TRANSFER",
+  COMPLIANCE_RECORDED = "COMPLIANCE_RECORDED",
+  ACCOUNT_REGISTERED = "ACCOUNT_REGISTERED"
 }
 
 export interface Transaction {

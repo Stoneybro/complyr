@@ -1,11 +1,11 @@
 import { createPublicClient, createWalletClient, http, custom } from "viem";
-import { flowTestnet } from "viem/chains";
+import { hashkeyTestnet } from "./chains";
 
 // Public client: used for read-only blockchain interactions
 export const getPublicClient = () =>
   createPublicClient({
-    chain: flowTestnet,
-    transport: http("https://testnet.evm.nodes.onflow.org"),
+    chain: hashkeyTestnet,
+    transport: http("https://testnet.hsk.xyz"),
   });
 
 // Wallet client: used for signed transactions via a connected wallet
@@ -18,6 +18,6 @@ export const getWalletClient = async ({
 }) =>
   createWalletClient({
     account: address,
-    chain: flowTestnet,
+    chain: hashkeyTestnet,
     transport: custom(eip1193),
   });

@@ -1,5 +1,5 @@
 name: complyr-indexer
-description: Indexer for Complyr
+description: Indexer for Complyr on HashKey Chain
 
 field_selection:
   transaction_fields:
@@ -8,10 +8,10 @@ field_selection:
     - input
 
 networks:
-  - id: 545
+  - id: 133
     rpc_config:
-      url: https://testnet.evm.nodes.onflow.org
-    start_block: 102148400
+      url: https://testnet.hsk.xyz
+    start_block: 26381863
     contracts:
       - name: SmartWallet
         handler: src/EventHandlers.ts
@@ -24,15 +24,21 @@ networks:
           - event: WalletAction(address indexed initiator, address indexed target, uint256 value, bytes4 indexed selector, bool success, bytes32 actionType)
       - name: SmartWalletFactory
         address:
-          - 0x6d39ae04c757ae3658c957b240835cc040923105
+          - 0x37c5c677146A19e61295E40F0518bAf3f94305fE
         handler: src/EventHandlers.ts
         events:
           - event: AccountCreated(address indexed account, address indexed owner)
       - name: IntentRegistry
         address:
-          - 0x8bd539be7554752dc16b4d96ac857f3752b39cc1
+          - 0x6A0C73162c20Bc56212D643112c339f654C45198
         handler: src/EventHandlers.ts
         events:
-          - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
+          - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, address indexed token, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
           - event: IntentExecuted(address indexed wallet, bytes32 indexed intentId, string name, uint256 transactionCount, uint256 totalAmount)
           - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, string name, uint256 amountRefunded, uint256 failedAmountRecovered)
+      - name: MockUSDC
+        address:
+          - 0x43e0BC90661dAF20C6fFbae1079d6E07E88e403A
+        handler: src/EventHandlers.ts
+        events:
+          - event: Transfer(address indexed from, address indexed to, uint256 value)

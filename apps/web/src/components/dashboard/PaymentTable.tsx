@@ -83,7 +83,7 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
         return items.map((tx) => {
             const details = tx.details || {};
             const recipients = details.recipients || [];
-            const tokenSymbol = details.token || 'FLOW'; // Use details.token or fallback to FLOW
+            const tokenSymbol = details.token || 'HSK'; // Use details.token or fallback to HSK
             const amount = details.totalCommitment ? formatUnits(BigInt(details.totalCommitment), 18) : '0';
             return (
                 <TableRow key={tx.id} >
@@ -125,7 +125,7 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                         <a
-                            href={`https://evm-testnet.flowscan.io/tx/${tx.id}`}
+                            href={`https://testnet.hsk.xyz/tx/${tx.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:text-primary transition-colors"

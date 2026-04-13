@@ -61,7 +61,7 @@ const encrypted = await input.encrypt();
 // Returns: { handles: Uint8Array[], inputProof: Uint8Array }
 ```
 
-**3. Handle and proof extraction.** The resulting ciphertext handle (32 bytes) and zero-knowledge proof are encoded as hex strings and submitted to the registry. The canonical path is via the LayerZero bridge (ComplianceBridge → ComplianceReceiver → ComplianceRegistry). On testnet, the Flow EVM → Sepolia route has no DVN configured, so a relay API submits records directly to the registry with the same payload structure, proving the integration works end-to-end independently of the missing testnet infrastructure.
+**3. Handle and proof extraction.** The resulting ciphertext handle (32 bytes) and zero-knowledge proof are encoded as hex strings and submitted to the registry. The canonical path is via the LayerZero bridge (ComplianceBridge → ComplianceReceiver → ComplianceRegistry). On testnet, the HashKey Chain → Sepolia route has no DVN configured, so a relay API submits records directly to the registry with the same payload structure, proving the integration works end-to-end independently of the missing testnet infrastructure.
 
 **4. On-chain validation.** `FHE.fromExternal(handle, proof)` validates the proof and returns a live `euint8` handle bound to the Zama coprocessor.
 

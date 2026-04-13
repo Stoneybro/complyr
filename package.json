@@ -6,8 +6,8 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
-    "forge:build": "pnpm --filter contracts-flow build",
-    "forge:test": "pnpm --filter contracts-flow test",
+    "forge:build": "pnpm --filter contracts build",
+    "forge:test": "pnpm --filter contracts test",
     "clean": "pnpm -r run clean"
   },
   "packageManager": "pnpm@10.30.3",

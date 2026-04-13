@@ -6,7 +6,7 @@ import { ComplianceOverview } from "@/components/compliance/ComplianceOverview";
 import { TaxReportGenerator } from "@/components/compliance/TaxReportGenerator";
 import { AuditTrail } from "@/components/compliance/AuditTrail";
 import { AuditorsManager } from "@/components/compliance/AuditorsManager";
-import { useSepoliaAuditLogs } from "@/hooks/useSepoliaAuditLogs";
+import { useAuditLogs } from "@/hooks/useAuditLogs";
 import { Button } from "@/components/ui/button";
 import { Loader2, LockIcon, UnlockIcon, RefreshCw, AlertTriangle } from "lucide-react";
 import { ComplianceStats, ComplianceData } from "@/hooks/useComplianceData";
@@ -23,7 +23,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
         isDecrypting,
         fetchLogs,
         decryptLedger
-    } = useSepoliaAuditLogs(walletAddress, isExternalAuditor);
+    } = useAuditLogs(walletAddress, isExternalAuditor);
 
     useEffect(() => {
         if (walletAddress) {
@@ -31,7 +31,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
         }
     }, [walletAddress, fetchLogs]);
 
-    // Transform SepoliaAuditRecord[] into flat ComplianceData[] for children
+    // Transform AuditRecord[] into flat ComplianceData[] for children
     const parsedData = useMemo(() => {
         const flat: ComplianceData[] = [];
         const stats: ComplianceStats = {
@@ -44,23 +44,25 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
 
         records.forEach(record => {
             record.recipients.forEach((recipient, i) => {
-                const amountFlow = parseFloat(record.amounts[i]);
+                const amountTokens = parseFloat(record.amounts[i]);
                 const cat = record.decrypted && record.categories ? record.categories[i] : "Encrypted";
                 const jur = record.decrypted && record.jurisdictions ? record.jurisdictions[i] : "Encrypted";
+                const ref = record.decrypted && record.referenceIds ? record.referenceIds[i] : "Encrypted Record";
                 
                 // For TaxReport generator compatibility, multiply by 1e18 since it divides by 1e18
-                const amountWei = (amountFlow * 1e18).toString();
+                const amountWei = (amountTokens * 1e18).toString();
 
                 flat.push({
                     date: record.timestamp,
-                    txHash: record.flowTxHash,
+                    txHash: record.hskTxHash,
                     amount: amountWei,
-                    currency: "FLOW",
-                    entityId: "SepoliaLedger",
+                    formattedAmount: amountTokens,
+                    currency: "Tokens",
+                    entityId: "HashKeyLedger",
                     jurisdiction: jur,
                     category: cat,
                     periodId: "N/A",
-                    reference: "Zama FHE Record",
+                    reference: ref,
                     details: {},
                     recipientAddress: recipient
                 });
@@ -69,12 +71,12 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                     if (jur !== "Not Specified" && jur !== "Unknown") {
                         if (!stats.byJurisdiction[jur]) stats.byJurisdiction[jur] = { count: 0, amount: 0 };
                         stats.byJurisdiction[jur].count++;
-                        stats.byJurisdiction[jur].amount += amountFlow;
+                        stats.byJurisdiction[jur].amount += amountTokens;
                     }
                     if (cat !== "Not Specified" && cat !== "Unknown") {
                         if (!stats.byCategory[cat]) stats.byCategory[cat] = { count: 0, amount: 0 };
                         stats.byCategory[cat].count++;
-                        stats.byCategory[cat].amount += amountFlow;
+                        stats.byCategory[cat].amount += amountTokens;
                     }
                     if (jur !== "Not Specified" || cat !== "Not Specified") {
                         stats.totalCategorized++;
@@ -107,7 +109,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                     <p className="text-muted-foreground">
                         {isExternalAuditor 
                             ? "Review verified transaction intents and their associated compliance metadata."
-                            : "Monitor compliance health directly from Zama FHEvm."}
+                            : "Monitor compliance health directly from the encrypted ledger."}
                     </p>
                 </div>
                 
@@ -144,7 +146,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
             {isLoading && records.length === 0 ? (
                 <div className="py-12 flex flex-col justify-center items-center text-muted-foreground gap-4">
                     <Loader2 className="h-8 w-8 animate-spin" />
-                    <p>Securing connection to Zama FHEVM...</p>
+                    <p>Securing connection to the encrypted ledger...</p>
                 </div>
             ) : (
                 <Tabs defaultValue="overview" className="space-y-4 h-full flex flex-col">

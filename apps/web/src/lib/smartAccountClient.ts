@@ -1,15 +1,15 @@
 import { createSmartAccountClient } from "permissionless";
-import { http } from "viem";
-import { flowTestnet } from "viem/chains";
+import { hashkeyTestnet } from "./chains";
 import { bundlerTransport, publicClient } from "./bundler";
 import { CustomSmartAccount } from "./customSmartAccount";
 import { VerifyingPaymasterAddress } from "./CA";
+
 export async function getSmartAccountClient(
   customSmartAccount: CustomSmartAccount
 ) {
   return createSmartAccountClient({
     account: customSmartAccount,
-    chain: flowTestnet,
+    chain: hashkeyTestnet,
     client: publicClient,
     bundlerTransport: bundlerTransport,
     userOperation: {

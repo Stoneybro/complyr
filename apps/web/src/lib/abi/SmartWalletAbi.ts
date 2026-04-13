@@ -8,7 +8,7 @@ export const SmartWalletABI = [
         "internalType": "address"
       },
       {
-        "name": "bridge",
+        "name": "complianceRegistry",
         "type": "address",
         "internalType": "address"
       }
@@ -25,7 +25,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "COMPLIANCE_BRIDGE",
+    "name": "COMPLIANCE_REGISTRY",
     "inputs": [],
     "outputs": [
       {
@@ -51,8 +51,36 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
+    "name": "batchTransferERC20",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "amounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "decreaseCommitment",
     "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "amount",
         "type": "uint256",
@@ -130,8 +158,36 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
+    "name": "executeBatch",
+    "inputs": [
+      {
+        "name": "targets",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "values",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "datas",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
     "name": "executeBatchIntentTransfer",
     "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "recipients",
         "type": "address[]",
@@ -165,7 +221,13 @@ export const SmartWalletABI = [
   {
     "type": "function",
     "name": "getAvailableBalance",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -179,6 +241,11 @@ export const SmartWalletABI = [
     "type": "function",
     "name": "increaseCommitment",
     "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "amount",
         "type": "uint256",
@@ -227,54 +294,27 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "reportCompliance",
+    "name": "recordCompliance",
     "inputs": [
       {
-        "name": "report",
-        "type": "tuple",
-        "internalType": "struct IComplianceBridge.ComplianceReport",
-        "components": [
-          {
-            "name": "flowTxHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "proxyAccount",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "recipients",
-            "type": "address[]",
-            "internalType": "address[]"
-          },
-          {
-            "name": "amounts",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
-          },
-          {
-            "name": "categoryHandles",
-            "type": "bytes32[]",
-            "internalType": "bytes32[]"
-          },
-          {
-            "name": "categoryProofs",
-            "type": "bytes[]",
-            "internalType": "bytes[]"
-          },
-          {
-            "name": "jurisdictionHandles",
-            "type": "bytes32[]",
-            "internalType": "bytes32[]"
-          },
-          {
-            "name": "jurisdictionProofs",
-            "type": "bytes[]",
-            "internalType": "bytes[]"
-          }
-        ]
+        "name": "txHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "amounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "encryptedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [],
@@ -283,10 +323,16 @@ export const SmartWalletABI = [
   {
     "type": "function",
     "name": "sCommittedFunds",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
-        "name": "",
+        "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -305,6 +351,29 @@ export const SmartWalletABI = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transferERC20",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -387,6 +456,12 @@ export const SmartWalletABI = [
     "name": "CommitmentDecreased",
     "inputs": [
       {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "amount",
         "type": "uint256",
         "indexed": false,
@@ -406,6 +481,12 @@ export const SmartWalletABI = [
     "name": "CommitmentIncreased",
     "inputs": [
       {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
         "name": "amount",
         "type": "uint256",
         "indexed": false,
@@ -413,6 +494,44 @@ export const SmartWalletABI = [
       },
       {
         "name": "newTotal",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ComplianceRecorded",
+    "inputs": [
+      {
+        "name": "txHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ERC20Transferred",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -663,7 +782,18 @@ export const SmartWalletABI = [
   },
   {
     "type": "error",
-    "name": "SmartWallet__ComplianceBridgeZeroAddress",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SmartWallet__ComplianceRegistryZeroAddress",
     "inputs": []
   },
   {

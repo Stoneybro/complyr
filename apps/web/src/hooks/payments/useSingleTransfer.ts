@@ -2,16 +2,15 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { parseEther, bytesToHex } from "viem";
+import { parseUnits, encodeFunctionData } from "viem";
 import { SingleTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { getFhevmInstance } from "@/lib/fhevm";
+import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
+import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
+import { MockUSDCAddress, ComplianceRegistryAddress } from "@/lib/CA";
 
-const ZAMA_CONTRACT_ADDRESS = "0x231Fcd3ae69f723B3AeFfe7B9B876Bb37C4Db4D6";
-// The automated relay wallet that submits transactions on the Zama testnet
-const RELAY_ADDRESS = "0x0D96081998fd583334fd1757645B40fdD989B267";
-
-export function useSingleTransfer(availableEthBalance?: string) {
+export function useSingleTransfer(availableBalance?: string) {
     const { getClient } = useSmartAccountContext();
     const { wallets } = useWallets();
     const owner = wallets?.find((wallet) => wallet.walletClientType === "privy");
@@ -21,12 +20,16 @@ export function useSingleTransfer(availableEthBalance?: string) {
         mutationFn: async (params: SingleTransferParams) => {
 
             try {
+                // Determine token decimals
+                const isUsdc = params.tokenAddress?.toLowerCase() === MockUSDCAddress.toLowerCase();
+                const decimals = isUsdc ? 6 : 18;
+
                 // Balance check
-                if (availableEthBalance) {
+                if (availableBalance) {
                     const balanceCheck = checkSufficientBalance({
-                        availableBalance: availableEthBalance,
+                        availableBalance: availableBalance,
                         requiredAmount: params.amount,
-                        token: "FLOW"
+                        token: params.tokenAddress ? "USDC" : "HSK"
                     });
 
                     if (!balanceCheck.sufficient) {
@@ -42,49 +45,82 @@ export function useSingleTransfer(availableEthBalance?: string) {
                     throw new Error("No connected wallet found");
                 }
 
-                const amountInWei = parseEther(params.amount);
+                const amountInUnits = parseUnits(params.amount, decimals);
                 const proxyAddress = smartAccountClient.account!.address;
+                const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
 
-                // 1. Setup single call
-                const calls = [
-                    {
+                // 1. Setup calls
+                const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
+
+                if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
+                    // Call transfer on the ERC20 token contract directly
+                    calls.push({
+                        to: params.tokenAddress as `0x${string}`,
+                        value: 0n,
+                        data: encodeFunctionData({
+                            abi: [
+                                {
+                                    "type": "function",
+                                    "name": "transfer",
+                                    "inputs": [
+                                        { "name": "recipient", "type": "address" },
+                                        { "name": "amount", "type": "uint256" }
+                                    ],
+                                    "outputs": [{ "name": "", "type": "bool" }],
+                                    "stateMutability": "nonpayable"
+                                }
+                            ],
+                            functionName: "transfer",
+                            args: [params.to, amountInUnits]
+                        })
+                    });
+                } else {
+                    // Native HSK transfer
+                    calls.push({
                         to: params.to,
                         data: "0x" as `0x${string}`,
-                        value: amountInWei,
-                    },
-                ];
+                        value: amountInUnits,
+                    });
+                }
 
-                // 2. Client-side Next/Dynamic FHEVM Encryption (SSR-safe)
-                let encryptedData = null;
-                const hasComplianceData = params.compliance && (params.compliance.categories?.length || params.compliance.jurisdictions?.length);
-                const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
+                // 2. Client-side AES-256 Encryption
+                const hasComplianceData = params.compliance && (
+                    params.compliance.categories?.length || 
+                    params.compliance.jurisdictions?.length || 
+                    params.compliance.referenceIds?.length
+                );
 
                 if (hasComplianceData) {
                     statusUpdate("Encrypting...");
                     const loadingId = toast.loading("Encrypting compliance payload...");
                     try {
-                        const fhevm = await getFhevmInstance();
-                        const categories = params.compliance?.categories || [];
-                        const jurisdictions = params.compliance?.jurisdictions || [];
+                        const payloadData = [{
+                            recipient: params.to,
+                            category: params.compliance?.categories?.[0] ?? 0,
+                            jurisdiction: params.compliance?.jurisdictions?.[0] ?? 0,
+                            referenceId: params.compliance?.referenceIds?.[0] ?? ""
+                        }];
+                        
+                        const jsonPayload = JSON.stringify({ payments: payloadData });
+                        const aesKey = await deriveAESKey(owner.address);
+                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
+                        const encryptedPayloadHex = bufferToHex(encryptedBytes);
 
-                        const catInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, RELAY_ADDRESS);
-                        catInput.add8(categories[0] !== undefined ? categories[0] : 0);
-                        const catEnc = await catInput.encrypt();
+                        // Generate a unique 32-byte ID for this payment
+                        const paymentIdBytes = window.crypto.getRandomValues(new Uint8Array(32));
+                        const paymentId = bufferToHex(paymentIdBytes) as `0x${string}`;
 
-                        const jurInput = fhevm.createEncryptedInput(ZAMA_CONTRACT_ADDRESS, RELAY_ADDRESS);
-                        jurInput.add8(jurisdictions[0] !== undefined ? jurisdictions[0] : 0);
-                        const jurEnc = await jurInput.encrypt();
+                        // Call ComplianceRegistry directly
+                        calls.push({
+                            to: ComplianceRegistryAddress as `0x${string}`,
+                            value: 0n,
+                            data: encodeFunctionData({
+                                abi: ComplianceRegistryABI,
+                                functionName: "recordTransaction",
+                                args: [paymentId, proxyAddress, [params.to], [amountInUnits], encryptedPayloadHex]
+                            })
+                        });
 
-                        encryptedData = {
-                            handles: {
-                                categories: [bytesToHex(catEnc.handles[0])],
-                                jurisdictions: [bytesToHex(jurEnc.handles[0])]
-                            },
-                            proofs: {
-                                categories: [bytesToHex(catEnc.inputProof)],
-                                jurisdictions: [bytesToHex(jurEnc.inputProof)]
-                            }
-                        };
                         toast.dismiss(loadingId);
                     } catch (e) {
                         console.error(e);
@@ -94,9 +130,10 @@ export function useSingleTransfer(availableEthBalance?: string) {
                     }
                 }
 
-                // 3. Send Base Flow Transaction
+                // 3. Send Base HashKey Transaction
                 statusUpdate("Signing...");
-                const txLoading = toast.loading("Sending standard Flow transfer...");
+                const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
+                const txLoading = toast.loading(`Sending ${tokenSymbol} transfer...`);
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,
@@ -105,51 +142,20 @@ export function useSingleTransfer(availableEthBalance?: string) {
                 statusUpdate("Confirming...");
                 const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
                 toast.dismiss(txLoading);
-                const txHash = receipt.receipt.transactionHash;
 
-                // 4. Relay directly to Zama 
-                if (encryptedData) {
-                    statusUpdate("Anchoring...");
-                    toast.loading("Recording compliance on Zama...", { id: "relay-toast" });
-
-                    try {
-                        const relayRes = await fetch("/api/relay/compliance-record", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                flowTxHash: txHash,
-                                proxyAccount: proxyAddress,
-                                recipients: [params.to],
-                                amounts: [amountInWei.toString()],
-                                categoryHandles: encryptedData.handles.categories,
-                                categoryProofs: encryptedData.proofs.categories,
-                                jurisdictionHandles: encryptedData.handles.jurisdictions,
-                                jurisdictionProofs: encryptedData.proofs.jurisdictions,
-                            }),
-                        });
-
-                        const relayData = await relayRes.json();
-                        if (!relayData.success) {
-                            console.warn("[relay] Compliance recording did not succeed:", relayData.error);
-                            statusUpdate("Partial Success");
-                            toast.error("Transfer ok, compliance filing failed.", { id: "relay-toast" });
-                        } else {
-                            statusUpdate("Complete");
-                            toast.success("Transfer & compliance recorded!", { id: "relay-toast" });
-                        }
-                    } catch (relayErr) {
-                        console.error("[relay] Relay API call failed:", relayErr);
-                        statusUpdate("Partial Success");
-                        toast.error("Transfer ok, relay failed.", { id: "relay-toast" });
-                    }
-                } else {
-                    statusUpdate("Complete");
-                    toast.success("FLOW transfer completed!");
+                if (!receipt.success) {
+                    const txHashFailed = receipt.receipt?.transactionHash;
+                    const revertMsg = receipt.reason ?? (txHashFailed ? `Reverted on-chain. TxHash: ${txHashFailed}` : "UserOp reverted on-chain");
+                    console.error("[single] UserOp reverted:", revertMsg, receipt);
+                    throw new Error(`Transaction reverted: ${revertMsg}`);
                 }
+
+                statusUpdate("Complete");
+                toast.success(`${tokenSymbol} transfer completed!`);
 
                 return receipt;
             } catch (error) {
-                console.error("Error sending FLOW transfer:", error);
+                console.error("Error sending transfer:", error);
                 const errorMessage = error instanceof Error ? error.message : "Failed to send transfer";
                 toast.error(errorMessage);
                 throw error;

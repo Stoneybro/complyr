@@ -19,12 +19,15 @@ import { useBatchTransfer } from "@/hooks/payments/useBatchTransfer";
 import { useContacts } from "@/hooks/useContacts";
 import { toast } from "sonner";
 import type { Contact } from "@/lib/contact-store";
+import { MockUSDCAddress } from "@/lib/CA";
 import {
     stringsToJurisdictions,
     stringsToCategories,
     getJurisdictionOptions,
     getCategoryOptions
 } from "@/lib/compliance-enums";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWalletBalance } from "@/utils/helper";
 
 // Compliance options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
@@ -34,6 +37,7 @@ const CATEGORY_OPTIONS = getCategoryOptions();
 type RecipientData = {
     address: string;
     amount: string;
+    referenceId?: string;
     jurisdiction?: string;
     category?: string;
     contactName?: string;
@@ -45,6 +49,7 @@ const RecipientRow = React.memo(({
     index,
     type,
     showRemove,
+    tokenSymbol,
     onUpdate,
     onRemove,
 }: {
@@ -52,6 +57,7 @@ const RecipientRow = React.memo(({
     index: number;
     type: "batch" | "recurring";
     showRemove: boolean;
+    tokenSymbol: string;
     onUpdate: (type: "batch" | "recurring", index: number, field: keyof RecipientData, value: string) => void;
     onRemove: (type: "batch" | "recurring", index: number) => void;
 }) => (
@@ -63,14 +69,17 @@ const RecipientRow = React.memo(({
                 onChange={(e) => onUpdate(type, index, "address", e.target.value)}
                 className="flex-1 font-mono text-sm"
             />
-            <Input
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                value={recipient.amount}
-                onChange={(e) => onUpdate(type, index, "amount", e.target.value)}
-                className="w-32"
-            />
+            <div className="relative w-32">
+                <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Amount"
+                    value={recipient.amount}
+                    onChange={(e) => onUpdate(type, index, "amount", e.target.value)}
+                    className="pr-12"
+                />
+                <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">{tokenSymbol}</span>
+            </div>
             {showRemove && (
                 <Button
                     type="button"
@@ -85,16 +94,25 @@ const RecipientRow = React.memo(({
         <div className="mt-4 pt-3 border-t border-dashed">
             <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-3 px-1 flex items-center gap-2">
                 <span className="h-1 w-1 bg-muted-foreground rounded-full" />
-                Compliance Records
+                Compliance Records (Encrypted)
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                    <Input
+                        placeholder="Ref ID (Max 7)"
+                        value={recipient.referenceId || ''}
+                        onChange={(e) => onUpdate(type, index, "referenceId", e.target.value.substring(0, 7))}
+                        className="h-8 text-xs bg-muted/30"
+                        maxLength={7}
+                    />
+                </div>
                 <div className="space-y-1">
                     <Select
                         value={recipient.jurisdiction || ''}
                         onValueChange={(value) => onUpdate(type, index, "jurisdiction", value)}
                     >
                         <SelectTrigger className="w-full h-8 text-xs bg-muted/30">
-                            <SelectValue placeholder="Recipient Jurisdiction" />
+                            <SelectValue placeholder="Jurisdiction" />
                         </SelectTrigger>
                         <SelectContent>
                             {JURISDICTION_OPTIONS.map((j) => (
@@ -111,7 +129,7 @@ const RecipientRow = React.memo(({
                         onValueChange={(value) => onUpdate(type, index, "category", value)}
                     >
                         <SelectTrigger className="w-full h-8 text-xs bg-muted/30">
-                            <SelectValue placeholder="Payment Category" />
+                            <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
                             {CATEGORY_OPTIONS.map((c) => (
@@ -138,15 +156,23 @@ RecipientRow.displayName = "RecipientRow";
 
 interface PaymentFormProps {
     walletAddress?: `0x${string}`;
-    availableBalance?: string;
 }
 
-type PaymentType = "single" | "batch" | "recurring";
-type PayrollCategory = "none" | "PAYROLL_W2" | "PAYROLL_1099" | "CONTRACTOR" | "BONUS" | "INVOICE" | "VENDOR" | "GRANT";
+type PaymentType = "single" | "batch" | "recurring" | "hsp";
+type TokenType = "USDC" | "HSK";
 
-
-export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProps) {
+export function PaymentForm({ walletAddress }: PaymentFormProps) {
     const [paymentType, setPaymentType] = useState<PaymentType>("single");
+    const [selectedToken, setSelectedToken] = useState<TokenType>("USDC");
+
+    // Fetch balances
+    const { data: wallet } = useQuery({
+        queryKey: ["walletBalance", walletAddress],
+        queryFn: () => fetchWalletBalance(walletAddress as `0x${string}`),
+        enabled: !!walletAddress,
+    });
+
+    const activeBalance = selectedToken === "USDC" ? wallet?.availableUsdcBalance : wallet?.availableHskBalance;
 
     // Single payment state
     const [singleRecipient, setSingleRecipient] = useState<RecipientData>({ address: "", amount: "" });
@@ -167,9 +193,9 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
     const { data: contacts = [] } = useContacts(walletAddress);
 
     // Mutations
-    const singleMutation = useSingleTransfer(availableBalance);
-    const batchMutation = useBatchTransfer(availableBalance);
-    const recurringMutation = useRecurringPayment(availableBalance);
+    const singleMutation = useSingleTransfer(activeBalance);
+    const batchMutation = useBatchTransfer(activeBalance);
+    const recurringMutation = useRecurringPayment(); 
 
     // Update processing state when mutation changes
     React.useEffect(() => {
@@ -202,7 +228,6 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
 
     const complianceFromContact = hasContactCompliance();
 
-
     // Load contact for single transfer
     const loadContactForSingle = (contactId: string) => {
         const contact = contacts.find(c => c.id === contactId);
@@ -212,6 +237,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
         setSingleRecipient({
             address: addr.address,
             amount: singleRecipient.amount, // Keep existing amount
+            referenceId: addr.entityId,
             jurisdiction: addr.jurisdiction,
             category: addr.category,
             contactName: contact.name,
@@ -226,6 +252,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
         const newRecipients = contact.addresses.map(addr => ({
             address: addr.address,
             amount: "",
+            referenceId: addr.entityId,
             jurisdiction: addr.jurisdiction,
             category: addr.category,
             contactName: contact.name,
@@ -282,23 +309,30 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
         // Collect per-recipient data as string arrays
         const jurisdictionStrings = recipients.map(r => r.jurisdiction);
         const categoryStrings = recipients.map(r => r.category);
+        const referenceIdStrings = recipients.map(r => r.referenceId || "");
 
         // Filter out empty arrays for optional fields
         const hasJurisdictions = jurisdictionStrings.some(j => j && j !== "none");
         const hasCategories = categoryStrings.some(c => c && c !== "none");
+        const hasReferences = referenceIdStrings.some(r => r !== "");
 
         // Convert strings to enum values (numbers)
         return {
             jurisdictions: hasJurisdictions ? stringsToJurisdictions(jurisdictionStrings) : undefined,
             categories: hasCategories ? stringsToCategories(categoryStrings) : undefined,
+            referenceIds: hasReferences ? referenceIdStrings : undefined,
         };
     };
 
-
+    const getTokenAddress = () => {
+        return selectedToken === "USDC" ? MockUSDCAddress as `0x${string}` : undefined;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setTransactionStatus("Initializing...");
+
+        const tokenAddress = getTokenAddress();
 
         try {
             if (paymentType === "single") {
@@ -310,10 +344,11 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                 await singleMutation.mutateAsync({
                     to: singleRecipient.address as `0x${string}`,
                     amount: singleRecipient.amount,
+                    tokenAddress,
                     compliance: buildCompliance([singleRecipient]),
                     onStatusUpdate: setTransactionStatus,
                 });
-                setSingleRecipient({ address: "", amount: "" });
+                setSingleRecipient({ address: "", amount: "", referenceId: "" });
             } else if (paymentType === "batch") {
                 const addressesOnly = batchRecipients.filter(r => r.address);
                 if (addressesOnly.length < 2) {
@@ -332,10 +367,11 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                 await batchMutation.mutateAsync({
                     recipients: validRecipients.map(r => r.address as `0x${string}`),
                     amounts: validRecipients.map(r => r.amount),
+                    tokenAddress,
                     compliance: buildCompliance(validRecipients),
                     onStatusUpdate: setTransactionStatus,
                 });
-                setBatchRecipients([{ address: "", amount: "" }]);
+                setBatchRecipients([{ address: "", amount: "", referenceId: "" }]);
             } else if (paymentType === "recurring") {
                 if (!recurringName) {
                     toast.error("Please provide a name for this recurring payment");
@@ -363,6 +399,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                     name: recurringName,
                     recipients: validRecipients.map(r => r.address as `0x${string}`),
                     amounts: validRecipients.map(r => r.amount),
+                    tokenAddress,
                     interval: parseInt(recurringInterval),
                     duration: parseInt(recurringDuration),
                     transactionStartTime: recurringStartDate ? Math.floor(new Date(recurringStartDate).getTime() / 1000) : 0,
@@ -371,9 +408,27 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                 });
                 // Reset
                 setRecurringName("");
-                setRecurringRecipients([{ address: "", amount: "" }]);
+                setRecurringRecipients([{ address: "", amount: "", referenceId: "" }]);
                 setRecurringDuration("");
                 setRecurringStartDate("");
+            } else if (paymentType === "hsp") {
+                if (!singleRecipient.amount) {
+                    toast.error("Please enter an amount");
+                    setTransactionStatus("");
+                    return;
+                }
+                const res = await fetch("/api/hsp/orders", {
+                    method: "POST",
+                    body: JSON.stringify({ amount: singleRecipient.amount, token: selectedToken })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    window.location.href = json.data.payment_url;
+                } else {
+                    toast.error("Failed to generate HSP checkout link");
+                    setTransactionStatus("Failed");
+                }
+                return;
             }
         } catch (error) {
             console.error("Payment error:", error);
@@ -382,50 +437,71 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
     };
 
     // Contact selector component
-    const ContactSelector = ({ onSelect, label = "Load from Contact" }: { onSelect: (contactId: string) => void; label?: string }) => (
-        <Select onValueChange={onSelect}>
-            <SelectTrigger className="w-full">
-                <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <SelectValue placeholder={label} />
-                </div>
-            </SelectTrigger>
-            <SelectContent>
-                {contacts.length === 0 ? (
-                    <SelectItem value="empty" disabled className="text-sm text-foreground py-3 max-w-[250px] whitespace-normal pointer-events-none data-[disabled]:opacity-100">
-                        No contacts found. Use the sidebar to add a contact and automate compliance data.
-                    </SelectItem>
-                ) : (
-                    contacts.map((contact) => (
-                        <SelectItem key={contact.id} value={contact.id}>
-                            <div className="flex items-center gap-2">
-                                <span>{contact.name}</span>
-                                {contact.addresses.length > 1 && (
-                                    <span className="text-xs text-muted-foreground">
-                                        ({contact.addresses.length} addresses)
-                                    </span>
-                                )}
-                                {contact.addresses[0]?.jurisdiction && (
-                                    <span className="text-xs bg-muted px-1 rounded">
-                                        {contact.addresses[0].jurisdiction}
-                                    </span>
-                                )}
-                            </div>
+    const ContactSelector = ({ onSelect, label = "Load from Contacts" }: { onSelect: (contactId: string) => void; label?: string }) => (
+        <div className="space-y-2">
+            <Select onValueChange={onSelect}>
+                <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <SelectValue placeholder={label} />
+                    </div>
+                </SelectTrigger>
+                <SelectContent>
+                    {contacts.length === 0 ? (
+                        <SelectItem value="empty" disabled className="text-sm text-foreground py-3 max-w-[250px] whitespace-normal pointer-events-none data-[disabled]:opacity-100">
+                            No contacts found. Use the sidebar to add a contact and automate compliance data.
                         </SelectItem>
-                    ))
-                )}
-            </SelectContent>
-        </Select>
+                    ) : (
+                        contacts.map((contact) => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                                <div className="flex items-center gap-2">
+                                    <span>{contact.name}</span>
+                                    {contact.addresses.length > 1 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            ({contact.addresses.length} addresses)
+                                        </span>
+                                    )}
+                                    {contact.addresses[0]?.jurisdiction && (
+                                        <span className="text-xs bg-muted px-1 rounded">
+                                            {contact.addresses[0].jurisdiction}
+                                        </span>
+                                    )}
+                                </div>
+                            </SelectItem>
+                        ))
+                    )}
+                </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground px-1 italic">
+                💡 Tip: You can create and manage contacts in the sidebar to automate compliance data.
+            </p>
+        </div>
     );
 
     return (
         <div className="max-w-2xl mx-auto py-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>New Transfer</CardTitle>
-                    <CardDescription>
-                        Initiate a secure compliant transfer. Select saved contacts to automatically append encrypted compliance data.
-                    </CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>New Transfer</CardTitle>
+                            <CardDescription className="max-w-md mt-1">
+                                Initiate a secure compliant transfer. Select saved contacts to automatically append encrypted compliance data.
+                            </CardDescription>
+                        </div>
+                        <div className="w-32">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Asset</Label>
+                            <Select value={selectedToken} onValueChange={(v) => setSelectedToken(v as TokenType)}>
+                                <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USDC">USDC (Mock)</SelectItem>
+                                    <SelectItem value="HSK">Native HSK</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -440,6 +516,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                     <SelectItem value="single">Single Transfer</SelectItem>
                                     <SelectItem value="batch">Batch Transfer (2+ recipients)</SelectItem>
                                     <SelectItem value="recurring">Recurring Payment</SelectItem>
+                                    <SelectItem value="hsp">HSP Checkout (Demo)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -461,7 +538,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="single-amount">Amount (FLOW)</Label>
+                                        <Label htmlFor="single-amount">Amount ({selectedToken})</Label>
                                         <Input
                                             id="single-amount"
                                             type="number"
@@ -474,11 +551,22 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                         <div className="mt-4 pt-3 border-t border-dashed">
                                             <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-3 px-1 flex items-center gap-2">
                                                 <span className="h-1 w-1 bg-muted-foreground rounded-full" />
-                                                Compliance Records
+                                                Compliance Records (Encrypted)
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-3 gap-3">
                                                 <div className="space-y-1">
-                                                    <Label htmlFor="single-jurisdiction" className="text-[10px] text-muted-foreground px-1 uppercase">Recipient Jurisdiction</Label>
+                                                    <Label htmlFor="single-ref" className="text-[10px] text-muted-foreground px-1 uppercase">Reference ID</Label>
+                                                    <Input
+                                                        id="single-ref"
+                                                        placeholder="Max 7 char"
+                                                        value={singleRecipient.referenceId || ''}
+                                                        onChange={(e) => setSingleRecipient({ ...singleRecipient, referenceId: e.target.value.substring(0, 7) })}
+                                                        className="h-8 text-xs bg-muted/30"
+                                                        maxLength={7}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="single-jurisdiction" className="text-[10px] text-muted-foreground px-1 uppercase">Jurisdiction</Label>
                                                     <Select
                                                         value={singleRecipient.jurisdiction || ''}
                                                         onValueChange={(value) => setSingleRecipient({ ...singleRecipient, jurisdiction: value })}
@@ -496,7 +584,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                                     </Select>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <Label htmlFor="single-category" className="text-[10px] text-muted-foreground px-1 uppercase">Payment Category</Label>
+                                                    <Label htmlFor="single-category" className="text-[10px] text-muted-foreground px-1 uppercase">Category</Label>
                                                     <Select
                                                         value={singleRecipient.category || ''}
                                                         onValueChange={(value) => setSingleRecipient({ ...singleRecipient, category: value })}
@@ -534,7 +622,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                     <div className="flex-1">
                                         <ContactSelector
                                             onSelect={(id) => loadContactForList(id, "batch")}
-                                            label="Select Contact"
+                                            label="Select Contacts"
                                         />
                                     </div>
                                     <Button
@@ -555,6 +643,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                             index={index}
                                             type="batch"
                                             showRemove={batchRecipients.length > 1 || !!recipient.address || !!recipient.amount}
+                                            tokenSymbol={selectedToken}
                                             onUpdate={updateRecipient}
                                             onRemove={removeRecipient}
                                         />
@@ -592,7 +681,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                     <div className="flex-1">
                                         <ContactSelector
                                             onSelect={(id) => loadContactForList(id, "recurring")}
-                                            label="Select Contact"
+                                            label="Select Contacts"
                                         />
                                     </div>
                                     <Button
@@ -614,6 +703,7 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                                             index={index}
                                             type="recurring"
                                             showRemove={recurringRecipients.length > 1 || !!recipient.address || !!recipient.amount}
+                                            tokenSymbol={selectedToken}
                                             onUpdate={updateRecipient}
                                             onRemove={removeRecipient}
                                         />
@@ -661,9 +751,31 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                             </div>
                         )}
 
+                                                {/* HSP Checkout Form */}
+                        {paymentType === "hsp" && (
+                            <div className="space-y-4">
+                                <div className="space-y-2 p-3 border rounded-lg">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="hsp-amount">Order Amount ({selectedToken})</Label>
+                                        <Input
+                                            id="hsp-amount"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={singleRecipient.amount}
+                                            onChange={(e) => setSingleRecipient({ ...singleRecipient, amount: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-2 bg-muted p-2 rounded">
+                                        💡 Note: HSP is the HashKey Settlement Protocol. Clicking generate will redirect you to HashKey's official checkout page for merchant integration.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="pt-2 mt-4">
                             <div className="text-[10px] text-muted-foreground bg-muted p-2  leading-relaxed">
-                                Note: Complyr executes Fully Homomorphic Encryption (FHE) locally in your browser to guarantee data privacy. This requires significant CPU power and may temporarily freeze your browser window. Please do not close or reload the tab while processing.
+                                Note: Complyr executes AES-256-GCM encryption locally in your browser to guarantee data privacy. The on-chain contract only stores opaque ciphertexts, ensuring your business compliance metadata remains completely secure and hidden from the public ledger.
                             </div>
                         </div>
 
@@ -671,11 +783,11 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
                             {isProcessing ? (
                                 <>
                                     {transactionStatus !== "Encrypting..." && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {transactionStatus === "Encrypting..." ? "Encrypting (this may take a moment)..." : (transactionStatus || "Processing...")}
+                                    {transactionStatus === "Encrypting..." ? "Encrypting metadata..." : (transactionStatus || "Processing...")}
                                 </>
                             ) : (
                                 transactionStatus === "Complete" ? "Payment Successful" :
-                                (paymentType === "recurring" ? "Create Schedule" : "Confirm Payment")
+                                (paymentType === "recurring" ? "Create Schedule" : paymentType === "hsp" ? "Generate HSP Link" : "Confirm Payment")
                             )}
                         </Button>
                     </form>
@@ -684,4 +796,3 @@ export function PaymentForm({ walletAddress, availableBalance }: PaymentFormProp
         </div>
     );
 }
-

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createWalletClient, http, createPublicClient, parseEther } from "viem";
-import { sepolia } from "viem/chains";
+import { hashkeyTestnet } from "@/lib/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const maxDuration = 60;
@@ -25,31 +25,29 @@ export async function POST(req: NextRequest) {
         const account = privateKeyToAccount(privateKey as `0x${string}`);
 
         const publicClient = createPublicClient({
-            chain: sepolia,
-            transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+            chain: hashkeyTestnet,
+            transport: http("https://testnet.hsk.xyz"),
         });
 
         const walletClient = createWalletClient({
             account,
-            chain: sepolia,
-            transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+            chain: hashkeyTestnet,
+            transport: http("https://testnet.hsk.xyz"),
         });
 
-        // The user requested 0.0001 ETH, but FHE operations (retroactive FHE.allow array loops)
-        // are very gas-heavy. If the ledger has many records, 0.0001 might run out of gas.
-        // We will send exactly what they requested (0.0001) but keep in mind we might need to increase it.
-        const fundAmount = parseEther("0.001");
+        // 0.005 HSK is sufficient to pay for basic signature and registry ops
+        const fundAmount = parseEther("0.005");
 
-        // Check the relayer's balance to make sure we don't drain or crash
+        // Check the relayer's balance
         const relayerBalance = await publicClient.getBalance({ address: account.address });
         if (relayerBalance < fundAmount) {
             return NextResponse.json(
-                { error: "Relayer has insufficient Sepolia ETH to sponsor." },
+                { error: "Relayer has insufficient testnet HSK to sponsor." },
                 { status: 500 }
             );
         }
 
-        console.log(`[relay-fund] Funding connected embedded wallet ${targetWallet} with 0.001 ETH...`);
+        console.log(`[relay-fund] Funding connected embedded wallet ${targetWallet} with 0.005 HSK...`);
 
         const hash = await walletClient.sendTransaction({
             to: targetWallet as `0x${string}`,

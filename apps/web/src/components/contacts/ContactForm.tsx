@@ -34,6 +34,7 @@ type AddressFormData = {
     address: string;
     jurisdiction: string;
     category: string;
+    entityId: string;
 };
 
 type ContactFormProps = {
@@ -49,7 +50,8 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
             address: a.address,
             jurisdiction: a.jurisdiction || '',
             category: a.category || '',
-        })) || [{ address: '', jurisdiction: '', category: '' }]
+            entityId: a.entityId || '',
+        })) || [{ address: '', jurisdiction: '', category: '', entityId: '' }]
     );
 
     const { mutate: createContact, isPending: isCreating } = useCreateContact();
@@ -58,7 +60,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
     const isPending = isCreating || isUpdating;
 
     const addAddress = () => {
-        setAddresses([...addresses, { address: '', jurisdiction: '', category: '' }]);
+        setAddresses([...addresses, { address: '', jurisdiction: '', category: '', entityId: '' }]);
     };
 
     const removeAddress = (index: number) => {
@@ -104,6 +106,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
             address: a.address.trim(),
             jurisdiction: a.jurisdiction && a.jurisdiction !== 'none' ? a.jurisdiction : undefined,
             category: a.category && a.category !== 'none' ? a.category : undefined,
+            entityId: a.entityId.trim() || undefined,
         }));
 
         const data = {
@@ -204,6 +207,20 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
                                 </Field>
 
                                 <FieldSeparator>Compliance Requirements</FieldSeparator>
+
+                                <Field>
+                                    <FieldLabel htmlFor={`entityId-${index}`}>Reference ID</FieldLabel>
+                                    <Input
+                                        id={`entityId-${index}`}
+                                        value={addr.entityId}
+                                        onChange={(e) => updateAddressField(index, 'entityId', e.target.value.substring(0, 7))}
+                                        placeholder="e.g., emp-001"
+                                        maxLength={7}
+                                    />
+                                    <FieldDescription>
+                                        Example: emp-001, inv-99, vendor-id (Max 7 characters)
+                                    </FieldDescription>
+                                </Field>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <Field>

@@ -65,17 +65,28 @@ export default function CustomSmartAccount() {
               data: data as `0x${string}`,
             });
 
-            if (decoded.functionName === "executeBatch" && decoded.args) {
-              const batchCalls = decoded.args[0] as Array<{
-                target: `0x${string}`;
-                value: bigint;
-                data: `0x${string}`;
-              }>;
-              return batchCalls.map((call) => ({
-                to: call.target,
-                value: call.value,
-                data: call.data,
-              }));
+            if (decoded.functionName === "executeBatch") {
+              if (Array.isArray(decoded.args[0]) && typeof decoded.args[0][0] === 'object' && 'target' in decoded.args[0][0]) {
+                // tuple version: executeBatch((address,uint256,bytes)[])
+                const batchCalls = decoded.args[0] as Array<{
+                  target: `0x${string}`;
+                  value: bigint;
+                  data: `0x${string}`;
+                }>;
+                return batchCalls.map((call) => ({
+                  to: call.target,
+                  value: call.value,
+                  data: call.data,
+                }));
+              } else if (Array.isArray(decoded.args[0]) && Array.isArray(decoded.args[1]) && Array.isArray(decoded.args[2])) {
+                // three-array version: executeBatch(address[],uint256[],bytes[])
+                const [targets, values, datas] = decoded.args as [`0x${string}`[], bigint[], `0x${string}`[]];
+                return targets.map((target, i) => ({
+                  to: target,
+                  value: values[i],
+                  data: datas[i],
+                }));
+              }
             } else if (decoded.functionName === "execute" && decoded.args) {
               const [target, value, callData] = decoded.args as [`0x${string}`, bigint, `0x${string}`];
               return [{ to: target, value, data: callData }];

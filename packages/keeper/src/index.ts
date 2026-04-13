@@ -1,12 +1,35 @@
 
-import { createPublicClient, createWalletClient, http, parseAbi, parseAbiItem } from 'viem';
+import { createPublicClient, createWalletClient, http, parseAbi, parseAbiItem, defineChain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { flowTestnet } from 'viem/chains';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const RPC_URL = process.env.RPC_URL || 'https://testnet.evm.nodes.onflow.org';
+// Define HashKey Chain Testnet
+const hashkeyTestnet = defineChain({
+    id: 133,
+    name: 'HashKey Chain Testnet',
+    network: 'hashkey-testnet',
+    nativeCurrency: {
+        decimals: 18,
+        name: 'HSK',
+        symbol: 'HSK',
+    },
+    rpcUrls: {
+        default: {
+            http: ['https://testnet.hsk.xyz'],
+        },
+        public: {
+            http: ['https://testnet.hsk.xyz'],
+        },
+    },
+    blockExplorers: {
+        default: { name: 'HashKey Explorer', url: 'https://testnet.hsk.xyz' },
+    },
+    testnet: true,
+});
+
+const RPC_URL = process.env.RPC_URL || 'https://testnet.hsk.xyz';
 
 
 if (!process.env.PRIVATE_KEY) {
@@ -36,18 +59,18 @@ const PRIVATE_KEY = privateKey as `0x${string}`;
 const account = privateKeyToAccount(PRIVATE_KEY);
 
 const publicClient = createPublicClient({
-    chain: flowTestnet,
+    chain: hashkeyTestnet,
     transport: http(RPC_URL)
 });
 
 const walletClient = createWalletClient({
     account,
-    chain: flowTestnet,
+    chain: hashkeyTestnet,
     transport: http(RPC_URL)
 });
 
-// IntentRegistry Address (Flow Testnet)
-const REGISTRY_ADDRESS = '0x8bd539be7554752dc16b4d96ac857f3752b39cc1';
+// IntentRegistry Address (HashKey Testnet)
+const REGISTRY_ADDRESS = '0x6A0C73162c20Bc56212D643112c339f654C45198';
 
 // Minimal ABI for automation
 const ABI = parseAbi([

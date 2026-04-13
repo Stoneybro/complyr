@@ -17,10 +17,58 @@ export const ComplianceRegistryABI = [
         "name": "newAuditor",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "encryptedKey",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "auditorKeyGrants",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "authorizedCallers",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -67,6 +115,43 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAuditorKeyGrant",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getAuditors",
     "inputs": [
       {
@@ -86,84 +171,7 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
-    "name": "getCompanyRecordCount",
-    "inputs": [
-      {
-        "name": "proxyAccount",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getEncryptedCategory",
-    "inputs": [
-      {
-        "name": "proxyAccount",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "recordIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "recipientIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "euint8"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getEncryptedJurisdiction",
-    "inputs": [
-      {
-        "name": "proxyAccount",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "recordIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "recipientIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "euint8"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getRecordMetadata",
+    "name": "getRecord",
     "inputs": [
       {
         "name": "proxyAccount",
@@ -178,7 +186,7 @@ export const ComplianceRegistryABI = [
     ],
     "outputs": [
       {
-        "name": "flowTxHash",
+        "name": "txHash",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -193,7 +201,31 @@ export const ComplianceRegistryABI = [
         "internalType": "uint256[]"
       },
       {
+        "name": "encryptedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
         "name": "timestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRecordCount",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -226,19 +258,6 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
-    "name": "lzReceiver",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -255,7 +274,7 @@ export const ComplianceRegistryABI = [
     "name": "recordTransaction",
     "inputs": [
       {
-        "name": "flowTxHash",
+        "name": "txHash",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -275,24 +294,9 @@ export const ComplianceRegistryABI = [
         "internalType": "uint256[]"
       },
       {
-        "name": "categoryHandles",
-        "type": "bytes32[]",
-        "internalType": "externalEuint8[]"
-      },
-      {
-        "name": "categoryProofs",
-        "type": "bytes[]",
-        "internalType": "bytes[]"
-      },
-      {
-        "name": "jurisdictionHandles",
-        "type": "bytes32[]",
-        "internalType": "externalEuint8[]"
-      },
-      {
-        "name": "jurisdictionProofs",
-        "type": "bytes[]",
-        "internalType": "bytes[]"
+        "name": "encryptedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [],
@@ -336,17 +340,28 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
+    "name": "setAuthorizedCaller",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "authorized",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "setLzReceiver",
+    "name": "setFactory",
     "inputs": [
       {
-        "name": "_receiver",
+        "name": "_factory",
         "type": "address",
         "internalType": "address"
       }
@@ -366,19 +381,6 @@ export const ComplianceRegistryABI = [
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
-      {
-        "name": "newOwner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "event",
@@ -420,6 +422,25 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "event",
+    "name": "AuditorKeyGranted",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "AuditorRemoved",
     "inputs": [
       {
@@ -439,32 +460,19 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "event",
-    "name": "OwnershipTransferred",
+    "name": "AuthorizedCallerSet",
     "inputs": [
       {
-        "name": "previousOwner",
+        "name": "caller",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ReceiverUpdated",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "name": "authorized",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
       }
     ],
     "anonymous": false
@@ -480,7 +488,7 @@ export const ComplianceRegistryABI = [
         "internalType": "address"
       },
       {
-        "name": "flowTxHash",
+        "name": "txHash",
         "type": "bytes32",
         "indexed": true,
         "internalType": "bytes32"
@@ -506,6 +514,11 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "error",
+    "name": "ComplianceRegistry__MaxAuditorsReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ComplianceRegistry__NotAuthorized",
     "inputs": []
   },
@@ -518,43 +531,5 @@ export const ComplianceRegistryABI = [
     "type": "error",
     "name": "ComplianceRegistry__ZeroAddress",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "OwnableInvalidOwner",
-    "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "OwnableUnauthorizedAccount",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "SenderNotAllowedToUseHandle",
-    "inputs": [
-      {
-        "name": "handle",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
   }
 ] as const;

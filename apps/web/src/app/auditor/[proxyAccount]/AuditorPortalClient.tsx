@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http } from "viem";
-import { sepolia } from "viem/chains";
+import { hashkeyTestnet } from "@/lib/chains";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ShieldCheck, LogIn, Lock, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { ComplianceRegistryAddress } from "@/lib/CA";
 
-const REGISTRY_ADDRESS = "0x231Fcd3ae69f723B3AeFfe7B9B876Bb37C4Db4D6" as const;
+const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
 export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) {
     const [activeAddress, setActiveAddress] = useState<string | null>(null);
@@ -24,8 +25,8 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         setIsLoadingAuditors(true);
         try {
             const publicClient = createPublicClient({
-                chain: sepolia,
-                transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+                chain: hashkeyTestnet,
+                transport: http("https://testnet.hsk.xyz"),
             });
 
             const current = await publicClient.readContract({

@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { BridgeStatus } from "@/components/ui/lz-status-tracker";
@@ -38,7 +37,7 @@ export function useDeployWallet() {
         throw new Error("Smart Account Client is not initialized");
       }
 
-      setBridgeStatus("flow_tx_pending");
+      setBridgeStatus("hsk_tx_pending");
 
       // perform a minimal zero-value call to trigger wallet deployment
       const hash = await smartAccountClient.sendUserOperation({
@@ -55,30 +54,7 @@ export function useDeployWallet() {
       const result = await smartAccountClient.waitForUserOperationReceipt({ hash });
       if (!result) throw new Error("User operation receipt not received");
 
-      setBridgeStatus("lz_bridging");
-
-      // Call backend relay to register on Zama Sepolia directly
-      const proxyAccount = smartAccountClient.account?.address;
-      const masterEOA = owner.address;
-
-      try {
-        const relayRes = await fetch("/api/relay/register-account", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ proxyAccount, masterEOA }),
-        });
-        const relayData = await relayRes.json();
-        if (!relayData.success) {
-          console.warn("[relay] Registration did not succeed:", relayData.error);
-        } else {
-          console.log("[relay] Registered on Zama Sepolia:", relayData.txHash ?? "already registered");
-        }
-      } catch (relayErr) {
-        // Non-fatal — wallet is deployed, relay is best-effort
-        console.warn("[relay] Relay call failed (non-fatal):", relayErr);
-      }
-
-      setBridgeStatus("zama_confirmed");
+      setBridgeStatus("confirmed" as BridgeStatus);
 
       return smartAccountClient.account?.address;
     },

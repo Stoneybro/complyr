@@ -2,11 +2,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { envioClient, ActivityType, GET_ALL_TRANSACTIONS } from "@/lib/envio/client";
 import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/compliance-enums";
+import { MockUSDCAddress } from "@/lib/CA";
 
 export type ComplianceData = {
     date: Date;
     txHash: string;
-    amount: string;
+    amount: string; // raw unit string
+    formattedAmount: number; // numeric value for aggregation
     currency: string;
     entityId: string;
     jurisdiction: string;
@@ -35,7 +37,6 @@ export const useComplianceData = (walletAddress?: string) => {
             const response = await envioClient.request(GET_ALL_TRANSACTIONS, {
                 walletId: walletAddress.toLowerCase()
             });
-            console.log(response);
             const data = (response as any).Transaction || [];
 
             const transactions: ComplianceData[] = [];
@@ -59,6 +60,14 @@ export const useComplianceData = (walletAddress?: string) => {
 
                 // --- Parsing Logic ---
 
+                // Determine decimals and currency based on token
+                // Indexer might put token address in 'token' or 'target'
+                // For IntentExecution, it might be "FLOW" (HSK)
+                const tokenAddr = (details.token || details.target || "").toLowerCase();
+                const isUsdc = tokenAddr === MockUSDCAddress.toLowerCase();
+                const decimals = isUsdc ? 1e6 : 1e18;
+                const currency = isUsdc ? "USDC" : "HSK";
+
                 // 1. Single Execution
                 if (tx.transactionType === ActivityType.EXECUTE) {
                     const compliance = details.compliance || {};
@@ -70,11 +79,15 @@ export const useComplianceData = (walletAddress?: string) => {
                     const jurisdiction = JURISDICTION_DISPLAY[jurVal] || "None";
                     const category = CATEGORY_DISPLAY[catVal] || "None";
 
+                    const rawAmount = details.value || details.amount || "0";
+                    const amountVal = Number(rawAmount) / decimals;
+
                     const item: ComplianceData = {
                         date: new Date(Number(tx.timestamp) * 1000),
                         txHash: tx.txHash,
-                        amount: details.value || details.amount || "0",
-                        currency: "FLOW",
+                        amount: rawAmount,
+                        formattedAmount: amountVal,
+                        currency: currency,
                         entityId,
                         jurisdiction,
                         category,
@@ -86,7 +99,6 @@ export const useComplianceData = (walletAddress?: string) => {
                     transactions.push(item);
 
                     // Stats
-                    const amountVal = Number(item.amount) / 1e18;
                     const isCategorized = jurVal !== 0 || catVal !== 0;
 
                     if (isCategorized) stats.totalCategorized++;
@@ -136,8 +148,8 @@ export const useComplianceData = (walletAddress?: string) => {
 
 
                     recipients.forEach((r: any, index: number) => {
-                        const amount = r.amount || r.value || "0";
-                        const amountVal = Number(amount) / 1e18;
+                        const rawAmount = r.amount || r.value || "0";
+                        const amountVal = Number(rawAmount) / decimals;
 
                         // Resolve per-recipient metadata
                         const entId = entityIds[index] || "";
@@ -159,8 +171,9 @@ export const useComplianceData = (walletAddress?: string) => {
                         const item: ComplianceData = {
                             date: new Date(Number(tx.timestamp) * 1000),
                             txHash: tx.txHash,
-                            amount: amount,
-                            currency: "FLOW",
+                            amount: rawAmount,
+                            formattedAmount: amountVal,
+                            currency: currency,
                             entityId: entId,
                             jurisdiction: jur,
                             category: cat,

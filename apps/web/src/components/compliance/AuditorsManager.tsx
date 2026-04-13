@@ -2,16 +2,17 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http, createWalletClient, custom, getAddress } from "viem";
-import { sepolia } from "viem/chains";
+import { hashkeyTestnet } from "@/lib/chains";
 import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check, Copy } from "lucide-react";
+import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check } from "lucide-react";
+import { ComplianceRegistryAddress } from "@/lib/CA";
 
-const REGISTRY_ADDRESS = "0x231Fcd3ae69f723B3AeFfe7B9B876Bb37C4Db4D6" as const;
+const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
 export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
     const [auditors, setAuditors] = useState<string[]>([]);
@@ -28,8 +29,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         setIsLoading(true);
         try {
             const publicClient = createPublicClient({
-                chain: sepolia,
-                transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+                chain: hashkeyTestnet,
+                transport: http("https://testnet.hsk.xyz"),
             });
 
             const current = await publicClient.readContract({
@@ -67,54 +68,54 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         }
 
         setIsManaging(true);
-        const loadingId = toast.loading("Checking wallet balance for FHE operations...");
+        const loadingId = toast.loading("Checking wallet balance...");
 
         try {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: sepolia,
+                chain: hashkeyTestnet,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: sepolia,
+                chain: hashkeyTestnet,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(sepolia.id);
+            await ownerWallet.switchChain(hashkeyTestnet.id);
 
-            // 1. Just-In-Time Backend Faucet Check
-            const balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
-            const minimumGasRequired = 500000000000000n; // 0.0005 ETH
-            
-            if (balance < minimumGasRequired) {
-                toast.loading("Preparing transaction parameters...", { id: loadingId });
-                
-                const response = await fetch('/api/relay/fund-wallet', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetWallet: ownerWallet.address })
+            let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
+            if (balance === 0n) {
+                toast.loading("Funding wallet with testnet HSK for gas...", { id: loadingId });
+                const fundRes = await fetch("/api/relay/fund-wallet", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ targetWallet: ownerWallet.address }),
                 });
-
-                if (!response.ok) {
-                    const errorObj = await response.json().catch(() => ({}));
-                    throw new Error(errorObj.error || "Preparation failed. Please try again.");
+                
+                const fundData = await fundRes.json();
+                if (!fundData.success) {
+                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
                 }
                 
-                toast.loading("Parameters ready. Requesting signature to add auditor...", { id: loadingId });
-            } else {
-                toast.loading("Requesting signature to add auditor...", { id: loadingId });
+                // Wait for chain sync
+                await new Promise(r => setTimeout(r, 2000));
             }
+
+            toast.loading("Requesting signature to add auditor...", { id: loadingId });
+
+            // Passing a dummy encrypted key for the hackathon demo
+            const dummyEncryptedKey = "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`;
 
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
                 abi: ComplianceRegistryABI,
                 functionName: "addAuditor",
-                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress)],
+                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress), dummyEncryptedKey],
             });
 
-            toast.loading("Transaction signed. Adding auditor & retro-granting FHE access...", { id: loadingId });
+            toast.loading("Transaction signed. Adding auditor...", { id: loadingId });
             
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
@@ -135,44 +136,41 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         if (!ownerWallet) return toast.error("Connect wallet");
 
         setIsManaging(true);
-        const loadingId = toast.loading("Checking wallet balance for FHE operations...");
+        const loadingId = toast.loading("Requesting signature to remove auditor...");
 
         try {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: sepolia,
+                chain: hashkeyTestnet,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: sepolia,
+                chain: hashkeyTestnet,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(sepolia.id);
+            await ownerWallet.switchChain(hashkeyTestnet.id);
 
-            // 1. Just-In-Time Backend Faucet Check
-            const balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
-            const minimumGasRequired = 500000000000000n; // 0.0005 ETH
-            
-            if (balance < minimumGasRequired) {
-                toast.loading("Preparing transaction parameters...", { id: loadingId });
-                
-                const response = await fetch('/api/relay/fund-wallet', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetWallet: ownerWallet.address })
+            let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
+            if (balance === 0n) {
+                toast.loading("Funding wallet with testnet HSK for gas...", { id: loadingId });
+                const fundRes = await fetch("/api/relay/fund-wallet", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ targetWallet: ownerWallet.address }),
                 });
-
-                if (!response.ok) {
-                    const errorObj = await response.json().catch(() => ({}));
-                    throw new Error(errorObj.error || "Preparation failed. Please try again.");
+                
+                const fundData = await fundRes.json();
+                if (!fundData.success) {
+                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
                 }
                 
-                toast.loading("Parameters ready. Requesting signature to remove auditor...", { id: loadingId });
-            } else {
-                toast.loading("Requesting signature to remove auditor...", { id: loadingId });
+                // Wait for chain sync
+                await new Promise(r => setTimeout(r, 2000));
             }
+
+            toast.loading("Requesting signature to remove auditor...", { id: loadingId });
 
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,

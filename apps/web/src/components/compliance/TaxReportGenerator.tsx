@@ -67,14 +67,14 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
         return true;
     });
 
-    const totalAmount = filteredData.reduce((sum, item) => sum + (Number(item.amount) / 1e18), 0);
+    const totalAmount = filteredData.reduce((sum, item) => sum + item.formattedAmount, 0);
 
     const handleExport = () => {
         const headers = ["Date", "Recipient", "Amount", "Currency", "Jurisdiction", "Category", "Period ID", "Transaction Hash", "Reference"];
         const rows = filteredData.map(item => [
             item.date.toISOString().split('T')[0],
             item.recipientAddress,
-            (Number(item.amount) / 1e18).toString(),
+            item.formattedAmount.toString(),
             item.currency,
             item.jurisdiction,
             item.category,
@@ -177,6 +177,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                                     <th className="px-3 py-2 text-right">Amount</th>
                                     <th className="px-3 py-2">Jur.</th>
                                     <th className="px-3 py-2">Cat.</th>
+                                    <th className="px-3 py-2">Ref. ID</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -184,9 +185,10 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                                     <tr key={i} className="hover:bg-muted/20">
                                         <td className="px-3 py-2 font-mono text-xs">{row.date.toISOString().split('T')[0]}</td>
                                         <td className="px-3 py-2 font-mono text-xs truncate max-w-[100px]">{row.recipientAddress.slice(0, 6)}...{row.recipientAddress.slice(-4)}</td>
-                                        <td className="px-3 py-2 text-right font-mono">{Number(Number(row.amount) / 1e18).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                        <td className="px-3 py-2 text-right font-mono">{row.formattedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
                                         <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.jurisdiction}</td>
                                         <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.category}</td>
+                                        <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.reference}</td>
                                     </tr>
                                 ))}
                             </tbody>

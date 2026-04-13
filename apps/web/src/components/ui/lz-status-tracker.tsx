@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle2, CircleDashed, ArrowRightLeft, ShieldCheck } from "lucide-react";
+import { CheckCircle2, CircleDashed, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BridgeStatus = "idle" | "flow_tx_pending" | "lz_bridging" | "zama_confirmed" | "error";
+export type BridgeStatus = "idle" | "hsk_tx_pending" | "confirmed" | "error";
 
 interface LZStatusTrackerProps {
   status: BridgeStatus;
@@ -11,29 +11,22 @@ interface LZStatusTrackerProps {
   className?: string;
 }
 
-export function LZStatusTracker({ status, title = "Cross-Chain Compliance Sync", className }: LZStatusTrackerProps) {
+export function LZStatusTracker({ status, title = "Compliance Wallet Deployment", className }: LZStatusTrackerProps) {
   if (status === "idle") return null;
 
   const steps = [
     {
-      id: "flow",
-      label: "Anchoring on Flow EVM",
-      activeStates: ["flow_tx_pending"],
-      completedStates: ["lz_bridging", "zama_confirmed"],
+      id: "hashkey",
+      label: "Deploying on HashKey Chain",
+      activeStates: ["hsk_tx_pending"],
+      completedStates: ["confirmed"],
       icon: CircleDashed,
     },
     {
-      id: "lz",
-      label: "LayerZero Cross-Chain Sync",
-      activeStates: ["lz_bridging"],
-      completedStates: ["zama_confirmed"],
-      icon: ArrowRightLeft,
-    },
-    {
-      id: "zama",
-      label: "Compliance Verification",
+      id: "compliance",
+      label: "Compliance Registry Initialization",
       activeStates: [],
-      completedStates: ["zama_confirmed"],
+      completedStates: ["confirmed"],
       icon: ShieldCheck,
     },
   ];
@@ -41,7 +34,7 @@ export function LZStatusTracker({ status, title = "Cross-Chain Compliance Sync",
   return (
     <div className={cn("p-6 rounded-xl border bg-card text-card-foreground shadow-sm animate-in fade-in zoom-in duration-300", className)}>
       <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-        <ArrowRightLeft className="w-5 h-5 text-indigo-500" />
+        <ShieldCheck className="w-5 h-5 text-indigo-500" />
         {title}
       </h3>
       
@@ -53,7 +46,6 @@ export function LZStatusTracker({ status, title = "Cross-Chain Compliance Sync",
           const isActive = step.activeStates.includes(status);
           const isCompleted = step.completedStates.includes(status);
           const isError = status === "error" && isActive;
-          const isPending = !isActive && !isCompleted && !isError;
 
           return (
             <div key={step.id} className="relative z-10 flex items-start gap-4">
@@ -87,8 +79,7 @@ export function LZStatusTracker({ status, title = "Cross-Chain Compliance Sync",
                 {isActive && (
                   <span className="text-xs text-muted-foreground mt-1">
                     {index === 0 && "Waiting for transaction confirmation..."}
-                    {index === 1 && "Relaying encrypted payload (1-2 mins)..."}
-                    {index === 2 && "Finalizing verification..."}
+                    {index === 1 && "Finalizing verification..."}
                   </span>
                 )}
                 {isCompleted && (

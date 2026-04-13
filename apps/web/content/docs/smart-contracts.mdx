@@ -1,11 +1,11 @@
 ---
 title: Smart Contracts Layer
-description: Deep dive into the Flow EVM and Zama Sepolia smart contracts.
+description: Deep dive into the HashKey Chain and Zama Sepolia smart contracts.
 ---
 
-## Smart Contract Layer — Flow EVM
+## Smart Contract Layer — HashKey Chain
 
-The Flow EVM layer handles payment execution and compliance metadata dispatch. It consists of four contracts.
+The HashKey Chain layer handles payment execution and compliance metadata dispatch. It consists of four contracts.
 
 ### SmartWallet
 
@@ -13,7 +13,7 @@ The SmartWallet is an ERC-4337 compliant smart account. Each business entity dep
 
 Key responsibilities:
 - Validates user operations via `validateUserOp` using EIP-191 message hashing
-- Executes single and batch native FLOW transfers
+- Executes single and batch native HSK transfers
 - Manages committed vs. available balance to prevent double-spending on scheduled payments
 - Exposes `executeBatchIntentTransfer` — callable only by the IntentRegistry — for scheduled payment execution
 - Routes compliance reports to the ComplianceBridge via `reportCompliance`
@@ -24,9 +24,9 @@ Key responsibilities:
 
 The factory deploys and tracks smart wallet clones. It accepts a single `owner` address, derives a deterministic salt, and deploys the clone using OpenZeppelin's `Clones` library.
 
-For demo and testnet purposes, the factory is pre-funded and sends `100 FLOW` to each newly deployed wallet, making onboarding gasless and frictionless.
+For demo and testnet purposes, the factory is pre-funded and sends `100 HSK` to each newly deployed wallet, making onboarding gasless and frictionless.
 
-The factory also triggers automatic company registration on Zama Sepolia at wallet creation time by calling `ComplianceBridge.registerAccount`. This establishes the cross-chain identity link — mapping the Flow proxy address to the owner's EOA — at the earliest possible moment.
+The factory also triggers automatic company registration on Zama Sepolia at wallet creation time by calling `ComplianceBridge.registerAccount`. This establishes the cross-chain identity link — mapping the HashKey proxy address to the owner's EOA — at the earliest possible moment.
 
 ### IntentRegistry
 
@@ -50,7 +50,7 @@ The registry validates fund availability, calculates total commitment (`amountPe
 
 ### ComplianceBridge
 
-The ComplianceBridge is a LayerZero V2 OApp that sends compliance payloads from Flow EVM to Zama Sepolia. It is self-funded: it uses its own FLOW balance to pay LayerZero fees, so callers never need to send `msg.value` when triggering compliance dispatch.
+The ComplianceBridge is a LayerZero V2 OApp that sends compliance payloads from HashKey Chain to Zama Sepolia. It is self-funded: it uses its own HSK balance to pay LayerZero fees, so callers never need to send `msg.value` when triggering compliance dispatch.
 
 Two message types are supported:
 - `MSG_REGISTER` — sent at wallet creation, maps proxy address to master EOA
@@ -78,10 +78,10 @@ The ComplianceReceiver is a LayerZero V2 OApp deployed on Zama Sepolia. It recei
 
 ### ComplianceRegistry
 
-The ComplianceRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the Flow proxy address.
+The ComplianceRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the HashKey proxy address.
 
 Each compliance record stores:
-- `flowTxHash` — the deterministic link to the Flow transaction or intent
+- `hskTxHash` — the deterministic link to the HashKey transaction or intent
 - `recipients[]` and `amounts[]` — plaintext payment data. Payment amounts and recipient addresses remain public on the compliance ledger because they already exist on the public payment ledger. Only the compliance context is encrypted.
 - `categories[]` — one `euint8` FHE ciphertext per recipient
 - `jurisdictions[]` — one `euint8` FHE ciphertext per recipient

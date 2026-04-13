@@ -43,7 +43,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
         <CardHeader>
           <CardDescription>Total Assets</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(safeTotal)} FLOW`}
+            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(safeTotal)} USDC`}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -59,7 +59,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
         <CardHeader>
           <CardDescription>Scheduled</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(committedToken)} FLOW`}
+            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(committedToken)} USDC`}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -75,7 +75,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
         <CardHeader>
           <CardDescription>Spendable</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(availableToken)} FLOW`}
+            {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(availableToken)} USDC`}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
