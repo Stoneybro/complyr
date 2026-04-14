@@ -9,7 +9,7 @@
 <br />
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-usecomplyr.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://usecomplyr.vercel.app)
-[![Demo Video](https://img.shields.io/badge/Demo%20Video-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=nA0UUiCnMW0)
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/DXcpSvD3kkA?si=6G-i6YwNF229ETro)
 [![Product Docs](https://img.shields.io/badge/Product%20Docs-Read%20Here-6366f1?style=for-the-badge&logo=gitbook&logoColor=white)](https://usecomplyr.vercel.app/docs)
 
 <br />
@@ -33,7 +33,7 @@
 
 <div align="center">
 
-[![Complyr Demo Video](https://img.youtube.com/vi/nA0UUiCnMW0/maxresdefault.jpg)](https://www.youtube.com/watch?v=nA0UUiCnMW0)
+[![Complyr Demo Video](https://img.youtube.com/vi/DXcpSvD3kkA/maxresdefault.jpg)](https://youtu.be/DXcpSvD3kkA?si=6G-i6YwNF229ETro)
 
 *▶ Click to watch the demo*
 
