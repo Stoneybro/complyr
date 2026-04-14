@@ -20,6 +20,14 @@ const SELECTORS: Record<string, string> = {
   "0x23b872dd": "transferFrom",
 };
 
+const PERFORM_UPKEEP_SELECTOR = "0x4585e33b";
+const EXECUTE_BATCH_INTENT_SELECTOR = "0x4cc42f81";
+
+function isAutomatedUpkeep(input: string): boolean {
+  const selector = input.slice(0, 10).toLowerCase();
+  return selector === PERFORM_UPKEEP_SELECTOR || selector === EXECUTE_BATCH_INTENT_SELECTOR;
+}
+
 // Helper to format timestamp
 function formatTimestamp(timestamp: number): string {
   return new Date(timestamp * 1000).toISOString();
@@ -76,6 +84,10 @@ MockUSDC.Transfer.handler(async ({ event, context }) => {
   const wallet = await context.Wallet.get(walletId);
   
   if (!wallet) return;
+
+  // Skip if this transfer is part of an automated upkeep/intent execution
+  // to avoid duplicate entries in the transaction history
+  if (isAutomatedUpkeep(event.transaction.input)) return;
 
   const txHash = event.transaction.hash;
   const transactionId = `${txHash}`; // One transaction entity per EVM transaction
@@ -156,6 +168,10 @@ SmartWallet.WalletAction.handler(async ({ event, context }) => {
   const wallet = await context.Wallet.get(walletId);
   
   if (!wallet) return;
+
+  // Skip if this transfer is part of an automated upkeep/intent execution
+  // to avoid duplicate entries in the transaction history
+  if (isAutomatedUpkeep(event.transaction.input)) return;
 
   // Only track native HSK transfers (value > 0 and no data sent to contract)
   if (event.params.value > 0n && event.params.selector === "0x00000000") {
@@ -348,6 +364,15 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
     details: details
   };
   context.Transaction.set(transaction);
+
+  // Update wallet totalTransactionCount
+  const wallet = await context.Wallet.get(walletId);
+  if (wallet) {
+    context.Wallet.set({
+      ...wallet,
+      totalTransactionCount: wallet.totalTransactionCount + 1
+    });
+  }
 });
 
 IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
