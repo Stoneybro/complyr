@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+merchant_private_key.pem
+merchant_public_key.pem
 
 # debug
 npm-debug.log*

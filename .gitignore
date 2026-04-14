@@ -55,6 +55,8 @@ coverage/
 
 # Keys
 *.pem
+merchant_private_key.pem
+merchant_public_key.pem
 
 # AI Agent configs (auto-generated)
 AGENTS.md

@@ -4,3 +4,7 @@ build/
 .env
 .env.local
 *.tsbuildinfo
+
+# Merchant Keys
+merchant_private_key.pem
+merchant_public_key.pem

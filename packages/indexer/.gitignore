@@ -34,3 +34,7 @@ logs
 *.gen.ts
 build
 .env
+
+# Merchant Keys
+merchant_private_key.pem
+merchant_public_key.pem
