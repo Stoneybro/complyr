@@ -86,7 +86,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
-                toast.loading("Funding wallet with testnet HSK for gas...", { id: loadingId });
+                toast.loading("Preparing transaction environment...", { id: loadingId });
                 const fundRes = await fetch("/api/relay/fund-wallet", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -154,7 +154,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
-                toast.loading("Funding wallet with testnet HSK for gas...", { id: loadingId });
+                toast.loading("Preparing transaction environment...", { id: loadingId });
                 const fundRes = await fetch("/api/relay/fund-wallet", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

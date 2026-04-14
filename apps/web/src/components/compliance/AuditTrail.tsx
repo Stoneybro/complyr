@@ -108,7 +108,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                 </div>
                                 <div>
                                     <div className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest">VOLUME</div>
-                                    <div className="text-xl font-bold font-mono">{totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 })} Tokens</div>
+                                    <div className="text-xl font-bold font-mono">{totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 })} USDC</div>
                                 </div>
                             </div>
 

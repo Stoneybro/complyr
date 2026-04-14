@@ -135,9 +135,19 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 flex flex-col items-center pb-8">
-                            <p className="text-xs text-muted-foreground text-center px-4">Your current key (<span className="font-mono text-foreground font-semibold">{activeAddress?.slice(0, 8)}...{activeAddress?.slice(-6)}</span>) has not been granted decryption privileges by the entity owner.</p>
+                            <div className="text-xs text-center space-y-4 px-4">
+                                <p className="text-muted-foreground">
+                                    Your current key (<span className="font-mono text-foreground font-semibold">{activeAddress?.slice(0, 8)}...{activeAddress?.slice(-6)}</span>) has not been granted decryption privileges by the entity owner.
+                                </p>
+                                <div className="p-3 bg-muted/50 border rounded text-left flex gap-3 text-muted-foreground">
+                                    <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                                    <p className="leading-relaxed">
+                                        <strong>Troubleshooting:</strong> Please verify that you are using the exact wallet address provided to the entity owner. If you use multiple accounts (e.g., in MetaMask), ensure the correct account is active and connected to this window.
+                                    </p>
+                                </div>
+                            </div>
                             <Button size="lg" variant="outline" className="w-full text-sm h-11 rounded-none uppercase font-mono tracking-widest border-destructive/50 hover:bg-destructive/10 text-destructive" onClick={logout}>
-                                Close Session
+                                Try Different Account
                             </Button>
                         </CardContent>
                     </Card>

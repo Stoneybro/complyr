@@ -165,9 +165,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
                                     placeholder="e.g., Alice, Engineering Team"
                                     autoFocus
                                 />
-                                <FieldDescription>
-                                    A friendly name for this contact
-                                </FieldDescription>
+
                             </Field>
                         </FieldGroup>
                     </FieldSet>

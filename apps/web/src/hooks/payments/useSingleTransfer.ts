@@ -133,7 +133,7 @@ export function useSingleTransfer(availableBalance?: string) {
                 // 3. Send Base HashKey Transaction
                 statusUpdate("Signing...");
                 const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
-                const txLoading = toast.loading(`Sending ${tokenSymbol} transfer...`);
+                const txLoading = toast.loading(`Transferring ${tokenSymbol}...`);
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,

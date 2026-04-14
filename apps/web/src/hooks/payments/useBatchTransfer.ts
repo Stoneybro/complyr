@@ -142,7 +142,7 @@ export function useBatchTransfer(availableBalance?: string) {
                 // 3. Send Base HashKey Transaction
                 statusUpdate("Signing...");
                 const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
-                const txLoading = toast.loading(`Sending batch ${tokenSymbol} transfer (${params.recipients.length})...`);
+                const txLoading = toast.loading(`Transferring ${tokenSymbol} batch (${params.recipients.length})...`);
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,

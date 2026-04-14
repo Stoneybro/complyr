@@ -114,7 +114,7 @@ const RecipientRow = React.memo(({
                     />
                 </div>
                 <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Jurisdiction</Label>
+                    <Label className="text-xs text-muted-foreground">Recipient Jurisdiction</Label>
                     <Select
                         value={recipient.jurisdiction || ''}
                         onValueChange={(value) => onUpdate(type, index, "jurisdiction", value)}
@@ -132,7 +132,7 @@ const RecipientRow = React.memo(({
                     </Select>
                 </div>
                 <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Category</Label>
+                    <Label className="text-xs text-muted-foreground">Expense Category</Label>
                     <Select
                         value={recipient.category || ''}
                         onValueChange={(value) => onUpdate(type, index, "category", value)}
@@ -545,7 +545,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <Label htmlFor="single-jurisdiction" className="text-xs text-muted-foreground">Jurisdiction</Label>
+                                                        <Label htmlFor="single-jurisdiction" className="text-xs text-muted-foreground">Recipient Jurisdiction</Label>
                                                         <Select
                                                             value={singleRecipient.jurisdiction || ''}
                                                             onValueChange={(value) => setSingleRecipient({ ...singleRecipient, jurisdiction: value })}
@@ -563,7 +563,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                         </Select>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <Label htmlFor="single-category" className="text-xs text-muted-foreground">Category</Label>
+                                                        <Label htmlFor="single-category" className="text-xs text-muted-foreground">Expense Category</Label>
                                                         <Select
                                                             value={singleRecipient.category || ''}
                                                             onValueChange={(value) => setSingleRecipient({ ...singleRecipient, category: value })}
@@ -775,7 +775,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label htmlFor="hsp-jurisdiction" className="text-xs text-muted-foreground">Jurisdiction</Label>
+                                                <Label htmlFor="hsp-jurisdiction" className="text-xs text-muted-foreground">Recipient Jurisdiction</Label>
                                                 <Select
                                                     value={singleRecipient.jurisdiction || ''}
                                                     onValueChange={(value) => setSingleRecipient({ ...singleRecipient, jurisdiction: value })}
@@ -793,7 +793,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                 </Select>
                                             </div>
                                             <div className="space-y-1">
-                                                <Label htmlFor="hsp-category" className="text-xs text-muted-foreground">Category</Label>
+                                                <Label htmlFor="hsp-category" className="text-xs text-muted-foreground">Expense Category</Label>
                                                 <Select
                                                     value={singleRecipient.category || ''}
                                                     onValueChange={(value) => setSingleRecipient({ ...singleRecipient, category: value })}

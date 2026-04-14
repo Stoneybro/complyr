@@ -57,7 +57,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                     txHash: record.hskTxHash,
                     amount: amountWei,
                     formattedAmount: amountTokens,
-                    currency: "Tokens",
+                    currency: "USDC",
                     entityId: "HashKeyLedger",
                     jurisdiction: jur,
                     category: cat,
