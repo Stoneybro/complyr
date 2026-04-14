@@ -21,8 +21,8 @@ const features = [
   },
   {
     icon: 'lock',
-    title: 'FHE Privacy',
-    body: 'Sensitive compliance data remains strictly concealed during computation utilizing Fully Homomorphic Encryption.',
+    title: 'Data Privacy',
+    body: 'Sensitive compliance data is secured with AES-256-GCM encryption, ensuring the data remains strictly concealed from unauthorized parties.',
   },
   {
     icon: 'fingerprint',

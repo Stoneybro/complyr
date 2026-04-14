@@ -135,7 +135,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 flex flex-col items-center pb-8">
-                            <p className="text-xs text-muted-foreground text-center px-4">Your current key (<span className="font-mono text-foreground font-semibold">{activeAddress?.slice(0, 8)}...{activeAddress?.slice(-6)}</span>) has not been granted FHE decryption privileges by the entity owner.</p>
+                            <p className="text-xs text-muted-foreground text-center px-4">Your current key (<span className="font-mono text-foreground font-semibold">{activeAddress?.slice(0, 8)}...{activeAddress?.slice(-6)}</span>) has not been granted decryption privileges by the entity owner.</p>
                             <Button size="lg" variant="outline" className="w-full text-sm h-11 rounded-none uppercase font-mono tracking-widest border-destructive/50 hover:bg-destructive/10 text-destructive" onClick={logout}>
                                 Close Session
                             </Button>

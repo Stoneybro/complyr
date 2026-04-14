@@ -26,7 +26,7 @@ export default function Footer() {
           </p>
           <div className="flex gap-4 items-center">
             <div className="w-10 h-px bg-black dark:bg-white"></div>
-            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">PL Genesis: Frontiers of Collaboration</span>
+            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">HashKey Chain Hackathon: PayFi Track</span>
           </div>
         </div>
         <div>
@@ -49,7 +49,7 @@ export default function Footer() {
       </div>
       <div className="px-12 pb-8 flex flex-col md:flex-row justify-between items-center border-t border-black/5 dark:border-white/5 pt-8">
         <p className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-700">
-          © 2026 COMPLYR INFRASTRUCTURE. PL Genesis: Frontiers of Collaboration.
+          © 2026 COMPLYR INFRASTRUCTURE. HashKey Chain Hackathon: PayFi Track.
         </p>
         <p className="font-inter text-[10px] uppercase tracking-widest text-gray-300 dark:text-gray-800">
           MATHEMATICALLY GUARANTEED PRIVACY. ENTERPRISE-GRADE ON-CHAIN SETTLEMENT.

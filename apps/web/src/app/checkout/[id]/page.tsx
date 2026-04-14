@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, ChevronDown } from "lucide-react";
@@ -82,7 +82,8 @@ function CheckoutContent() {
 
             // If compliance data was passed, encrypt and submit to on-chain registry
             if (complianceParam) {
-                const complianceObj = JSON.parse(Buffer.from(complianceParam, 'base64').toString('utf-8'));
+                const decodedCompliance = atob(complianceParam);
+                const complianceObj = JSON.parse(decodedCompliance);
                 
                 // Construct the exact payload format the auditor portal expects
                 const payloadData = [{
@@ -131,7 +132,8 @@ function CheckoutContent() {
                 txHash: mockTxHash
             };
             if (complianceParam) {
-                txRecord.compliance = JSON.parse(Buffer.from(complianceParam, 'base64').toString('utf-8'));
+                const decodedCompliance = atob(complianceParam);
+                txRecord.compliance = JSON.parse(decodedCompliance);
             }
             history.push(txRecord);
             localStorage.setItem('mockTxHistory', JSON.stringify(history));

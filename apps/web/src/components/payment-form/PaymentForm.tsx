@@ -405,7 +405,11 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                 }
                 const res = await fetch("/api/hsp/orders", {
                     method: "POST",
-                    body: JSON.stringify({ amount: singleRecipient.amount, token: "USDC" })
+                    body: JSON.stringify({ 
+                        amount: singleRecipient.amount, 
+                        token: "USDC",
+                        compliance: buildCompliance([singleRecipient])
+                    })
                 });
                 const json = await res.json();
                 if (json.success) {
