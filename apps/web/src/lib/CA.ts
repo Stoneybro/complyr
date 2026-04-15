@@ -3,3 +3,7 @@ export const SmartWalletFactoryAddress="0x37c5c677146A19e61295E40F0518bAf3f94305
 export const ComplianceRegistryAddress="0x6c6b5c86752D8B5330Cb055A967E2f6253D09195"
 export const MockUSDCAddress="0x43e0BC90661dAF20C6fFbae1079d6E07E88e403A"
 export const VerifyingPaymasterAddress="0xd63E841AAb10D118a3cb541FbeF011eBae6437C6"
+
+// HashKey Ecosystem Integrations
+export const APRO_USDC_USD_ORACLE = "0xCdB10dC9dB30B6ef2a63aB4460263655808fAE27"
+export const HASHKEY_KYC_SBT = "0x82Fc00C13EC0D52f2Ae260f41a9A1c53665d6207"

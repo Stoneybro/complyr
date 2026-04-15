@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
- import { createWalletClient, http, createPublicClient, parseEther } from "viem";
+import { createWalletClient, http, createPublicClient } from "viem";
 import { hashkeyTestnet } from "@/lib/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { HASHKEY_KYC_SBT } from "@/lib/CA";
+
+// MockSBT ABI with setVerified
+const MOCK_SBT_ABI = [
+    {
+        "inputs": [
+            { "internalType": "address", "name": "account", "type": "address" },
+            { "internalType": "string", "name": "ensName", "type": "string" },
+            { "internalType": "uint8", "name": "level", "type": "uint8" },
+            { "internalType": "bool", "name": "status", "type": "bool" }
+        ],
+        "name": "setVerified",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+];
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     try {
-        const { targetWallet } = await req.json();
+        const { targetWallet, level = 1 } = await req.json();
 
         if (!targetWallet || !targetWallet.startsWith("0x") || targetWallet.length !== 42) {
             return NextResponse.json({ error: "Invalid target wallet address" }, { status: 400 });
@@ -35,26 +52,16 @@ export async function POST(req: NextRequest) {
             transport: http("https://testnet.hsk.xyz"),
         });
 
-        // 0.005 HSK is sufficient to pay for basic signature and registry ops
-        const fundAmount = parseEther("0.005");
+        console.log(`[relay-kyc] Verifying identity for ${targetWallet} via MockSBT...`);
 
-        // Check the relayer's balance
-        const relayerBalance = await publicClient.getBalance({ address: account.address });
-        if (relayerBalance < fundAmount) {
-            return NextResponse.json(
-                { error: "Relayer has insufficient testnet HSK to sponsor." },
-                { status: 500 }
-            );
-        }
-
-        console.log(`[relay-fund] Funding connected embedded wallet ${targetWallet} with 0.005 HSK...`);
-
-        const hash = await walletClient.sendTransaction({
-            to: targetWallet as `0x${string}`,
-            value: fundAmount,
+        const hash = await walletClient.writeContract({
+            address: HASHKEY_KYC_SBT as `0x${string}`,
+            abi: MOCK_SBT_ABI,
+            functionName: "setVerified",
+            args: [targetWallet as `0x${string}`, targetWallet, Number(level) as unknown as never, true],
         });
 
-        console.log(`[relay-fund] Transfer initiated (tx: ${hash})`);
+        console.log(`[relay-kyc] KYC verification transaction initiated (tx: ${hash})`);
 
         await publicClient.waitForTransactionReceipt({
             hash,
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
         });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error("[relay-fund] Funding failed:", message);
+        console.error("[relay-kyc] Verification failed:", message);
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

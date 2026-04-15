@@ -14,11 +14,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Plus, Trash2, Users, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useRecurringPayment } from "@/hooks/payments/useRecurringPayment";
 import { useSingleTransfer } from "@/hooks/payments/useSingleTransfer";
 import { useBatchTransfer } from "@/hooks/payments/useBatchTransfer";
 import { useContacts } from "@/hooks/useContacts";
+import { useKyc } from "@/hooks/useKyc";
 import { toast } from "sonner";
 import type { Contact } from "@/lib/contact-store";
 import { MockUSDCAddress } from "@/lib/CA";
@@ -35,6 +36,10 @@ import { fetchWalletBalance } from "@/utils/helper";
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
 const CATEGORY_OPTIONS = getCategoryOptions();
 
+const KYC_LEVEL_LABELS: Record<number, string> = {
+    0: "None", 1: "Basic", 2: "Advanced", 3: "Premium", 4: "Ultimate",
+};
+
 // Recipient with optional compliance data from contact
 type RecipientData = {
     address: string;
@@ -43,6 +48,35 @@ type RecipientData = {
     jurisdiction?: string;
     category?: string;
     contactName?: string;
+};
+
+// KYC Check Component — auto-checks as soon as the address is a valid 0x address
+const KycCheck = ({ address }: { address: string }) => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(address);
+    const { data: kyc, isLoading } = useKyc(isValid ? address : undefined);
+
+    if (!isValid) return null;
+
+    if (isLoading) return (
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1 ml-1">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Checking...
+        </div>
+    );
+
+    if (kyc?.isVerified) {
+        const levelLabel = KYC_LEVEL_LABELS[kyc.level ?? 0] ?? "Verified";
+        return (
+            <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mt-1 ml-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 w-fit">
+                <CheckCircle2 className="h-2.5 w-2.5" /> KYC · {levelLabel}
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-1 text-[10px] text-amber-500 font-medium mt-1 ml-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 w-fit">
+            <AlertTriangle className="h-2.5 w-2.5" /> Unverified
+        </div>
+    );
 };
 
 // Extracted outside to prevent re-creation on every render (fixes focus loss)
@@ -64,7 +98,7 @@ const RecipientRow = React.memo(({
     onRemove: (type: "batch" | "recurring", index: number) => void;
 }) => (
     <div className="space-y-4 p-4 border rounded-lg">
-        <div className="flex gap-2 items-end">
+        <div className="flex gap-2 items-start">
             <div className="flex-1 space-y-2">
                 <Label className="text-xs text-muted-foreground">Recipient Address</Label>
                 <Input
@@ -73,6 +107,7 @@ const RecipientRow = React.memo(({
                     onChange={(e) => onUpdate(type, index, "address", e.target.value)}
                     className="font-mono text-sm"
                 />
+                <KycCheck address={recipient.address} />
             </div>
             <div className="relative w-32 space-y-2">
                 <Label className="text-xs text-muted-foreground">Amount</Label>
@@ -94,7 +129,7 @@ const RecipientRow = React.memo(({
                     variant="ghost"
                     size="icon"
                     onClick={() => onRemove(type, index)}
-                    className="mb-0.5"
+                    className="mt-8"
                 >
                     <Trash2 className="h-4 w-4" />
                 </Button>
@@ -485,7 +520,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                             
                             <TabsContent value="onchain" className="space-y-6 mt-6">
                                 <p className="text-sm text-muted-foreground">
-                                    Send payments directly onchain with encrypted compliance data.
+                                    Send outbound payments directly onchain with encrypted compliance records.
                                 </p>
                                 
                                 <Tabs value={onchainTab} onValueChange={(v) => setOnchainTab(v as "single" | "batch" | "recurring")} className="w-full">
@@ -512,6 +547,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                         onChange={(e) => setSingleRecipient({ ...singleRecipient, address: e.target.value })}
                                                         className="font-mono text-sm"
                                                     />
+                                                    <KycCheck address={singleRecipient.address} />
                                                 </div>
                                                 <div className="space-y-2 relative">
                                                     <Label htmlFor="single-amount" className="text-xs text-muted-foreground">Amount</Label>
@@ -606,12 +642,14 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                 />
                                             </div>
                                             <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => addRecipient("batch")}
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" /> Add Recipient
-                                            </Button>
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => addRecipient("batch")}
+                                                    className="h-10"
+                                                >
+                                                    <Plus className="h-4 w-4 mr-2" /> Add Recipient
+                                                </Button>
                                         </div>
 
                                         <div className="space-y-4">
@@ -665,12 +703,14 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                 />
                                             </div>
                                             <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => addRecipient("recurring")}
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" /> Add Recipient
-                                            </Button>
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => addRecipient("recurring")}
+                                                    className="h-10"
+                                                >
+                                                    <Plus className="h-4 w-4 mr-2" /> Add Recipient
+                                                </Button>
                                         </div>
 
                                         <div className="space-y-4">
@@ -738,7 +778,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                             
                             <TabsContent value="hsp" className="space-y-6 mt-6">
                                 <p className="text-sm text-muted-foreground">
-                                    Create a HSP checkout flow . Automatically embeds encrypted compliance records into the payment.
+                                    Collect inbound payments through HSP checkout with embedded encrypted compliance records.
                                 </p>
                                 
                                 <ContactSelector onSelect={loadContactForSingle} />
@@ -816,7 +856,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                     <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none mt-4">
                                         <Info className="h-4 w-4" />
                                         <AlertDescription className="text-xs">
-                                            HSP is the HashKey Settlement Protocol. Clicking generate will redirect you to a demo HashKey's checkout page.
+                                            HSP is the HashKey Settlement Protocol. This demo uses a simulated checkout flow due to unavailable merchant signing credentials.
                                         </AlertDescription>
                                     </Alert>
                                 </div>
