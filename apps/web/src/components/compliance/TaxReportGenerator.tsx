@@ -4,14 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComplianceData } from "@/hooks/useComplianceData";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, DollarSign, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getJurisdictionOptions, getCategoryOptions } from "@/lib/compliance-enums";
+import { useAproOracle } from "@/hooks/useAproOracle";
+import { useKycBatch } from "@/hooks/useKycBatch";
+import { Badge } from "@/components/ui/badge";
 
 interface TaxReportGeneratorProps {
     data: ComplianceData[];
 }
 
 export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
+    const { data: price } = useAproOracle();
     const [jurisdiction, setJurisdiction] = useState<string>("all");
     const [category, setCategory] = useState<string>("all");
     const [timePeriod, setTimePeriod] = useState<string>("all");
@@ -67,21 +71,32 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
         return true;
     });
 
+    // Extract unique recipient addresses for KYC batch lookup
+    const recipientAddresses = useMemo(() =>
+        Array.from(new Set(filteredData.map(item => item.recipientAddress))),
+        [filteredData]
+    );
+    const { results: kycResults, isLoading: kycLoading } = useKycBatch(recipientAddresses);
+
     const totalAmount = filteredData.reduce((sum, item) => sum + item.formattedAmount, 0);
 
     const handleExport = () => {
-        const headers = ["Date", "Recipient", "Amount", "Currency", "Jurisdiction", "Category", "Period ID", "Transaction Hash", "Reference"];
-        const rows = filteredData.map(item => [
-            item.date.toISOString().split('T')[0],
-            item.recipientAddress,
-            item.formattedAmount.toString(),
-            item.currency,
-            item.jurisdiction,
-            item.category,
-            item.periodId,
-            item.txHash,
-            item.reference
-        ]);
+        const headers = ["Date", "Recipient", "KYC Status", "KYC Level", "Amount (USDC)", "USD Value (APRO)", "Jurisdiction", "Category", "Transaction Hash", "Reference"];
+        const rows = filteredData.map(item => {
+            const kyc = kycResults.get(item.recipientAddress.toLowerCase());
+            return [
+                item.date.toISOString().split('T')[0],
+                item.recipientAddress,
+                kyc?.isVerified ? "Verified" : "Unverified",
+                kyc?.level?.toString() ?? "0",
+                item.formattedAmount.toString(),
+                price ? (item.formattedAmount * price).toFixed(2) : "N/A",
+                item.jurisdiction,
+                item.category,
+                item.txHash,
+                item.reference
+            ];
+        });
 
         const csvContent = [
             headers.join(","),
@@ -101,10 +116,10 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
             <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Report Generator
+                    Compliance Report Generator
                 </CardTitle>
                 <div className="text-sm text-muted-foreground mt-1 font-medium">
-                    Generate structured compliance reports for regulatory submission.
+                    Generate structured compliance reports with real-time <Badge variant="outline" className="text-[10px] h-4 px-1 text-primary border-primary/30 ml-1">APRO Oracle</Badge> USD valuations.
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -112,7 +127,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                     <div className="space-y-2">
                         <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Reporting Period</label>
                         <Select value={timePeriod} onValueChange={setTimePeriod}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Select period" />
                             </SelectTrigger>
                             <SelectContent>
@@ -134,7 +149,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                     <div className="space-y-2">
                         <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Regulatory Jurisdiction</label>
                         <Select value={jurisdiction} onValueChange={setJurisdiction}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Select jurisdiction" />
                             </SelectTrigger>
                             <SelectContent>
@@ -149,7 +164,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                     <div className="space-y-2">
                         <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Payment Category</label>
                         <Select value={category} onValueChange={setCategory}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -164,40 +179,55 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
 
                 <div className="bg-muted/30 rounded-lg p-4 border border-muted-foreground/10">
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className="font-bold text-sm">Compliance Manifest Preview</h3>
+                        <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Compliance Manifest Preview</h3>
+                        {price && <Badge variant="secondary" className="text-[10px] bg-primary/5 text-primary border-primary/10">1 USDC ≈ ${price.toFixed(4)}</Badge>}
                     </div>
-                    <p className="text-[10px] text-muted-foreground mb-4">Each row represents a verified payment and its associated compliance metadata.</p>
 
-                    <div className="max-h-[300px] overflow-y-auto hidden md:block">
+                    <div className="max-h-[300px] overflow-y-auto hidden md:block mt-4">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs uppercase bg-muted/50 sticky top-0">
+                            <thead className="text-[10px] uppercase bg-muted/50 sticky top-0 text-muted-foreground">
                                 <tr>
                                     <th className="px-3 py-2">Date</th>
                                     <th className="px-3 py-2">Recipient</th>
-                                    <th className="px-3 py-2 text-right">Amount</th>
+                                    <th className="px-3 py-2">KYC</th>
+                                    <th className="px-3 py-2 text-right">USDC</th>
+                                    <th className="px-3 py-2 text-right">USD (APRO)</th>
                                     <th className="px-3 py-2">Jur.</th>
                                     <th className="px-3 py-2">Cat.</th>
-                                    <th className="px-3 py-2">Ref. ID</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
-                                {filteredData.slice(0, 50).map((row, i) => (
-                                    <tr key={i} className="hover:bg-muted/20">
-                                        <td className="px-3 py-2 font-mono text-xs">{row.date.toISOString().split('T')[0]}</td>
-                                        <td className="px-3 py-2 font-mono text-xs truncate max-w-[100px]">{row.recipientAddress.slice(0, 6)}...{row.recipientAddress.slice(-4)}</td>
-                                        <td className="px-3 py-2 text-right font-mono">{row.formattedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
-                                        <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.jurisdiction}</td>
-                                        <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.category}</td>
-                                        <td className="px-3 py-2 text-xs truncate max-w-[100px]">{row.reference}</td>
-                                    </tr>
-                                ))}
+                                {filteredData.slice(0, 50).map((row, i) => {
+                                    const kyc = kycResults.get(row.recipientAddress.toLowerCase());
+                                    const kycLabel = ["None", "Basic", "Adv.", "Prem.", "Ult."][kyc?.level ?? 0];
+                                    return (
+                                        <tr key={i} className="hover:bg-muted/20 text-xs">
+                                            <td className="px-3 py-2 font-mono">{row.date.toISOString().split('T')[0]}</td>
+                                            <td className="px-3 py-2 font-mono truncate max-w-[100px]">{row.recipientAddress.slice(0, 6)}...{row.recipientAddress.slice(-4)}</td>
+                                            <td className="px-3 py-2">
+                                                {kycLoading ? (
+                                                    <span className="text-muted-foreground">...</span>
+                                                ) : kyc?.isVerified ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                                        <CheckCircle2 className="h-3 w-3" /> {kycLabel}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                                        <AlertTriangle className="h-3 w-3" /> —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono font-medium">{row.formattedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="px-3 py-2 text-right font-mono text-primary">
+                                                {price ? `$${(row.formattedAmount * price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "---"}
+                                            </td>
+                                            <td className="px-3 py-2 truncate max-w-[80px]">{row.jurisdiction}</td>
+                                            <td className="px-3 py-2 truncate max-w-[80px]">{row.category}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
-                        {filteredData.length > 50 && (
-                            <div className="text-center text-xs text-muted-foreground py-2">
-                                ...and {filteredData.length - 50} more rows
-                            </div>
-                        )}
                     </div>
                 </div>
 

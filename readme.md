@@ -27,6 +27,41 @@
 
 > **For judges and reviewers:** This README covers the highlights. The full product documentation — architecture deep-dive, smart contract reference, encryption flow, auditor portal design, known limitations, and roadmap — is written up at **[usecomplyr.vercel.app/docs](https://usecomplyr.vercel.app/docs)**. Worth a look if you want to understand the full system.
 
+## Executive summary (easy read)
+
+Complyr is a compliance intelligence layer for business payments on HashKey Chain.
+
+It solves one core gap: blockchains record **value transfer** (`who` and `how much`) but not business **compliance intent** (`why this payment was made`, `jurisdiction`, `category`, `reference`).
+
+Complyr makes this intent audit-ready by:
+
+- attaching encrypted compliance metadata to payment flows,
+- preserving privacy on-chain,
+- and enabling controlled auditor access when needed.
+
+This works across:
+
+- **Outbound payments** (single, batch, recurring treasury flows), and
+- **Inbound payments** via **HSP checkout**, which provides controlled metadata capture before settlement.
+
+---
+
+## HashKey integrations (highlight)
+
+Complyr intentionally integrates multiple HashKey ecosystem products:
+
+1. **HashKey KYC SBT**
+   - Reads recipient KYC status and level on-chain (Basic → Ultimate).
+   - Uses these identity signals to guide payment decisions and reporting context.
+
+2. **HashKey Settlement Protocol (HSP)**
+   - Powers controlled checkout flows for incoming payments.
+   - Closes the inbound metadata gap that normally exists in direct on-chain transfers.
+
+3. **APRO Oracle (USDC/USD)**
+   - Adds verifiable USD valuation to treasury and compliance reporting.
+   - Improves audit and tax reconciliation quality.
+
 ---
 
 ## Demo
@@ -67,6 +102,8 @@ Today, crypto wallets completely ignore this. The payment executes, but the comp
 
 Complyr operates as a unified business account powered by a **dual payment engine** designed for HashKey Chain. Both engines automatically route through the AES-256 compliance layer.
 
+**Important context:** Complyr is primarily built for **outbound treasury payments**. HSP extends this model to **inbound checkout payments**, so incoming funds can carry structured compliance records too.
+
 ### 1. Treasury / Outbound (Paying Employees & Vendors)
 You use the Complyr dashboard just like a smart treasury to send one-off payments, run batch payroll, or set up recurring subscriptions. 
 
@@ -76,6 +113,8 @@ Behind the scenes, it's powered by an advanced Smart Wallet account. Before the 
 When you want to sell a product, you create a hosted checkout link using the **HashKey Settlement Protocol (HSP)**. 
 
 When your customer clicks the link and pays, Complyr automatically pairs their payment with their predefined tax rules. The customer gets a smooth, normal e-commerce experience, and you instantly get a completed compliance record in your dashboard.
+
+Without this checkout layer, incoming funds can arrive as plain transfers with no structured business context. HSP gives Complyr a controlled intake path, making inbound records auditable like outbound treasury records.
 
 ```
 User initiates payment (Onchain Treasury) OR generates HSP Checkout link
@@ -90,6 +129,16 @@ Compliance metadata encrypted client-side via AES-256-GCM (runs in-browser)
   Gasless — sponsored by VerifyingPaymaster                     TxHash linked to encrypted blob
                                                                 ACL access granted via ECIES
 ```
+
+### How HashKey KYC SBT guides payments
+
+Before or during payment workflows, Complyr reads the recipient's KYC credential from HashKey KYC SBT.
+
+- Verified recipients are surfaced with their KYC level.
+- Unverified recipients are clearly flagged.
+- The same KYC signal is available in compliance reporting views.
+
+This helps businesses apply identity-aware controls before funds are sent, instead of discovering risk only after settlement.
 
 ---
 
@@ -183,11 +232,11 @@ The third is a reference ID determined by the business
 
 </div>
 
-Companies share a unique portal URL — `/auditor/{proxyAddress}` — with any external party such as a regulator, accountant, or tax authority. 
+Companies share a unique portal URL — `/auditor/{proxyAddress}` — with any external party such as a regulator, accountant, or tax authority.
 
 **The Simple Flow:**
-1. A company explicitly authorizes their external auditor's wallet address in the Complyr dashboard.
-2. The company generates a secure "Auditor Access Link" and shares it with the auditor.
+1. The business owner or accountant using Complyr explicitly permits an external auditor wallet address.
+2. They generate a secure dedicated auditor portal link and share it with the auditor.
 3. The auditor navigates to the dedicated portal, connects their authorized wallet, and is immediately granted access.
 4. The auditor can view the plaintext logs of all records and download fully filtered CSV tax reports, without ever having log-in access to the company's actual bank account.
 
@@ -204,9 +253,10 @@ Auditors can see all plaintext payment metadata, decrypted expense categories pe
 
 | Feature | Status |
 |---|---|
-| Dual Payment Engine (Onchain Treasury + HSP Checkout) | ✅ Live |
+| Dual Payment Engine (Onchain Treasury + HSP Checkout) | ✅ Live (HSP in simulated mode for demo credentials) |
 | Single & Batch HashKey transfers with compliance metadata | ✅ Live |
 | Recurring payments / payroll scheduling | ✅ Live |
+| HashKey KYC SBT recipient status + level checks | ✅ Live |
 | Client-side AES-256-GCM encryption | ✅ Live |
 | Auditor Access Control via ECIES Key Wrapping | ✅ Live |
 | Selective decryption via external auditor portal | ✅ Live |
