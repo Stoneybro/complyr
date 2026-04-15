@@ -51,7 +51,7 @@ This problem exists for both sending money (payouts) and receiving money (e-comm
 
 Today, crypto wallets completely ignore this. The payment executes, but the compliance data is missing. Companies are forced to manually copy-paste their crypto history into off-chain accounting software, which is tedious, error-prone, and defeats the purpose of an automated blockchain.
 
-**Complyr solves the missing "why."** Whenever you send or receive money, Complyr automatically attaches an encrypted "receipt" (showing the expense category and tax jurisdiction) directly to the transaction. Your business data stays completely private on the blockchain, but can be decrypted by your trusted auditors whenever needed.
+**Complyr solves the missing "why."** Whenever you send or receive money, Complyr automatically attaches an encrypted "receipt" (showing the expense category, tax jurisdiction and reference id) directly to the transaction. Your business data stays completely private on the blockchain, but can be decrypted by your trusted auditors whenever needed.
 
 ---
 
@@ -68,14 +68,14 @@ Today, crypto wallets completely ignore this. The payment executes, but the comp
 Complyr operates as a unified business account powered by a **dual payment engine** designed for HashKey Chain. Both engines automatically route through the AES-256 compliance layer.
 
 ### 1. Treasury / Outbound (Paying Employees & Vendors)
-You use the Complyr dashboard just like a normal bank account to send one-off payments, run batch payroll, or set up recurring subscriptions. 
+You use the Complyr dashboard just like a smart treasury to send one-off payments, run batch payroll, or set up recurring subscriptions. 
 
-Behind the scenes, it's powered by an advanced Smart Wallet account. Before the payment is sent, your compliance data (like "Contractor" + "US-California") is encrypted directly in your browser. This encrypted record is stored on the blockchain right next to the payment, meaning your private business data is never exposed to the public. All transactions are gasless.
+Behind the scenes, it's powered by an advanced Smart Wallet account. Before the payment is sent, your compliance data (like "Contractor" + "US-California"+ "INV-001") is encrypted directly in your browser. This encrypted record is stored on the blockchain right next to the payment, meaning your private business data is never exposed to the public. All transactions are gasless.
 
 ### 2. Checkout / Inbound (Getting Paid by Customers)
 When you want to sell a product, you create a hosted checkout link using the **HashKey Settlement Protocol (HSP)**. 
 
-When your customer clicks the link and pays, Complyr automatically pairs their payment with your predefined tax rules. The customer gets a smooth, normal e-commerce experience, and you instantly get a completed compliance record in your dashboard.
+When your customer clicks the link and pays, Complyr automatically pairs their payment with their predefined tax rules. The customer gets a smooth, normal e-commerce experience, and you instantly get a completed compliance record in your dashboard.
 
 ```
 User initiates payment (Onchain Treasury) OR generates HSP Checkout link
@@ -132,7 +132,7 @@ Complyr includes a built-in recipient address book backed by Neon PostgreSQL via
 
 ## Compliance model
 
-Complyr captures two encrypted dimensions per recipient per payment, stored as AES ciphertext.
+Complyr captures three encrypted dimensions per recipient per payment, stored as AES ciphertext.
 
 **Jurisdiction**
 
@@ -166,6 +166,8 @@ Complyr captures two encrypted dimensions per recipient per payment, stored as A
 | 8 | Dividend |
 | 9 | Reimbursement |
 | 10 | Other |
+
+The third is a reference ID determined by the business
 
 **Trust model:** Complyr enforces three properties of every compliance record — **existence** (created at the time of the payment), **immutability** (cannot be altered or deleted), and **cryptographic linkage** (permanently tied to the underlying transaction). It does not enforce the accuracy of the metadata a company submits. Businesses self-report their categories and jurisdictions, consistent with how traditional accounting works. What Complyr makes unfakeable is the record's presence, its link to the payment, and the fact that it was committed at transaction time.
 
