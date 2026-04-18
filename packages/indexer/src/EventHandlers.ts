@@ -331,8 +331,10 @@ IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
 IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
+  const txHash = event.transaction.hash;
 
   const intent = await context.Intent.get(intentId);
+  const existingTxForHash = await context.Transaction.get(txHash);
 
   const recipientsList = intent ? intent.recipients.map((r, i) => ({
     address: r,
@@ -345,7 +347,7 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
     executionNumber: Number(event.params.transactionCount),
     totalExecutions: intent ? Number(intent.totalTransactionCount) : 0,
     recipientCount: intent ? intent.recipients.length : 0,
-    token: intent ? intent.token : "HSK",
+    token: intent ? intent.token : "ETH",
     totalAmount: event.params.totalAmount.toString(),
     successfulTransfers: recipientsList.length,
     failedTransfers: 0,
@@ -353,12 +355,12 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
   });
 
   const transaction: Transaction = {
-    id: `${event.transaction.hash}-${event.logIndex}`,
+    id: txHash,
     wallet_id: walletId,
     transactionType: "INTENT_EXECUTION",
     timestamp: BigInt(event.block.timestamp),
     blockNumber: BigInt(event.block.number),
-    txHash: event.transaction.hash,
+    txHash: txHash,
     logIndex: event.logIndex,
     title: "Scheduled Payment",
     details: details
@@ -367,7 +369,7 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
 
   // Update wallet totalTransactionCount
   const wallet = await context.Wallet.get(walletId);
-  if (wallet) {
+  if (wallet && !existingTxForHash) {
     context.Wallet.set({
       ...wallet,
       totalTransactionCount: wallet.totalTransactionCount + 1
