@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAproOracle } from "@/hooks/useAproOracle"
 
 interface BalanceCardsProps {
   availableToken?: string;
@@ -29,14 +28,15 @@ const formatUSD = (value: number) => {
 };
 
 export function BalanceCards({ availableToken = "0", committedToken = "0", isLoading }: BalanceCardsProps) {
-  const { data: price, isLoading: priceLoading } = useAproOracle();
+  const price = 1; // 1 USDC = 1 USD
+  const priceLoading = false;
   
   const totalBalance = (parseFloat(availableToken) + parseFloat(committedToken)).toString();
   const safeTotal = isNaN(Number(totalBalance)) ? "0" : totalBalance;
 
-  const totalUSD = price ? parseFloat(safeTotal) * price : 0;
-  const committedUSD = price ? parseFloat(committedToken) * price : 0;
-  const availableUSD = price ? parseFloat(availableToken) * price : 0;
+  const totalUSD = parseFloat(safeTotal) * price;
+  const committedUSD = parseFloat(committedToken) * price;
+  const availableUSD = parseFloat(availableToken) * price;
 
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4  *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs  @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
@@ -96,7 +96,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="text-muted-foreground text-[10px] font-mono flex items-center gap-1">
-             Verified on HashKey Chain
+             Verified On-Chain
           </div>
         </CardFooter>
       </Card>

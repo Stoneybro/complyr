@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Search, ShieldCheck, ExternalLink, LockIcon, UnlockIcon, RefreshCw, Loader2, CheckCircle2, UserX } from "lucide-react";
 import { useAuditLogs, AuditRecord } from "@/hooks/useAuditLogs";
-import { useKyc } from "@/hooks/useKyc";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,27 +16,17 @@ interface AuditTrailProps {
 }
 
 const RecipientKycBadge = ({ address }: { address: string }) => {
-    const { data: kyc, isLoading } = useKyc(address);
-
-    if (isLoading) return <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />;
-
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div className="flex items-center">
-                        {kyc?.isVerified ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                        ) : (
-                            <UserX className="h-3.5 w-3.5 text-muted-foreground/40" />
-                        )}
+                        <UserX className="h-3.5 w-3.5 text-muted-foreground/40" />
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
                     <p className="text-xs">
-                        {kyc?.isVerified 
-                            ? `Verified HashKey Identity: ${address}` 
-                            : "Identity not found on HashKey Chain"}
+                        Identity not available
                     </p>
                 </TooltipContent>
             </Tooltip>
@@ -69,7 +58,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
     }, [walletAddress, fetchLogs, recordsOverride]);
 
     const displayRecords = searchTerm 
-        ? records.filter(r => r.hskTxHash.toLowerCase().includes(searchTerm.toLowerCase()) || r.recipients.some(rec => rec.toLowerCase().includes(searchTerm.toLowerCase())))
+        ? records.filter(r => r.txHash.toLowerCase().includes(searchTerm.toLowerCase()) || r.recipients.some(rec => rec.toLowerCase().includes(searchTerm.toLowerCase())))
         : records;
 
     const totalPaid = displayRecords.reduce((sum, item) => {
@@ -151,7 +140,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                             <div className="font-medium text-sm flex items-center gap-2">
                                                 {record.timestamp.toLocaleString()}
                                                 <a
-                                                    href={`https://testnet.hsk.xyz/tx/${record.hskTxHash}`}
+                                                    href={`https://sepolia.basescan.org/tx/${record.txHash}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="text-xs text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded"

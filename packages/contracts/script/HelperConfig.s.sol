@@ -12,7 +12,6 @@ contract HelperConfig is Script {
         address intentRegistry;
         address complianceRegistry;
         address owner;
-        address verifyingSigner;
         address entryPoint;
     }
 
@@ -20,7 +19,7 @@ contract HelperConfig is Script {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     NetworkConfig public localNetwork;
-    uint256 constant HASHKEY_TESTNET_CHAIN_ID = 133;
+    uint256 constant BASE_SEPOLIA_CHAIN_ID = 84532;
     uint256 constant LOCAL_CHAIN_ID = 31337;
 
     /*//////////////////////////////////////////////////////////////
@@ -38,20 +37,19 @@ contract HelperConfig is Script {
     function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (chainId == LOCAL_CHAIN_ID) {
             return getAnvilEthConfig();
-        } else if (chainId == HASHKEY_TESTNET_CHAIN_ID) {
-            return getHashkeyTestnetConfig();
+        } else if (chainId == BASE_SEPOLIA_CHAIN_ID) {
+            return getBaseSepoliaConfig();
         } else {
             revert HelperConfig__UnsupportedNetwork();
         }
     }
 
-    function getHashkeyTestnetConfig() public pure returns (NetworkConfig memory) {
+    function getBaseSepoliaConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
-            implementation: 0x5D16F29E70e90ac48C7F4fb2c1145911a774eFbF,
-            intentRegistry: 0x6A0C73162c20Bc56212D643112c339f654C45198,
-            complianceRegistry: 0x6c6b5c86752D8B5330Cb055A967E2f6253D09195,
+            implementation: 0x64747D9b1EF8335535bD62CDaA0EA8017EAB4927,
+            intentRegistry: 0x10299A9d969FB345cff44E5680D5FeD232dF6D2c,
+            complianceRegistry: 0xddFFC6d14C304079F29c7F3B1ceCbCa1A591A59A,
             owner: 0x0D96081998fd583334fd1757645B40fdD989B267,
-            verifyingSigner: 0xb1640Df792f8549e545023c3f298E7af90532642,
             entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032
         });
     }
@@ -66,7 +64,6 @@ contract HelperConfig is Script {
             intentRegistry: address(0), 
             complianceRegistry: address(0),
             owner: msg.sender,
-            verifyingSigner: msg.sender,
             entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032
         });
 

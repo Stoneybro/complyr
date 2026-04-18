@@ -5,14 +5,16 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ISmartWallet} from "./ISmartWallet.sol";
 import {IComplianceRegistry} from "./IComplianceRegistry.sol";
 
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
 /**
  * @title Intent Registry
  * @author zion Livingstone
  * @notice Central registry for managing automated payment intents across all wallets.
- * @dev Integrates with a custom Keeper for decentralized intent execution. Supports HSK and ERC-20 tokens.
+ * @dev Integrates with Chainlink Automation for decentralized intent execution. Supports ERC-20 tokens.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
-contract IntentRegistry is ReentrancyGuard {
+contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     /*//////////////////////////////////////////////////////////////
                                 TYPES
     //////////////////////////////////////////////////////////////*/

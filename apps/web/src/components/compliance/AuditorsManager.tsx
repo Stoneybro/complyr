@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http, createWalletClient, custom, getAddress } from "viem";
-import { hashkeyTestnet } from "@/lib/chains";
+import { baseSepolia } from "viem/chains";
 import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +29,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         setIsLoading(true);
         try {
             const publicClient = createPublicClient({
-                chain: hashkeyTestnet,
-                transport: http("https://testnet.hsk.xyz"),
+                chain: baseSepolia,
+                transport: http(),
             });
 
             const current = await publicClient.readContract({
@@ -74,15 +74,15 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: hashkeyTestnet,
+                chain: baseSepolia,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: hashkeyTestnet,
+                chain: baseSepolia,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(hashkeyTestnet.id);
+            await ownerWallet.switchChain(baseSepolia.id);
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
@@ -142,15 +142,15 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: hashkeyTestnet,
+                chain: baseSepolia,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: hashkeyTestnet,
+                chain: baseSepolia,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(hashkeyTestnet.id);
+            await ownerWallet.switchChain(baseSepolia.id);
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {

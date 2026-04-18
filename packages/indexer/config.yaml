@@ -1,5 +1,5 @@
 name: complyr-indexer
-description: Indexer for Complyr on HashKey Chain
+description: Indexer for Complyr on Base Sepolia
 
 field_selection:
   transaction_fields:
@@ -8,10 +8,10 @@ field_selection:
     - input
 
 networks:
-  - id: 133
+  - id: 84532
     rpc_config:
-      url: https://testnet.hsk.xyz
-    start_block: 26381863
+      url: https://sepolia.base.org
+    start_block: 40356903
     contracts:
       - name: SmartWallet
         handler: src/EventHandlers.ts
@@ -24,13 +24,13 @@ networks:
           - event: WalletAction(address indexed initiator, address indexed target, uint256 value, bytes4 indexed selector, bool success, bytes32 actionType)
       - name: SmartWalletFactory
         address:
-          - 0x37c5c677146A19e61295E40F0518bAf3f94305fE
+          - 0xc529DFFB6F22e59cD0Dd33bBe98FfceA1F202e98
         handler: src/EventHandlers.ts
         events:
           - event: AccountCreated(address indexed account, address indexed owner)
       - name: IntentRegistry
         address:
-          - 0x6A0C73162c20Bc56212D643112c339f654C45198
+          - 0x10299A9d969FB345cff44E5680D5FeD232dF6D2c
         handler: src/EventHandlers.ts
         events:
           - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, address indexed token, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
@@ -38,7 +38,7 @@ networks:
           - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, string name, uint256 amountRefunded, uint256 failedAmountRecovered)
       - name: MockUSDC
         address:
-          - 0x43e0BC90661dAF20C6fFbae1079d6E07E88e403A
+          - 0x6E8dc34d6E6Da3301bBE386CdBc83A77D3Efc3Bf
         handler: src/EventHandlers.ts
         events:
           - event: Transfer(address indexed from, address indexed to, uint256 value)

@@ -26,7 +26,7 @@ export default function Footer() {
           </p>
           <div className="flex gap-4 items-center">
             <div className="w-10 h-px bg-black dark:bg-white"></div>
-            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">HashKey Chain Hackathon: PayFi Track</span>
+            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">Built for Onchain Compliance</span>
           </div>
         </div>
         <div>
@@ -41,7 +41,7 @@ export default function Footer() {
         <div>
           <h4 className="font-inter text-[10px] font-bold uppercase tracking-widest mb-8 text-black dark:text-white">Powered By</h4>
           <ul className="space-y-4">
-            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">HASHKEY CHAIN</span></li>
+            <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">BASE</span></li>
             <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">AES-256</span></li>
             <li><span className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600">ENVIO</span></li>
           </ul>
@@ -49,7 +49,7 @@ export default function Footer() {
       </div>
       <div className="px-12 pb-8 flex flex-col md:flex-row justify-between items-center border-t border-black/5 dark:border-white/5 pt-8">
         <p className="font-inter text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-700">
-          © 2026 COMPLYR INFRASTRUCTURE. HashKey Chain Hackathon: PayFi Track.
+          © 2026 COMPLYR INFRASTRUCTURE.
         </p>
         <p className="font-inter text-[10px] uppercase tracking-widest text-gray-300 dark:text-gray-800">
           MATHEMATICALLY GUARANTEED PRIVACY. ENTERPRISE-GRADE ON-CHAIN SETTLEMENT.

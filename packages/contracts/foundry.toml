@@ -18,9 +18,8 @@ via_ir = true
 optimizer = true
 allow_paths = ["../../node_modules"]
 
-# HashKey Chain network configuration
+# Base Sepolia network configuration
 [rpc_endpoints]
-hashkey_testnet = "https://testnet.hsk.xyz"
-hashkey_mainnet = "https://mainnet.hsk.xyz"
+base_sepolia = "https://sepolia.base.org"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

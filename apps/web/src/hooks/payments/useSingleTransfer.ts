@@ -130,7 +130,7 @@ export function useSingleTransfer(availableBalance?: string) {
                     }
                 }
 
-                // 3. Send Base HashKey Transaction
+                // 3. Send Base Transaction
                 statusUpdate("Signing...");
                 const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
                 const txLoading = toast.loading(`Transferring ${tokenSymbol}...`);

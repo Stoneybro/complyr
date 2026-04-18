@@ -1,7 +1,7 @@
 /**
  * lib/encryption.ts
  * Implements client-side AES-256-GCM encryption for compliance metadata.
- * These blobs are opaque to the HashKey Chain and can only be decrypted 
+ * These blobs are opaque to the ledger and can only be decrypted 
  * by the merchant or authorized auditors holding the AES key.
  */
 

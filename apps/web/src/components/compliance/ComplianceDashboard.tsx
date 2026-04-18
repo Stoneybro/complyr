@@ -54,11 +54,11 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
 
                 flat.push({
                     date: record.timestamp,
-                    txHash: record.hskTxHash,
+                    txHash: record.txHash,
                     amount: amountWei,
                     formattedAmount: amountTokens,
                     currency: "USDC",
-                    entityId: "HashKeyLedger",
+                    entityId: "ComplyrLedger",
                     jurisdiction: jur,
                     category: cat,
                     periodId: "N/A",

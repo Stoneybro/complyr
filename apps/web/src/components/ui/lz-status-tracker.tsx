@@ -16,8 +16,8 @@ export function LZStatusTracker({ status, title = "Compliance Wallet Deployment"
 
   const steps = [
     {
-      id: "hashkey",
-      label: "Deploying on HashKey Chain",
+      id: "base",
+      label: "Deploying on Base Sepolia",
       activeStates: ["hsk_tx_pending"],
       completedStates: ["confirmed"],
       icon: CircleDashed,

@@ -8,13 +8,11 @@ import {IntentRegistry} from "../src/IntentRegistry.sol";
 import {ComplianceRegistry} from "../src/ComplianceRegistry.sol";
 import {SmartWallet} from "../src/SmartWallet.sol";
 import {SmartWalletFactory} from "../src/SmartWalletFactory.sol";
-import {VerifyingPaymaster} from "../src/VerifyingPaymaster.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
-import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint.sol";
 
 /**
  * @title DeployAll
- * @notice Master deploy script for Complyr on HashKey Chain.
+ * @notice Master deploy script for Complyr on Base Sepolia.
  */
 contract DeployAll is Script {
     function run() external {
@@ -52,15 +50,7 @@ contract DeployAll is Script {
         );
         console.log("5. SmartWalletFactory:   ", address(factory));
 
-        // ── Phase 5: Verifying Paymaster ─────────────────────────────────────
-
-        VerifyingPaymaster paymaster = new VerifyingPaymaster(
-            IEntryPoint(config.entryPoint),
-            config.verifyingSigner
-        );
-        console.log("6. VerifyingPaymaster:   ", address(paymaster));
-
-        // ── Phase 6: Wire & Fund ─────────────────────────────────────────────
+        // ── Phase 5: Wire & Fund ─────────────────────────────────────────────
 
         // Authorize IntentRegistry in ComplianceRegistry
         complianceRegistry.setAuthorizedCaller(address(intentRegistry), true);
@@ -80,17 +70,7 @@ contract DeployAll is Script {
         usdc.mint(address(factory), 1_000_000 * 10**6);
         console.log("-> Funded Factory with 1M Mock USDC");
 
-        // Optional: Fund the paymaster and factory with native HSK for gas
-        if (address(this).balance > 0.3 ether) {
-            paymaster.deposit{value: 0.1 ether}();
-            console.log("-> Paymaster funded with 0.1 HSK");
-            
-            // Fund factory for 0.01 HSK drips (covers 10 users)
-            (bool success, ) = address(factory).call{value: 0.1 ether}("");
-            if (success) {
-                console.log("-> Factory funded with 0.1 HSK for native drips");
-            }
-        }
+        // Native token drip funding handled separately for Base Sepolia if needed.
 
         vm.stopBroadcast();
 
@@ -101,7 +81,6 @@ contract DeployAll is Script {
         console.log("ComplianceRegistryAddress:", address(complianceRegistry));
         console.log("SmartWalletImplAddress:   ", address(implementation));
         console.log("SmartWalletFactoryAddress:", address(factory));
-        console.log("VerifyingPaymasterAddress:", address(paymaster));
         console.log("===========================");
     }
 }

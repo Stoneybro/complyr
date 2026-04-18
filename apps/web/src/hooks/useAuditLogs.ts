@@ -4,7 +4,7 @@ import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { toast } from "sonner";
 import { CATEGORY_DISPLAY, JURISDICTION_DISPLAY } from "@/lib/compliance-enums";
-import { hashkeyTestnet } from "@/lib/chains";
+import { baseSepolia } from "viem/chains";
 import { ComplianceRegistryAddress } from "@/lib/CA";
 import { decryptMetadata, deriveAESKey, hexToBuffer } from "@/lib/encryption";
 
@@ -12,7 +12,7 @@ const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
 export type AuditRecord = {
     recordIndex: number;
-    hskTxHash: string;
+    txHash: string;
     timestamp: Date;
     recipients: string[];
     amounts: string[];
@@ -35,8 +35,8 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
         
         try {
             const publicClient = createPublicClient({
-                chain: hashkeyTestnet,
-                transport: http("https://testnet.hsk.xyz"),
+                chain: baseSepolia,
+                transport: http(),
             });
 
             const countStr = await publicClient.readContract({
@@ -71,7 +71,7 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
 
                 loadedRecords.push({
                     recordIndex: i,
-                    hskTxHash: txHash,
+                    txHash: txHash,
                     timestamp: new Date(timestamp * 1000),
                     recipients,
                     amounts,
@@ -121,8 +121,8 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
 
             if (isExternalAuditor) {
                 const publicClient = createPublicClient({
-                    chain: hashkeyTestnet,
-                    transport: http("https://testnet.hsk.xyz"),
+                    chain: baseSepolia,
+                    transport: http(),
                 });
                 const masterEOA = await publicClient.readContract({
                     address: REGISTRY_ADDRESS,

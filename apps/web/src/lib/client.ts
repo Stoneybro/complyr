@@ -1,11 +1,11 @@
 import { createPublicClient, createWalletClient, http, custom } from "viem";
-import { hashkeyTestnet } from "./chains";
+import { baseSepolia } from "viem/chains";
 
 // Public client: used for read-only blockchain interactions
 export const getPublicClient = () =>
   createPublicClient({
-    chain: hashkeyTestnet,
-    transport: http("https://testnet.hsk.xyz"),
+    chain: baseSepolia,
+    transport: http(),
   });
 
 // Wallet client: used for signed transactions via a connected wallet
@@ -18,6 +18,6 @@ export const getWalletClient = async ({
 }) =>
   createWalletClient({
     account: address,
-    chain: hashkeyTestnet,
+    chain: baseSepolia,
     transport: custom(eip1193),
   });

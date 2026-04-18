@@ -1,9 +1,5 @@
-export const RegistryAddress="0x6A0C73162c20Bc56212D643112c339f654C45198"
-export const SmartWalletFactoryAddress="0x37c5c677146A19e61295E40F0518bAf3f94305fE"
-export const ComplianceRegistryAddress="0x6c6b5c86752D8B5330Cb055A967E2f6253D09195"
-export const MockUSDCAddress="0x43e0BC90661dAF20C6fFbae1079d6E07E88e403A"
-export const VerifyingPaymasterAddress="0xd63E841AAb10D118a3cb541FbeF011eBae6437C6"
-
-// HashKey Ecosystem Integrations
-export const APRO_USDC_USD_ORACLE = "0xCdB10dC9dB30B6ef2a63aB4460263655808fAE27"
-export const HASHKEY_KYC_SBT = "0x82Fc00C13EC0D52f2Ae260f41a9A1c53665d6207"
+export const RegistryAddress = "0x10299A9d969FB345cff44E5680D5FeD232dF6D2c";
+export const SmartWalletFactoryAddress = "0xc529DFFB6F22e59cD0Dd33bBe98FfceA1F202e98";
+export const ComplianceRegistryAddress = "0xddFFC6d14C304079F29c7F3B1ceCbCa1A591A59A";
+export const MockUSDCAddress = "0x6E8dc34d6E6Da3301bBE386CdBc83A77D3Efc3Bf";
+export const ENTRY_POINT_ADDRESS = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";

@@ -3,7 +3,6 @@ import { AppSidebar } from "@/components/wallet/app-sidebar";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { KycSection } from "@/components/compliance/KycSection";
 
 import { PaymentForm } from "@/components/payment-form/PaymentForm";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -50,7 +49,6 @@ export default function Page() {
                 <TabsTrigger value="form">Payments</TabsTrigger>
                 <TabsTrigger value="dashboard">Treasury</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
-                <TabsTrigger value="kyc">identity(KYC)</TabsTrigger>
               </TabsList>
               <TabsContent value="chat">
 
@@ -63,9 +61,6 @@ export default function Page() {
               </TabsContent>
               <TabsContent value="compliance">
                 <ComplianceDashboard walletAddress={walletAddress!} />
-              </TabsContent>
-              <TabsContent value="kyc">
-                <KycSection />
               </TabsContent>
             </Tabs>
           </div>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http } from "viem";
-import { hashkeyTestnet } from "@/lib/chains";
+import { baseSepolia } from "viem/chains";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,8 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         setIsLoadingAuditors(true);
         try {
             const publicClient = createPublicClient({
-                chain: hashkeyTestnet,
-                transport: http("https://testnet.hsk.xyz"),
+                chain: baseSepolia,
+                transport: http(),
             });
 
             const current = await publicClient.readContract({

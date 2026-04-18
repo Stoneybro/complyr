@@ -1,5 +1,5 @@
 /*
- * MantlePay Indexer - Event Handlers
+ * Complyr Indexer - Event Handlers
  * Indexes wallet activity, payments, intents, and compliance data
  */
 import {
@@ -173,7 +173,7 @@ SmartWallet.WalletAction.handler(async ({ event, context }) => {
   // to avoid duplicate entries in the transaction history
   if (isAutomatedUpkeep(event.transaction.input)) return;
 
-  // Only track native HSK transfers (value > 0 and no data sent to contract)
+  // Only track native ETH transfers (value > 0 and no data sent to contract)
   if (event.params.value > 0n && event.params.selector === "0x00000000") {
     const txHash = event.transaction.hash;
     const transactionId = `${txHash}`;
@@ -203,8 +203,8 @@ SmartWallet.WalletAction.handler(async ({ event, context }) => {
     details.calls.push({
       recipient: event.params.target.toString(),
       amount: event.params.value.toString(),
-      token: "HSK",
-      functionCall: "Native HSK Transfer"
+      token: "ETH",
+      functionCall: "Native ETH Transfer"
     });
     
     details.batchSize = details.calls.length;
@@ -216,14 +216,14 @@ SmartWallet.WalletAction.handler(async ({ event, context }) => {
     if (details.batchSize > 1) {
       newTxType = "EXECUTE_BATCH";
       newTitle = "Batch Payment";
-      details.token = "HSK";
+      details.token = "ETH";
     } else {
       newTxType = "EXECUTE";
       newTitle = "Single Payment";
       details.recipient = event.params.target.toString();
       details.amount = event.params.value.toString();
-      details.functionCall = "Native HSK Transfer";
-      details.token = "HSK";
+      details.functionCall = "Native ETH Transfer";
+      details.token = "ETH";
     }
 
     const updatedTransaction: Transaction = {
@@ -252,7 +252,7 @@ SmartWallet.TransferFailed.handler(async ({ event, context }) => {
     scheduleName: intent ? intent.name : "Unknown Schedule",
     executionNumber: Number(event.params.transactionCount),
     recipient: event.params.recipient.toString(),
-    token: intent ? intent.token : "HSK",
+    token: intent ? intent.token : "ETH",
     amount: event.params.amount.toString(),
     reason: "Transfer Failed"
   });
@@ -281,7 +281,7 @@ IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   const intentId = event.params.intentId.toString();
   
   const tokenSymbol = event.params.token.toString() === "0x0000000000000000000000000000000000000000" 
-    ? "HSK" 
+    ? "ETH" 
     : event.params.token.toString();
 
   const intent: Intent = {
@@ -382,7 +382,7 @@ IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
 
   const details = JSON.stringify({
     scheduleName: event.params.name,
-    token: intent ? intent.token : "HSK",
+    token: intent ? intent.token : "ETH",
     amountRefunded: event.params.amountRefunded.toString(),
     failedAmountRecovered: event.params.failedAmountRecovered.toString(),
     executionsCompleted: intent ? Math.floor(Number(intent.duration) / Number(intent.interval)) : 0,

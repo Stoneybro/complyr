@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Complyr | Confidential Onchain Finance",
-  description: "Confidential audit infrastructure for onchain business finance built on HashKey Chain.",
+  description: "Confidential audit infrastructure for onchain business finance built on Base.",
   icons: {
     icon: "/complyrlogo.ico",
     shortcut: "/complyrlogo.ico",

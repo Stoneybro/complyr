@@ -1,6 +1,5 @@
 import type { PrivyClientConfig } from "@privy-io/react-auth";
-import { sepolia } from "viem/chains";
-import { hashkeyTestnet } from "./chains";
+import { baseSepolia, sepolia } from "viem/chains";
 
 export const privyConfig: PrivyClientConfig = {
   embeddedWallets: {
@@ -8,8 +7,8 @@ export const privyConfig: PrivyClientConfig = {
       createOnLogin: "off",
     },
   },
-  defaultChain: hashkeyTestnet,
-  supportedChains: [hashkeyTestnet, sepolia],
+  defaultChain: baseSepolia,
+  supportedChains: [baseSepolia, sepolia],
   loginMethods: ["email", "google", "github"],
   appearance: {
     accentColor: "#000000",

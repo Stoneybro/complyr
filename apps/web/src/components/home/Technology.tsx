@@ -1,7 +1,8 @@
 import React from 'react';
 
 const stack = [
-  { name: 'HashKey Chain', role: 'Settlement' },
+  { name: 'Base', role: 'Settlement' },
+  { name: 'Chainlink', role: 'Automation' },
   { name: 'AES-256', role: 'Client Encryption' },
   { name: 'Envio', role: 'Data Indexing' },
   { name: 'ERC-4337', role: 'Account Abstraction' },

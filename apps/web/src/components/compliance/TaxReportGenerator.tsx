@@ -6,8 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ComplianceData } from "@/hooks/useComplianceData";
 import { Download, FileText, DollarSign, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getJurisdictionOptions, getCategoryOptions } from "@/lib/compliance-enums";
-import { useAproOracle } from "@/hooks/useAproOracle";
-import { useKycBatch } from "@/hooks/useKycBatch";
 import { Badge } from "@/components/ui/badge";
 
 interface TaxReportGeneratorProps {
@@ -15,7 +13,7 @@ interface TaxReportGeneratorProps {
 }
 
 export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
-    const { data: price } = useAproOracle();
+    const price = 1;
     const [jurisdiction, setJurisdiction] = useState<string>("all");
     const [category, setCategory] = useState<string>("all");
     const [timePeriod, setTimePeriod] = useState<string>("all");
@@ -76,19 +74,18 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
         Array.from(new Set(filteredData.map(item => item.recipientAddress))),
         [filteredData]
     );
-    const { results: kycResults, isLoading: kycLoading } = useKycBatch(recipientAddresses);
+    const kycLoading = false;
 
     const totalAmount = filteredData.reduce((sum, item) => sum + item.formattedAmount, 0);
 
     const handleExport = () => {
         const headers = ["Date", "Recipient", "KYC Status", "KYC Level", "Amount (USDC)", "USD Value (APRO)", "Jurisdiction", "Category", "Transaction Hash", "Reference"];
         const rows = filteredData.map(item => {
-            const kyc = kycResults.get(item.recipientAddress.toLowerCase());
             return [
                 item.date.toISOString().split('T')[0],
                 item.recipientAddress,
-                kyc?.isVerified ? "Verified" : "Unverified",
-                kyc?.level?.toString() ?? "0",
+                "Unverified",
+                "0",
                 item.formattedAmount.toString(),
                 price ? (item.formattedAmount * price).toFixed(2) : "N/A",
                 item.jurisdiction,
@@ -119,7 +116,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                     Compliance Report Generator
                 </CardTitle>
                 <div className="text-sm text-muted-foreground mt-1 font-medium">
-                    Generate structured compliance reports with real-time <Badge variant="outline" className="text-[10px] h-4 px-1 text-primary border-primary/30 ml-1">APRO Oracle</Badge> USD valuations.
+                    Generate structured compliance reports with real-time USD valuations.
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -180,7 +177,6 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                 <div className="bg-muted/30 rounded-lg p-4 border border-muted-foreground/10">
                     <div className="flex justify-between items-center mb-1">
                         <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Compliance Manifest Preview</h3>
-                        {price && <Badge variant="secondary" className="text-[10px] bg-primary/5 text-primary border-primary/10">1 USDC ≈ ${price.toFixed(4)}</Badge>}
                     </div>
 
                     <div className="max-h-[300px] overflow-y-auto hidden md:block mt-4">
@@ -198,24 +194,12 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                             </thead>
                             <tbody className="divide-y">
                                 {filteredData.slice(0, 50).map((row, i) => {
-                                    const kyc = kycResults.get(row.recipientAddress.toLowerCase());
-                                    const kycLabel = ["None", "Basic", "Adv.", "Prem.", "Ult."][kyc?.level ?? 0];
                                     return (
                                         <tr key={i} className="hover:bg-muted/20 text-xs">
                                             <td className="px-3 py-2 font-mono">{row.date.toISOString().split('T')[0]}</td>
                                             <td className="px-3 py-2 font-mono truncate max-w-[100px]">{row.recipientAddress.slice(0, 6)}...{row.recipientAddress.slice(-4)}</td>
                                             <td className="px-3 py-2">
-                                                {kycLoading ? (
-                                                    <span className="text-muted-foreground">...</span>
-                                                ) : kyc?.isVerified ? (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                                                        <CheckCircle2 className="h-3 w-3" /> {kycLabel}
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                                        <AlertTriangle className="h-3 w-3" /> —
-                                                    </span>
-                                                )}
+                                                <span className="text-muted-foreground">—</span>
                                             </td>
                                             <td className="px-3 py-2 text-right font-mono font-medium">{row.formattedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="px-3 py-2 text-right font-mono text-primary">

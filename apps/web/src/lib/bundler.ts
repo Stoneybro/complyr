@@ -1,12 +1,23 @@
 import { createPublicClient, http } from "viem";
-import { hashkeyTestnet } from "./chains";
+import { baseSepolia } from "viem/chains";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { ENTRY_POINT_ADDRESS } from "./CA";
 
-// Skandha bundler on Railway
-export const bundlerUrl = `https://complyr-bundler-production-6ad5.up.railway.app/rpc`;
+// Pimlico bundler on Base Sepolia
+export const bundlerUrl = `https://api.pimlico.io/v2/84532/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}&sponsorshipPolicyId=${process.env.NEXT_PUBLIC_PIMPLICO_SPONSOR_ID}`;
 export const bundlerTransport = http(bundlerUrl);
+
+// Pimlico Client (Bundler + Paymaster)
+export const pimlicoClient = createPimlicoClient({
+  transport: bundlerTransport,
+  entryPoint: {
+    address: ENTRY_POINT_ADDRESS as `0x${string}`,
+    version: "0.7",
+  },
+});
 
 // Public client for standard JSON-RPC calls
 export const publicClient = createPublicClient({
-  chain: hashkeyTestnet,
-  transport: http("https://testnet.hsk.xyz"),
+  chain: baseSepolia,
+  transport: http(),
 });

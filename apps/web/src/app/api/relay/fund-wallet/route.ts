@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
  import { createWalletClient, http, createPublicClient, parseEther } from "viem";
-import { hashkeyTestnet } from "@/lib/chains";
+import { baseSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const maxDuration = 60;
@@ -25,29 +25,29 @@ export async function POST(req: NextRequest) {
         const account = privateKeyToAccount(privateKey as `0x${string}`);
 
         const publicClient = createPublicClient({
-            chain: hashkeyTestnet,
-            transport: http("https://testnet.hsk.xyz"),
+            chain: baseSepolia,
+            transport: http(),
         });
 
         const walletClient = createWalletClient({
             account,
-            chain: hashkeyTestnet,
-            transport: http("https://testnet.hsk.xyz"),
+            chain: baseSepolia,
+            transport: http(),
         });
 
-        // 0.005 HSK is sufficient to pay for basic signature and registry ops
+        // 0.001 ETH is sufficient to pay for basic signature and registry ops
         const fundAmount = parseEther("0.005");
 
         // Check the relayer's balance
         const relayerBalance = await publicClient.getBalance({ address: account.address });
         if (relayerBalance < fundAmount) {
             return NextResponse.json(
-                { error: "Relayer has insufficient testnet HSK to sponsor." },
+                { error: "Relayer has insufficient gas to sponsor." },
                 { status: 500 }
             );
         }
 
-        console.log(`[relay-fund] Funding connected embedded wallet ${targetWallet} with 0.005 HSK...`);
+        console.log(`[relay-fund] Funding connected embedded wallet ${targetWallet} with 0.001 native tokens...`);
 
         const hash = await walletClient.sendTransaction({
             to: targetWallet as `0x${string}`,

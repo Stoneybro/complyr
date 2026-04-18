@@ -19,7 +19,6 @@ import { useRecurringPayment } from "@/hooks/payments/useRecurringPayment";
 import { useSingleTransfer } from "@/hooks/payments/useSingleTransfer";
 import { useBatchTransfer } from "@/hooks/payments/useBatchTransfer";
 import { useContacts } from "@/hooks/useContacts";
-import { useKyc } from "@/hooks/useKyc";
 import { toast } from "sonner";
 import type { Contact } from "@/lib/contact-store";
 import { MockUSDCAddress } from "@/lib/CA";
@@ -50,31 +49,14 @@ type RecipientData = {
     contactName?: string;
 };
 
-// KYC Check Component — auto-checks as soon as the address is a valid 0x address
 const KycCheck = ({ address }: { address: string }) => {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(address);
-    const { data: kyc, isLoading } = useKyc(isValid ? address : undefined);
 
     if (!isValid) return null;
 
-    if (isLoading) return (
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1 ml-1">
-            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Checking...
-        </div>
-    );
-
-    if (kyc?.isVerified) {
-        const levelLabel = KYC_LEVEL_LABELS[kyc.level ?? 0] ?? "Verified";
-        return (
-            <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mt-1 ml-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 w-fit">
-                <CheckCircle2 className="h-2.5 w-2.5" /> KYC · {levelLabel}
-            </div>
-        );
-    }
-
     return (
-        <div className="flex items-center gap-1 text-[10px] text-amber-500 font-medium mt-1 ml-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 w-fit">
-            <AlertTriangle className="h-2.5 w-2.5" /> Unverified
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium mt-1 ml-1 bg-muted/10 px-1.5 py-0.5 rounded border border-border w-fit">
+            <Info className="h-2.5 w-2.5" /> External KYC required
         </div>
     );
 };
@@ -202,13 +184,12 @@ interface PaymentFormProps {
     walletAddress?: `0x${string}`;
 }
 
-type PaymentType = "single" | "batch" | "recurring" | "hsp";
+type PaymentType = "single" | "batch" | "recurring";
 
 export function PaymentForm({ walletAddress }: PaymentFormProps) {
-    const [topLevelTab, setTopLevelTab] = useState<"onchain" | "hsp">("onchain");
     const [onchainTab, setOnchainTab] = useState<"single" | "batch" | "recurring">("single");
 
-    const currentPaymentType: PaymentType = topLevelTab === "hsp" ? "hsp" : onchainTab;
+    const currentPaymentType: PaymentType = onchainTab;
 
     // Fetch balances
     const { data: wallet } = useQuery({
@@ -432,28 +413,6 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                 setRecurringRecipients([{ address: "", amount: "", referenceId: "" }]);
                 setRecurringDuration("");
                 setRecurringStartDate("");
-            } else if (currentPaymentType === "hsp") {
-                if (!singleRecipient.amount) {
-                    toast.error("Please enter an amount");
-                    setTransactionStatus("");
-                    return;
-                }
-                const res = await fetch("/api/hsp/orders", {
-                    method: "POST",
-                    body: JSON.stringify({ 
-                        amount: singleRecipient.amount, 
-                        token: "USDC",
-                        compliance: buildCompliance([singleRecipient])
-                    })
-                });
-                const json = await res.json();
-                if (json.success) {
-                    window.location.href = json.data.payment_url;
-                } else {
-                    toast.error("Failed to generate HSP checkout link");
-                    setTransactionStatus("Failed");
-                }
-                return;
             }
         } catch (error) {
             console.error("Payment error:", error);
@@ -512,19 +471,8 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
 
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <Tabs value={topLevelTab} onValueChange={(v) => setTopLevelTab(v as "onchain" | "hsp")} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="onchain">Onchain Payments</TabsTrigger>
-                                <TabsTrigger value="hsp">HSP Checkout</TabsTrigger>
-                            </TabsList>
-                            
-                            <TabsContent value="onchain" className="space-y-6 mt-6">
-                                <p className="text-sm text-muted-foreground">
-                                    Send outbound payments directly onchain with encrypted compliance records.
-                                </p>
-                                
-                                <Tabs value={onchainTab} onValueChange={(v) => setOnchainTab(v as "single" | "batch" | "recurring")} className="w-full">
-                                    <TabsList className="grid w-full grid-cols-3">
+                        <Tabs value={onchainTab} onValueChange={(v) => setOnchainTab(v as "single" | "batch" | "recurring")} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
                                         <TabsTrigger value="single">Single</TabsTrigger>
                                         <TabsTrigger value="batch">Batch</TabsTrigger>
                                         <TabsTrigger value="recurring">Recurring</TabsTrigger>
@@ -774,95 +722,6 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                         </div>
                                     </TabsContent>
                                 </Tabs>
-                            </TabsContent>
-                            
-                            <TabsContent value="hsp" className="space-y-6 mt-6">
-                                <p className="text-sm text-muted-foreground">
-                                    Collect inbound payments through HSP checkout with embedded encrypted compliance records.
-                                </p>
-                                
-                                <ContactSelector onSelect={loadContactForSingle} />
-                                
-                                <div className="space-y-4 p-4 border rounded-lg">
-                                    <div className="space-y-2 relative max-w-sm">
-                                        <Label htmlFor="hsp-amount" className="text-sm font-medium">Order Amount</Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="hsp-amount"
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={singleRecipient.amount}
-                                                onChange={(e) => setSingleRecipient({ ...singleRecipient, amount: e.target.value })}
-                                                className="pr-12"
-                                            />
-                                            <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">USDC</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-3 border-t border-dashed">
-                                        <h4 className="text-sm font-medium mb-3">Compliance Records (Encrypted)</h4>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div className="space-y-1">
-                                                <Label htmlFor="hsp-ref" className="text-xs text-muted-foreground">Reference ID</Label>
-                                                <Input
-                                                    id="hsp-ref"
-                                                    placeholder="Max 7 char"
-                                                    value={singleRecipient.referenceId || ''}
-                                                    onChange={(e) => setSingleRecipient({ ...singleRecipient, referenceId: e.target.value.substring(0, 7) })}
-                                                    className="h-8 text-xs bg-muted/30"
-                                                    maxLength={7}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label htmlFor="hsp-jurisdiction" className="text-xs text-muted-foreground">Recipient Jurisdiction</Label>
-                                                <Select
-                                                    value={singleRecipient.jurisdiction || ''}
-                                                    onValueChange={(value) => setSingleRecipient({ ...singleRecipient, jurisdiction: value })}
-                                                >
-                                                    <SelectTrigger id="hsp-jurisdiction" className="w-full h-8 text-xs bg-muted/30">
-                                                        <SelectValue placeholder="Select..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {JURISDICTION_OPTIONS.map((j) => (
-                                                            <SelectItem key={j.value} value={j.value}>
-                                                                {j.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label htmlFor="hsp-category" className="text-xs text-muted-foreground">Expense Category</Label>
-                                                <Select
-                                                    value={singleRecipient.category || ''}
-                                                    onValueChange={(value) => setSingleRecipient({ ...singleRecipient, category: value })}
-                                                >
-                                                    <SelectTrigger id="hsp-category" className="w-full h-8 text-xs bg-muted/30">
-                                                        <SelectValue placeholder="Select..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {CATEGORY_OPTIONS.map((c) => (
-                                                            <SelectItem key={c.value} value={c.value}>
-                                                                {c.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none mt-4">
-                                        <Info className="h-4 w-4" />
-                                        <AlertDescription className="text-xs">
-                                            HSP is the HashKey Settlement Protocol. This demo uses a simulated checkout flow due to unavailable merchant signing credentials.
-                                        </AlertDescription>
-                                    </Alert>
-                                </div>
-                            </TabsContent>
-                        </Tabs>
-
                         <div className="pt-4 mt-6">
                             <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none">
                                 <Info className="h-4 w-4" />
@@ -880,7 +739,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                 </>
                             ) : (
                                 transactionStatus === "Complete" ? "Payment Successful" :
-                                (currentPaymentType === "recurring" ? "Create Schedule" : currentPaymentType === "hsp" ? "Generate HSP Link" : "Confirm Payment")
+                                (currentPaymentType === "recurring" ? "Create Schedule" : "Confirm Payment")
                             )}
                         </Button>
                     </form>

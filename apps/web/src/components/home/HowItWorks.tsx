@@ -8,7 +8,7 @@ const steps = [
     num: '01',
     title: 'Smart Vaults',
     label: '01 / SYSTEM TREASURY',
-    body: 'Deploy a compliance-aware smart account on HashKey Chain to act as your business\'s primary on-chain treasury.',
+    body: 'Deploy a compliance-aware smart account onchain to act as your business\'s primary treasury.',
   },
   {
     num: '02',
@@ -20,7 +20,7 @@ const steps = [
     num: '03',
     title: 'Settlement',
     label: '03 / NATIVE EXECUTION',
-    body: 'The payment settles natively on HashKey Chain while your encrypted compliance records are permanently anchored in the same transaction.',
+    body: 'The payment settles natively onchain while your encrypted compliance records are permanently anchored in the same transaction.',
   },
   {
     num: '04',
