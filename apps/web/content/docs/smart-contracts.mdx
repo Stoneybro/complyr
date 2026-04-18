@@ -1,11 +1,11 @@
 ---
 title: Smart Contracts Layer
-description: Deep dive into the HashKey Chain smart contracts.
+description: Deep dive into the Base Sepolia smart contracts.
 ---
 
-## Smart Contract Layer — HashKey Chain
+## Smart Contract Layer — Base Sepolia
 
-The HashKey Chain layer handles payment execution and compliance metadata collection. It consists of these main contracts.
+The Base Sepolia layer handles payment execution and compliance metadata collection. It consists of these main contracts.
 
 ### SmartWallet
 
@@ -23,9 +23,9 @@ Key responsibilities:
 
 The factory deploys and tracks smart wallet clones. It accepts a single `owner` address, derives a deterministic salt, and deploys the clone using OpenZeppelin's `Clones` library.
 
-For demo and testnet purposes, the factory is pre-funded and sends `100 HSK` to each newly deployed wallet, making onboarding gasless and frictionless.
+For testnet purposes, the factory is configured with a `MockUSDC` drip so newly onboarded wallets can receive stablecoin funds for simulated treasury flows.
 
-The factory also triggers automatic company registration on the ComplianceRegistry at wallet creation time. This establishes the identity link mapping the HashKey proxy address to the owner's EOA at the earliest possible moment.
+The factory also triggers automatic company registration on the ComplianceRegistry at wallet creation time. This establishes the identity link mapping the wallet proxy address to the owner's EOA at the earliest possible moment.
 
 ### IntentRegistry
 
@@ -40,26 +40,22 @@ The IntentRegistry is the scheduling and compliance dispatch engine. It manages 
 
 The registry validates fund availability, calculates total commitment (`amountPerCycle × totalCycles`), locks funds via `increaseCommitment`, and dispatches a compliance report at creation time. For recurring payments, each execution should ideally produce a corresponding compliance record referencing the originating intent.
 
-**Executing an intent.** The registry implements `checkUpkeep` and `performUpkeep`, the Chainlink Automation interface. A custom keeper script deployed on Railway polls `checkUpkeep` every 30 seconds across all registered wallets and calls `performUpkeep` when execution conditions are met. Execution is skipped (not reverted) if a recipient transfer fails, with the failed amount tracked in `intent.failedAmount` for recovery.
+**Executing an intent.** The registry implements `checkUpkeep` and `performUpkeep`, the Chainlink Automation interface. Automation nodes call `checkUpkeep` and trigger `performUpkeep` when execution conditions are met. Execution is skipped (not reverted) if a recipient transfer fails, with the failed amount tracked in `intent.failedAmount` for recovery.
 
 **Cancelling an intent.** The wallet owner can cancel any active intent at any time. The remaining committed funds are released immediately.
 
 ### ComplianceRegistry
 
-The ComplianceRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the HashKey proxy address.
+The ComplianceRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the wallet proxy address.
 
 Each compliance record stores:
-- `txHash` — the deterministic link to the HashKey transaction or intent
+- `txHash` — the deterministic link to the transaction or intent execution
 - `recipients[]` and `amounts[]` — plaintext payment data. Payment amounts and recipient addresses remain public on the compliance ledger because they already exist on the public payment ledger. Only the compliance context is encrypted.
 - `encryptedPayload` — AES-256-GCM ciphertext encapsulating categories and jurisdictions
 - `timestamp` — block timestamp at record creation
 
 Auditors and company owners maintain the encryption keys required to read from this contract. 
 
-### VerifyingPaymaster
+### Sponsorship Model
 
-The VerifyingPaymaster is an ERC-4337 paymaster that sponsors gas for all UserOperations, making every Complyr transaction gasless for the end user.
-
-In the production design, the paymaster validates an off-chain signature from a backend signer before authorising sponsorship. The signature covers the sender address, nonce, validity window, and chain context to prevent replay attacks. The paymaster maintains per-sender nonces and supports configurable validity windows (`validUntil`, `validAfter`).
-
-In the current testnet implementation, the paymaster unconditionally sponsors all operations for demo frictionlessness. The EntryPoint deposits that fund gas sponsorship must be topped up periodically by the deployer.
+Complyr uses Pimlico's ERC-4337 bundler and paymaster services for gas sponsorship on Base Sepolia. Sponsorship configuration is handled in the web client layer (`bundler.ts` and `smartAccountClient.ts`) rather than through a custom onchain paymaster contract in this repository.

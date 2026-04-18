@@ -20,7 +20,7 @@ The Auditor Portal is a dedicated interface that allows external auditors and re
 
 This system is powered by cryptography, not traditional software access controls.
 
-**Key Wrapping:** When the business authorizes the auditor, their browser takes the company's master AES compliance key and securely encrypts it using the auditor's *public* Ethereum key (via ECIES). This encrypted key is uploaded to HashKey Chain.
+**Key Wrapping:** When the business authorizes the auditor, their browser takes the company's master AES compliance key and securely encrypts it using the auditor's *public* Ethereum key (via ECIES). This encrypted key is uploaded on-chain.
 
 **Local Decryption:** When the auditor logs into the portal and clicks to decrypt, their browser uses their wallet's *private* key to decrypt the AES key client-side. The browser then fetches ciphertext payloads from the blockchain and decrypts them locally.
 
@@ -38,4 +38,4 @@ Auditors cannot modify records, authorise additional parties, or access company 
 https://usecomplyr.vercel.app/auditor/{proxyAccountAddress}
 ```
 
-Where `proxyAccountAddress` is the company's HashKey Chain smart wallet address.
+Where `proxyAccountAddress` is the company's smart wallet address.

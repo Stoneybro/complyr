@@ -38,44 +38,43 @@ NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
 # Neon PostgreSQL (for contacts)
 COMPLYR_DATABASE_URL=postgresql://...
 
-# Envio GraphQL API
-NEXT_PUBLIC_ENVIO_API_URL=https://indexer.dev.hyperindex.xyz/86c2f35/v1/graphql
+# Envio GraphQL API (optional override)
+NEXT_PUBLIC_ENVIO_API_URL=https://indexer.dev.hyperindex.xyz/63b8cce/v1/graphql
+
+# Pimlico
+NEXT_PUBLIC_PIMLICO_API_KEY=...
+NEXT_PUBLIC_PIMPLICO_SPONSOR_ID=...
 ```
 
 ### Build contracts
 
 ```bash
-# HashKey Chain contracts
+# Base Sepolia contracts
 pnpm forge:build
 
 # Run tests
 pnpm forge:test
 ```
 
-### Run the keeper
+### Run the indexer locally (optional)
 
-The keeper script polls the IntentRegistry for executable intents and triggers execution.
+If you want the app to read from your own local indexer instead of hosted Envio:
 
 ```bash
-cd packages/keeper
-cp .env.example .env
-# Fill in PRIVATE_KEY and RPC_URL
+cd packages/indexer
+pnpm codegen
 pnpm dev
 ```
 
-The keeper runs on a 30-second poll interval. For production use, deploy it as a persistent service (Railway, Fly.io, or a self-hosted VM).
+Then point the web app to `http://localhost:8080/v1/graphql` via `NEXT_PUBLIC_ENVIO_API_URL`.
 
 ---
 
 ### Account abstraction setup
 
-Complyr uses a self-hosted Skandha bundler deployed on Railway because no public bundler currently supports HashKey Chain testnet. The bundler endpoint is configured in `apps/web/src/lib/bundler.ts`.
+Complyr uses Pimlico on Base Sepolia for ERC-4337 bundling and sponsorship. Bundler and paymaster configuration lives in `apps/web/src/lib/bundler.ts` and `apps/web/src/lib/smartAccountClient.ts`.
 
-If you are deploying to a new environment, you will need to:
-
-1. Fork [complyr-bundler](https://github.com/Stoneybro/complyr-bundler) and deploy it
-2. Update `bundlerUrl` in `bundler.ts`
-3. Fund the `VerifyingPaymaster` deposit on the EntryPoint
+Recurring payment execution is exposed through Chainlink Automation-compatible methods (`checkUpkeep` and `performUpkeep`) in `IntentRegistry`.
 
 ---
 

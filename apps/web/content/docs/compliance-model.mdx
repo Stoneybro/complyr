@@ -52,7 +52,7 @@ Unlike early prototypes that relied on FHE, Complyr utilizes standard Client-Sid
 
 1. **Company Keys**: A symmetric master AES key is generated for the company. Data is encrypted client-side using this key before landing on-chain.
 2. **Metadata Input**: The frontend packages recipient category and jurisdiction values into an encrypted payload. 
-3. **On-chain Validation**: The payload is stored in the `ComplianceRegistry` on HashKey Chain.
+3. **On-chain Validation**: The payload is stored in the `ComplianceRegistry` on Base Sepolia.
 4. **Auditor Portal & ECIES**: When granting access to an auditor, the company's master AES key is encrypted using the auditor's Ethereum public key (ECIES) and stored in the registry. 
 5. **Decryption**: Authorized auditors fetch the encrypted AES key, use their private key to decrypt it locally, and then locally decrypt the matching batch of records from the ComplianceRegistry.
 
