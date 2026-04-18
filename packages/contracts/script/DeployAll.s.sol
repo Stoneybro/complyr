@@ -12,7 +12,7 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 
 /**
  * @title DeployAll
- * @notice Master deploy script for Complyr on Base Sepolia.
+ * @notice Master deploy script for Complyr on Base Sepolia
  */
 contract DeployAll is Script {
     function run() external {
