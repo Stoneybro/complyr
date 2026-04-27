@@ -384,6 +384,7 @@ IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
 
   const details = JSON.stringify({
     scheduleName: event.params.name,
+    intentId: intentId,
     token: intent ? intent.token : "ETH",
     amountRefunded: event.params.amountRefunded.toString(),
     failedAmountRecovered: event.params.failedAmountRecovered.toString(),

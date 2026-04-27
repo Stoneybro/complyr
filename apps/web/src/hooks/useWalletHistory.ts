@@ -181,7 +181,7 @@ export const useWalletHistory = (walletAddress?: string) => {
                 .filter((tx: TransactionItemProps) => {
                     // Filter out contract calls (non-transfer EXECUTE transactions)
                     if (tx.type === ActivityType.EXECUTE) {
-                        const isTransfer = tx.details.functionCall === 'Token Transfer' || tx.details.functionCall === 'Native HSK Transfer';
+                        const isTransfer = tx.details.functionCall === 'Token Transfer' || tx.details.functionCall === 'Native ETH Transfer';
                         if (!isTransfer) return false;
                     }
 

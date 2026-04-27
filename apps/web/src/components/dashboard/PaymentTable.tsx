@@ -36,24 +36,99 @@ interface PaymentTableProps {
     walletAddress?: string;
 }
 
+type IntentLifecycleStatus = "active" | "cancelled" | "completed" | "partial" | "failed";
+type IntentTableRow = Omit<TransactionItemProps, "status"> & { status: IntentLifecycleStatus };
+
 export default function PaymentTable({ walletAddress }: PaymentTableProps) {
     const [activeTab, setActiveTab] = React.useState<"subscriptions" | "payroll">("subscriptions");
+    const [cancellingIntentId, setCancellingIntentId] = React.useState<string | null>(null);
     const { transactions, isLoading } = useWalletHistory(walletAddress);
     const { mutate: cancelIntent, isPending: isCancelling } = useCancelIntent();
 
-    const { subscriptions, payrolls } = transactions?.reduce((acc: any, tx: TransactionItemProps) => {
-        if (tx.type === ActivityType.INTENT_CREATED) {
-            const recipients = tx.details?.recipients || [];
-            if (recipients.length > 1) {
-                acc.payrolls.push(tx);
-            } else {
-                acc.subscriptions.push(tx);
+    const { subscriptions, payrolls } = React.useMemo(() => {
+        const items = transactions || [];
+
+        const cancelledIntentIds = new Set<string>();
+        const latestExecutionByIntent = new Map<string, TransactionItemProps>();
+
+        for (const tx of items) {
+            const intentId = tx.details?.intentId;
+            if (!intentId) continue;
+
+            if (tx.type === ActivityType.INTENT_CANCELLED) {
+                cancelledIntentIds.add(intentId);
+                continue;
+            }
+
+            if (tx.type === ActivityType.INTENT_EXECUTION) {
+                const prev = latestExecutionByIntent.get(intentId);
+                const currentExecution = Number(tx.details?.executionNumber || 0);
+                const prevExecution = Number(prev?.details?.executionNumber || 0);
+                if (!prev || currentExecution >= prevExecution) {
+                    latestExecutionByIntent.set(intentId, tx);
+                }
             }
         }
-        return acc;
-    }, { subscriptions: [], payrolls: [] }) || { subscriptions: [], payrolls: [] };
 
-    const renderTableRows = (items: TransactionItemProps[]) => {
+        const withStatus: IntentTableRow[] = items
+            .filter((tx) => tx.type === ActivityType.INTENT_CREATED)
+            .map((tx) => {
+                const intentId = tx.details?.intentId;
+                const latestExecution = intentId ? latestExecutionByIntent.get(intentId) : undefined;
+
+                let lifecycleStatus: IntentLifecycleStatus = "active";
+                if (intentId && cancelledIntentIds.has(intentId)) {
+                    lifecycleStatus = "cancelled";
+                } else if (latestExecution) {
+                    const executionStatus = latestExecution.status;
+                    const executionNumber = Number(latestExecution.details?.executionNumber || 0);
+                    const totalExecutions = Number(latestExecution.details?.totalExecutions || 0);
+
+                    if (executionStatus === "failed") {
+                        lifecycleStatus = "failed";
+                    } else if (executionStatus === "partial") {
+                        lifecycleStatus = "partial";
+                    } else if (totalExecutions > 0 && executionNumber >= totalExecutions) {
+                        lifecycleStatus = "completed";
+                    }
+                }
+
+                return {
+                    ...tx,
+                    status: lifecycleStatus,
+                };
+            });
+
+        return withStatus.reduce(
+            (acc: { subscriptions: IntentTableRow[]; payrolls: IntentTableRow[] }, tx) => {
+                const recipients = tx.details?.recipients || [];
+                if (recipients.length > 1) {
+                    acc.payrolls.push(tx);
+                } else {
+                    acc.subscriptions.push(tx);
+                }
+                return acc;
+            },
+            { subscriptions: [], payrolls: [] }
+        );
+    }, [transactions]);
+
+    const statusClassName = (status: IntentLifecycleStatus) => {
+        switch (status) {
+            case "cancelled":
+                return "border-muted-foreground/40 text-muted-foreground";
+            case "completed":
+                return "border-emerald-500/40 text-emerald-600";
+            case "partial":
+                return "border-amber-500/40 text-amber-600";
+            case "failed":
+                return "border-red-500/40 text-red-600";
+            default:
+                return "border-foreground text-foreground";
+        }
+    };
+
+    const renderTableRows = (items: IntentTableRow[]) => {
         if (isLoading) {
             return Array(3).fill(0).map((_, i) => (
                 <TableRow key={i}>
@@ -83,8 +158,11 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
         return items.map((tx) => {
             const details = tx.details || {};
             const recipients = details.recipients || [];
-            const tokenSymbol = details.token || 'HSK'; // Use details.token or fallback to HSK
+            const tokenSymbol = details.token || 'ETH';
             const amount = details.totalCommitment ? formatUnits(BigInt(details.totalCommitment), 18) : '0';
+            const intentId = details.intentId as `0x${string}` | undefined;
+            const isInactive = tx.status === 'cancelled' || tx.status === 'completed';
+            const isThisRowCancelling = isCancelling && cancellingIntentId === intentId;
             return (
                 <TableRow key={tx.id} >
                     <TableCell className="font-medium truncate max-w-[200px]" title={tx.title}>{tx.title || 'Untitled Payment'}</TableCell>
@@ -119,18 +197,18 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
                         )}
                     </TableCell>
                     <TableCell className="font-medium">
-                        <span className="inline-flex items-center px-2 py-0.5 border border-foreground rounded text-[10px] font-mono tracking-widest uppercase">
+                        <span className={`inline-flex items-center px-2 py-0.5 border rounded text-[10px] font-mono tracking-widest uppercase ${statusClassName(tx.status)}`}>
                             {tx.status}
                         </span>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                         <a
-                            href={`https://testnet.hsk.xyz/tx/${tx.id}`}
+                            href={`https://sepolia.basescan.org/tx/${tx.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:text-primary transition-colors"
                         >
-                            {truncateAddress(tx.id, 4, 4)}
+                            {truncateAddress(tx.txHash, 4, 4)}
                             <ExternalLink className="w-3 h-3" />
                         </a>
                     </TableCell>
@@ -148,10 +226,24 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
                             variant="destructive"
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => cancelIntent({ intentId: details.intentId as `0x${string}` })}
-                            disabled={isCancelling || (details.endDate && new Date(details.endDate) < new Date())}
+                            onClick={() => {
+                                if (!intentId) return;
+                                setCancellingIntentId(intentId);
+                                cancelIntent(
+                                    { intentId },
+                                    {
+                                        onSettled: () => setCancellingIntentId(null),
+                                    }
+                                );
+                            }}
+                            disabled={
+                                !intentId ||
+                                isInactive ||
+                                isThisRowCancelling ||
+                                (details.endDate && new Date(details.endDate) < new Date())
+                            }
                         >
-                            {isCancelling ? '...' : 'Cancel'}
+                            {isThisRowCancelling ? '...' : 'Cancel'}
                         </Button>
                     </TableCell>
                 </TableRow>
