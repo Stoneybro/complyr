@@ -3,7 +3,7 @@
 import { CheckCircle2, CircleDashed, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BridgeStatus = "idle" | "hsk_tx_pending" | "confirmed" | "error";
+export type BridgeStatus = "idle" | "tx_pending" | "confirmed" | "error";
 
 interface LZStatusTrackerProps {
   status: BridgeStatus;
@@ -17,8 +17,8 @@ export function LZStatusTracker({ status, title = "Compliance Wallet Deployment"
   const steps = [
     {
       id: "base",
-      label: "Deploying on Base Sepolia",
-      activeStates: ["hsk_tx_pending"],
+      label: "Deploying on Sepolia ETH",
+      activeStates: ["tx_pending"],
       completedStates: ["confirmed"],
       icon: CircleDashed,
     },

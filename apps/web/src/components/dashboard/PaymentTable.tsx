@@ -203,7 +203,7 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                         <a
-                            href={`https://sepolia.basescan.org/tx/${tx.txHash}`}
+                            href={`https://sepolia.etherscan.io/tx/${tx.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:text-primary transition-colors"

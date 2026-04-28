@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
- import { createWalletClient, http, createPublicClient, parseEther } from "viem";
-import { baseSepolia } from "viem/chains";
+import { createWalletClient, http, createPublicClient, parseEther } from "viem";
+import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const maxDuration = 60;
@@ -25,13 +25,13 @@ export async function POST(req: NextRequest) {
         const account = privateKeyToAccount(privateKey as `0x${string}`);
 
         const publicClient = createPublicClient({
-            chain: baseSepolia,
+            chain: sepolia,
             transport: http(),
         });
 
         const walletClient = createWalletClient({
             account,
-            chain: baseSepolia,
+            chain: sepolia,
             transport: http(),
         });
 

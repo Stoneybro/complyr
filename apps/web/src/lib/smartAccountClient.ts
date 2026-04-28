@@ -1,5 +1,5 @@
 import { createSmartAccountClient } from "permissionless";
-import { baseSepolia } from "viem/chains";
+import { sepolia } from "viem/chains";
 import { bundlerTransport, publicClient, pimlicoClient } from "./bundler";
 import { CustomSmartAccount } from "./customSmartAccount";
 
@@ -8,7 +8,7 @@ export async function getSmartAccountClient(
 ) {
   return createSmartAccountClient({
     account: customSmartAccount,
-    chain: baseSepolia,
+    chain: sepolia,
     bundlerTransport: bundlerTransport,
     paymaster: pimlicoClient,
     userOperation: {

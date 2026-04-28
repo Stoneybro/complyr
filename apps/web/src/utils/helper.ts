@@ -6,7 +6,7 @@ import { getPublicClient } from "@/lib/client";
 import { MockUSDCAddress } from "@/lib/CA";
 
 /**
- * Fetches wallet balances for native HSK and USDC:
+ * Fetches wallet balances for native ETH and USDC:
  * - availableBalance: spendable funds
  * - committedFunds: locked in scheduled payments
  */
@@ -24,10 +24,10 @@ const ERC20_ABI = [
 export async function fetchWalletBalance(smartAccountAddress: `0x${string}`) {
   const publicClient = getPublicClient();
 
-  // 1. Native HSK balance
+  // 1. Native ETH balance
   const nativeBalance = await publicClient.getBalance({ address: smartAccountAddress });
 
-  const committedHsk = await readContract({
+  const committedEth = await readContract({
     address: smartAccountAddress,
     abi: SmartWalletABI,
     functionName: "sCommittedFunds",
@@ -50,13 +50,13 @@ export async function fetchWalletBalance(smartAccountAddress: `0x${string}`) {
   }) as bigint;
 
   // Available = total balance - committed
-  const availableHsk = nativeBalance - committedHsk;
+  const availableEth = nativeBalance - committedEth;
   const availableUsdc = usdcBalance - committedUsdc;
 
   return {
-    availableHskBalance: formatEther(availableHsk > 0n ? availableHsk : 0n),
-    committedHskBalance: formatEther(committedHsk),
-    totalHskBalance: formatEther(nativeBalance),
+    availableEthBalance: formatEther(availableEth > 0n ? availableEth : 0n),
+    committedEthBalance: formatEther(committedEth),
+    totalEthBalance: formatEther(nativeBalance),
     
     availableUsdcBalance: formatUnits(availableUsdc > 0n ? availableUsdc : 0n, 6),
     committedUsdcBalance: formatUnits(committedUsdc, 6),

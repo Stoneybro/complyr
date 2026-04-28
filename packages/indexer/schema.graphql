@@ -47,3 +47,14 @@ type Intent @entity {
   interval: BigInt!
   duration: BigInt!
 }
+
+type ComplianceRecord @entity {
+  id: ID! # Correlation txHash
+  wallet: String!
+  timestamp: BigInt!
+  txHash: String!
+  recipients: [String!]!
+  amounts: [BigInt!]!
+  categories: [BigInt!]!
+  jurisdictions: [BigInt!]!
+}

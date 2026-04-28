@@ -52,7 +52,7 @@ function Page() {
             disabled={!checked || isPending}
           >
             {isPending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
-            {bridgeStatus === "hsk_tx_pending" && "Activating..."}
+            {bridgeStatus === "tx_pending" && "Activating..."}
             {bridgeStatus === "confirmed" && "Success"}
             {bridgeStatus === "idle" && "Activate account"}
           </Button>

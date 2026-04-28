@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http, createWalletClient, custom, getAddress } from "viem";
-import { baseSepolia } from "viem/chains";
+import { sepolia } from "viem/chains";
 import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         setIsLoading(true);
         try {
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: sepolia,
                 transport: http(),
             });
 
@@ -74,15 +74,15 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: baseSepolia,
+                chain: sepolia,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: sepolia,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(baseSepolia.id);
+            await ownerWallet.switchChain(sepolia.id);
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
@@ -95,7 +95,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 
                 const fundData = await fundRes.json();
                 if (!fundData.success) {
-                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
+                    throw new Error("Insufficient ETH to pay for gas and auto-funding failed.");
                 }
                 
                 // Wait for chain sync
@@ -142,15 +142,15 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: baseSepolia,
+                chain: sepolia,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: sepolia,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(baseSepolia.id);
+            await ownerWallet.switchChain(sepolia.id);
 
             let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
@@ -163,7 +163,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 
                 const fundData = await fundRes.json();
                 if (!fundData.success) {
-                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
+                    throw new Error("Insufficient ETH to pay for gas and auto-funding failed.");
                 }
                 
                 // Wait for chain sync

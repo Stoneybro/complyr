@@ -7,10 +7,7 @@ remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
     "@account-abstraction/=lib/account-abstraction/",
     "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/",
-    "@layerzerolabs/lz-evm-oapp-v2/=../../node_modules/@layerzerolabs/lz-evm-oapp-v2/",
-    "@layerzerolabs/lz-evm-protocol-v2/=../../node_modules/@layerzerolabs/lz-evm-protocol-v2/",
-    "@layerzerolabs/oapp-evm/=../../node_modules/@layerzerolabs/oapp-evm/",
-    "@layerzerolabs/lz-evm-messagelib-v2/=../../node_modules/@layerzerolabs/lz-evm-messagelib-v2/",
+    "@fhevm/solidity/=../../node_modules/@fhevm/solidity/",
     "solidity-bytes-utils/=../../node_modules/solidity-bytes-utils/",
 ]
 
@@ -18,8 +15,8 @@ via_ir = true
 optimizer = true
 allow_paths = ["../../node_modules"]
 
-# Base Sepolia network configuration
+# Network configuration
 [rpc_endpoints]
-base_sepolia = "https://sepolia.base.org"
+sepolia = "https://ethereum-sepolia-rpc.publicnode.com"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

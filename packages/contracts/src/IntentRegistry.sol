@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ISmartWallet} from "./ISmartWallet.sol";
 import {IComplianceRegistry} from "./IComplianceRegistry.sol";
+import {euint8} from "@fhevm/solidity/lib/FHE.sol";
 
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
@@ -25,7 +26,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         address wallet;
         /// @notice The name of the intent
         string name;
-        /// @notice The token to transfer (address(0) for native HSK)
+        /// @notice The token to transfer (address(0) for native ETH)
         address token;
         /// @notice The recipients of the intent
         address[] recipients;
@@ -189,13 +190,14 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     /**
      * @notice Creates a new multi-recipient intent for the sender/wallet.
      * @param name The name of the intent
-     * @param token The token address (address(0) for native HSK)
+     * @param token The token address (address(0) for native ETH)
      * @param recipients The array of recipient addresses
      * @param amounts The array of amounts corresponding to each recipient
      * @param duration The total duration of the intent in seconds
      * @param interval The interval between transactions in seconds
      * @param transactionStartTime The start time of the transaction (0 for immediate start)
-     * @param encryptedPayload AES-256 ciphertext of compliance metadata (including Reference IDs)
+     * @param categories FHE encrypted categories (euint8 handles)
+     * @param jurisdictions FHE encrypted jurisdictions (euint8 handles)
      * @return intentId The unique identifier for the created intent
      */
     function createIntent(
@@ -206,7 +208,8 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         uint256 duration,
         uint256 interval,
         uint256 transactionStartTime,
-        bytes calldata encryptedPayload
+        euint8[] calldata categories,
+        euint8[] calldata jurisdictions
     ) external returns (bytes32) {
         address wallet = msg.sender;
 
@@ -223,7 +226,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         if (recipients.length > MAX_RECIPIENTS) revert IntentRegistry__TooManyRecipients();
 
         ///@notice Validate compliance payload exists
-        if (encryptedPayload.length == 0) revert IntentRegistry__ArrayLengthMismatch();
+        if (categories.length == 0 || jurisdictions.length == 0) revert IntentRegistry__ArrayLengthMismatch();
 
         ///@notice Validate timing parameters
         if (duration == 0 || duration > MAX_DURATION) revert IntentRegistry__InvalidDuration();
@@ -286,14 +289,15 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         ///@notice Add the intent id to the wallet's active intent ids
         walletActiveIntentIds[wallet].push(intentId);
 
-        ///@notice Send compliance data to HashKey Registry once at creation
+        ///@notice Send compliance data to Sepolia Registry once at creation
         if (complianceRegistry != address(0)) {
             IComplianceRegistry(complianceRegistry).recordTransaction(
                 intentId,
                 wallet,
                 recipients,
                 amounts,
-                encryptedPayload
+                categories,
+                jurisdictions
             );
         }
 

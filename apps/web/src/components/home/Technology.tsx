@@ -1,12 +1,12 @@
 import React from 'react';
 
 const stack = [
-  { name: 'Base', role: 'Settlement' },
+  { name: 'Sepolia ETH', role: 'Settlement' },
   { name: 'Chainlink', role: 'Automation' },
-  { name: 'AES-256', role: 'Client Encryption' },
+  { name: 'Zama FHE', role: 'Client Encryption' },
   { name: 'Envio', role: 'Data Indexing' },
   { name: 'ERC-4337', role: 'Account Abstraction' },
-  { name: 'Custom Keepers', role: 'Automated Execution' },
+  { name: 'Pimlico', role: 'Bundler/Paymaster' },
 ];
 
 export default function Technology() {
@@ -43,8 +43,7 @@ export default function Technology() {
     "token": "USDC"
   },
   "compliance": {
-    "aes_encrypted_metadata": "0x000000002194b8e...",
-    "signature": "0x4b7c...",
+    "fhe_encrypted_metadata": "0x000000002194b8e...",
     "verification_status": "SECURED_ONCHAIN"
   }
 }`}</pre>

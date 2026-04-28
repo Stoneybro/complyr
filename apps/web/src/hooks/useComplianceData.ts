@@ -66,18 +66,20 @@ export const useComplianceData = (walletAddress?: string) => {
                 const tokenAddr = (details.token || details.target || "").toLowerCase();
                 const isUsdc = tokenAddr === MockUSDCAddress.toLowerCase();
                 const decimals = isUsdc ? 1e6 : 1e18;
-                const currency = isUsdc ? "USDC" : "HSK";
+                const currency = isUsdc ? "USDC" : "ETH";
 
                 // 1. Single Execution
                 if (tx.transactionType === ActivityType.EXECUTE) {
                     const compliance = details.compliance || {};
                     const entityId = compliance.entityIds?.[0] || "";
 
+                    // FHE handles are large uint256. Plaintext enums are small integers.
+                    // If the value is > 1000, it's likely an FHE handle.
                     const jurVal = Number(compliance.jurisdiction || 0);
                     const catVal = Number(compliance.category || 0);
 
-                    const jurisdiction = JURISDICTION_DISPLAY[jurVal] || "None";
-                    const category = CATEGORY_DISPLAY[catVal] || "None";
+                    const jurisdiction = jurVal > 0 && jurVal < 1000 ? (JURISDICTION_DISPLAY[jurVal] || "None") : (jurVal > 1000 ? "Encrypted (FHE)" : "None");
+                    const category = catVal > 0 && catVal < 1000 ? (CATEGORY_DISPLAY[catVal] || "None") : (catVal > 1000 ? "Encrypted (FHE)" : "None");
 
                     const rawAmount = details.value || details.amount || "0";
                     const amountVal = Number(rawAmount) / decimals;
@@ -165,8 +167,8 @@ export const useComplianceData = (walletAddress?: string) => {
                         const jurVal = Number(jurRaw || 0);
                         const catVal = Number(catRaw || 0);
 
-                        const jur = JURISDICTION_DISPLAY[jurVal] || "None";
-                        const cat = CATEGORY_DISPLAY[catVal] || "None";
+                        const jur = jurVal > 0 && jurVal < 1000 ? (JURISDICTION_DISPLAY[jurVal] || "None") : (jurVal > 1000 ? "Encrypted (FHE)" : "None");
+                        const cat = catVal > 0 && catVal < 1000 ? (CATEGORY_DISPLAY[catVal] || "None") : (catVal > 1000 ? "Encrypted (FHE)" : "None");
 
                         const item: ComplianceData = {
                             date: new Date(Number(tx.timestamp) * 1000),

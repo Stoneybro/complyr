@@ -12,11 +12,12 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISmartWallet} from "./ISmartWallet.sol";
 import {IComplianceRegistry} from "./IComplianceRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {euint8} from "@fhevm/solidity/lib/FHE.sol";
 
 /**
  * @title Smart Wallet
  * @author zion Livingstone
- * @notice ERC-4337 compliant smart account. Supports native HSK and ERC-20 stablecoin transfers.
+ * @notice ERC-4337 compliant smart account. Supports native ETH and ERC-20 stablecoin transfers.
  *         Records encrypted compliance metadata directly to the on-chain ComplianceRegistry.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
@@ -44,11 +45,11 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Intent registry authorized to trigger scheduled transfers.
     address public immutable INTENT_REGISTRY;
 
-    /// @notice On-chain compliance registry on HashKey Chain.
+    /// @notice On-chain compliance registry on Sepolia.
     address public immutable COMPLIANCE_REGISTRY;
 
     /// @notice Amount of funds committed to intents (locked) per token.
-    /// @dev address(0) is used for native HSK.
+    /// @dev address(0) is used for native ETH.
     mapping(address token => uint256 amount) public sCommittedFunds;
 
     /// @notice EIP-1271 magic return value for valid signatures.
@@ -150,7 +151,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /**
      * @notice Initializes immutable addresses. Disables proxy initialization.
      * @param registry    The IntentRegistry address.
-     * @param complianceRegistry The on-chain ComplianceRegistry on HashKey Chain.
+     * @param complianceRegistry The on-chain ComplianceRegistry on Sepolia.
      */
     constructor(address registry, address complianceRegistry) {
         if (registry == address(0)) revert SmartWallet__IntentRegistryZeroAddress();
@@ -332,26 +333,29 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Records an AES-256 encrypted compliance payload directly on HashKey Chain.
-     * @dev The payload bytes are opaque to the chain — encrypted client-side before submission.
+     * @notice Records an FHE-encrypted compliance payload directly on Sepolia.
+     * @dev The payload handles are opaque to the chain.
      *      The txHash links this record deterministically to the payment transaction.
-     * @param txHash        Deterministic hash of the payment tx or intent ID.
-     * @param recipients    Recipient addresses (plaintext — already public from payment).
-     * @param amounts       Amounts per recipient (plaintext).
-     * @param encryptedPayload  AES-256 ciphertext of the compliance metadata (categories + jurisdictions + reference IDs).
+     * @param txHash        Correlation ID for the payment.
+     * @param recipients    Recipient addresses.
+     * @param amounts       Amounts per recipient.
+     * @param categories    FHE encrypted categories (euint8 handles).
+     * @param jurisdictions FHE encrypted jurisdictions (euint8 handles).
      */
     function recordCompliance(
         bytes32 txHash,
         address[] calldata recipients,
         uint256[] calldata amounts,
-        bytes calldata encryptedPayload
+        euint8[] calldata categories,
+        euint8[] calldata jurisdictions
     ) external onlyEntryPointOrOwner {
         IComplianceRegistry(COMPLIANCE_REGISTRY).recordTransaction(
             txHash,
             address(this),
             recipients,
             amounts,
-            encryptedPayload
+            categories,
+            jurisdictions
         );
         emit ComplianceRecorded(txHash);
     }

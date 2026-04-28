@@ -2,12 +2,11 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { parseUnits, encodeFunctionData } from "viem";
+import { parseUnits, encodeFunctionData, bytesToHex } from "viem";
 import { SingleTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { getFhevmInstance } from "@/lib/fhevm";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { MockUSDCAddress, ComplianceRegistryAddress } from "@/lib/CA";
 
 export function useSingleTransfer(availableBalance?: string) {
@@ -29,7 +28,7 @@ export function useSingleTransfer(availableBalance?: string) {
                     const balanceCheck = checkSufficientBalance({
                         availableBalance: availableBalance,
                         requiredAmount: params.amount,
-                        token: params.tokenAddress ? "USDC" : "HSK"
+                        token: params.tokenAddress ? "USDC" : "ETH"
                     });
 
                     if (!balanceCheck.sufficient) {
@@ -49,11 +48,11 @@ export function useSingleTransfer(availableBalance?: string) {
                 const proxyAddress = smartAccountClient.account!.address;
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
 
-                // 1. Setup calls
+                // 1. Setup calls array for batching
                 const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
 
                 if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
-                    // Call transfer on the ERC20 token contract directly
+                    // ERC-20 Transfer
                     calls.push({
                         to: params.tokenAddress as `0x${string}`,
                         value: 0n,
@@ -75,7 +74,7 @@ export function useSingleTransfer(availableBalance?: string) {
                         })
                     });
                 } else {
-                    // Native HSK transfer
+                    // Native ETH transfer
                     calls.push({
                         to: params.to,
                         data: "0x" as `0x${string}`,
@@ -83,57 +82,65 @@ export function useSingleTransfer(availableBalance?: string) {
                     });
                 }
 
-                // 2. Client-side AES-256 Encryption
+                // 2. Client-side Zama FHE Encryption
                 const hasComplianceData = params.compliance && (
                     params.compliance.categories?.length || 
-                    params.compliance.jurisdictions?.length || 
-                    params.compliance.referenceIds?.length
+                    params.compliance.jurisdictions?.length
                 );
 
                 if (hasComplianceData) {
                     statusUpdate("Encrypting...");
-                    const loadingId = toast.loading("Encrypting compliance payload...");
+                    const loadingId = toast.loading("Encrypting FHE payload...");
                     try {
-                        const payloadData = [{
-                            recipient: params.to,
-                            category: params.compliance?.categories?.[0] ?? 0,
-                            jurisdiction: params.compliance?.jurisdictions?.[0] ?? 0,
-                            referenceId: params.compliance?.referenceIds?.[0] ?? ""
-                        }];
-                        
-                        const jsonPayload = JSON.stringify({ payments: payloadData });
-                        const aesKey = await deriveAESKey(owner.address);
-                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
-                        const encryptedPayloadHex = bufferToHex(encryptedBytes);
+                        const fhevm = await getFhevmInstance();
+                        const categories = params.compliance?.categories || [];
+                        const jurisdictions = params.compliance?.jurisdictions || [];
 
-                        // Generate a unique 32-byte ID for this payment
-                        const paymentIdBytes = window.crypto.getRandomValues(new Uint8Array(32));
-                        const paymentId = bufferToHex(paymentIdBytes) as `0x${string}`;
+                        // We use the proxyAddress (Smart Account) as the authorized caller for the encrypted input
+                        const catInput = fhevm.createEncryptedInput(ComplianceRegistryAddress, proxyAddress);
+                        catInput.add8(categories[0] !== undefined ? Number(categories[0]) : 0);
+                        const catEnc = await catInput.encrypt();
 
-                        // Call ComplianceRegistry directly
+                        const jurInput = fhevm.createEncryptedInput(ComplianceRegistryAddress, proxyAddress);
+                        jurInput.add8(jurisdictions[0] !== undefined ? Number(jurisdictions[0]) : 0);
+                        const jurEnc = await jurInput.encrypt();
+
+                        const categoryHandle = bytesToHex(catEnc.handles[0]);
+                        const jurisdictionHandle = bytesToHex(jurEnc.handles[0]);
+
+                        // Use a deterministic hash for record linkage
+                        const txHash = bytesToHex(window.crypto.getRandomValues(new Uint8Array(32)));
+
+                        // Add recordCompliance call to the batch
                         calls.push({
-                            to: ComplianceRegistryAddress as `0x${string}`,
+                            to: proxyAddress, // Calling our own smart wallet's recordCompliance
                             value: 0n,
                             data: encodeFunctionData({
-                                abi: ComplianceRegistryABI,
-                                functionName: "recordTransaction",
-                                args: [paymentId, proxyAddress, [params.to], [amountInUnits], encryptedPayloadHex]
+                                abi: SmartWalletABI,
+                                functionName: "recordCompliance",
+                                args: [
+                                    txHash as `0x${string}`,
+                                    [params.to],
+                                    [amountInUnits],
+                                    [BigInt(categoryHandle)],
+                                    [BigInt(jurisdictionHandle)]
+                                ]
                             })
                         });
 
                         toast.dismiss(loadingId);
                     } catch (e) {
-                        console.error(e);
+                        console.error("FHE Encryption Error:", e);
                         toast.dismiss(loadingId);
                         statusUpdate("Error");
-                        throw new Error("Failed to encrypt compliance parameters.");
+                        throw new Error("Failed to encrypt compliance parameters with Zama FHE.");
                     }
                 }
 
-                // 3. Send Base Transaction
+                // 3. Send Unified Batch Transaction (ERC-4337 UserOp via Pimlico)
                 statusUpdate("Signing...");
-                const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
-                const txLoading = toast.loading(`Transferring ${tokenSymbol}...`);
+                const tokenSymbol = params.tokenAddress ? "USDC" : "ETH";
+                const txLoading = toast.loading(`Sending ${tokenSymbol} transfer & FHE record...`);
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,
@@ -151,7 +158,7 @@ export function useSingleTransfer(availableBalance?: string) {
                 }
 
                 statusUpdate("Complete");
-                toast.success(`${tokenSymbol} transfer completed!`);
+                toast.success(`${tokenSymbol} transfer completed with FHE compliance!`);
 
                 return receipt;
             } catch (error) {

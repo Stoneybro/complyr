@@ -140,7 +140,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                             <div className="font-medium text-sm flex items-center gap-2">
                                                 {record.timestamp.toLocaleString()}
                                                 <a
-                                                    href={`https://sepolia.basescan.org/tx/${record.txHash}`}
+                                                    href={`https://sepolia.etherscan.io/tx/${record.txHash}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="text-xs text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded"

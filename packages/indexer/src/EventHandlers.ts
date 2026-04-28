@@ -405,3 +405,59 @@ IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
   };
   context.Transaction.set(transaction);
 });
+
+// ============================================
+// COMPLIANCE REGISTRY EVENTS
+// ============================================
+
+ComplianceRegistry.RecordAppended.handler(async ({ event, context }) => {
+  const walletId = event.params.proxyAccount.toString().toLowerCase();
+  const txHash = event.transaction.hash;
+  const correlationId = event.params.txHash.toString();
+
+  // Try to find the existing transaction (which should have been created by Transfer or WalletAction)
+  let transaction = await context.Transaction.get(txHash);
+
+  const complianceData = {
+    correlationId: correlationId,
+    recipients: event.params.recipients.map(r => r.toString()),
+    amounts: event.params.amounts.map(a => a.toString()),
+    categories: event.params.categories.map(c => c.toString()),
+    jurisdictions: event.params.jurisdictions.map(j => j.toString()),
+    // For single payments, we surface these for easy frontend parsing
+    category: event.params.categories[0]?.toString() || "0",
+    jurisdiction: event.params.jurisdictions[0]?.toString() || "0",
+  };
+
+  if (transaction) {
+    const details = JSON.parse(transaction.details);
+    details.compliance = complianceData;
+    
+    context.Transaction.set({
+      ...transaction,
+      details: JSON.stringify(details)
+    });
+  } else {
+    // If transaction doesn't exist yet (unlikely in same tx batch, but possible if indexer order varies),
+    // create a placeholder or we can use a separate entity.
+    const details = JSON.stringify({
+        compliance: complianceData,
+        calls: event.params.recipients.map((r, i) => ({
+            recipient: r.toString(),
+            amount: event.params.amounts[i].toString()
+        }))
+    });
+
+    context.Transaction.set({
+        id: txHash,
+        wallet_id: walletId,
+        transactionType: "EXECUTE", 
+        timestamp: BigInt(event.block.timestamp),
+        blockNumber: BigInt(event.block.number),
+        txHash: txHash,
+        logIndex: event.logIndex,
+        title: "Payment with FHE Compliance",
+        details: details
+    });
+  }
+});

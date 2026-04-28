@@ -1,10 +1,10 @@
 import { createPublicClient, createWalletClient, http, custom } from "viem";
-import { baseSepolia } from "viem/chains";
+import { sepolia } from "viem/chains";
 
 // Public client: used for read-only blockchain interactions
 export const getPublicClient = () =>
   createPublicClient({
-    chain: baseSepolia,
+    chain: sepolia,
     transport: http(),
   });
 
@@ -18,6 +18,6 @@ export const getWalletClient = async ({
 }) =>
   createWalletClient({
     account: address,
-    chain: baseSepolia,
+    chain: sepolia,
     transport: custom(eip1193),
   });

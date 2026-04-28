@@ -11,9 +11,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /**
  * @title Smart Wallet Factory
  * @author zion livingstone
- * @notice Factory for deploying ERC-1167 minimal proxy clones of SmartWallet on HashKey Chain.
+ * @notice Factory for deploying ERC-1167 minimal proxy clones of SmartWallet on Sepolia.
  *         Auto-registers each new wallet with the on-chain ComplianceRegistry.
- *         Drips a small amount of HSK and a configurable amount of stablecoin for onboarding.
+ *         Drips a small amount of ETH and a configurable amount of stablecoin for onboarding.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
 contract SmartWalletFactory is Ownable {
@@ -26,13 +26,13 @@ contract SmartWalletFactory is Ownable {
     /// @notice The SmartWallet implementation address cloned for each user.
     address public immutable IMPLEMENTATION;
 
-    /// @notice The on-chain ComplianceRegistry on HashKey Chain.
+    /// @notice The on-chain ComplianceRegistry on Sepolia.
     address public immutable COMPLIANCE_REGISTRY;
 
     /// @notice Mapping from user EOA to deployed SmartWallet clone.
     mapping(address user => address clone) public userClones;
 
-    /// @notice Native HSK dripped to each new wallet (fallback for gas).
+    /// @notice Native ETH dripped to each new wallet (fallback for gas).
     uint256 public sNativeDripAmount = 0.01 ether;
 
     /// @notice The stablecoin to drip (USDC or USDT).
@@ -84,7 +84,7 @@ contract SmartWalletFactory is Ownable {
     }
 
     /**
-     * @notice Sets the native HSK drip configuration.
+     * @notice Sets the native ETH drip configuration.
      * @param _amount The amount to drip in wei.
      */
     function setNativeDrip(uint256 _amount) external onlyOwner {
@@ -95,8 +95,8 @@ contract SmartWalletFactory is Ownable {
     /**
      * @notice Deploys a deterministic SmartWallet for an owner, or returns it if already deployed.
      * @dev Compatible with ERC-4337 initCode deployment.
-     *      Drips HSK and Stablecoin to new wallet if factory has enough balance.
-     *      Auto-registers the wallet with the ComplianceRegistry on HashKey Chain.
+     *      Drips ETH and Stablecoin to new wallet if factory has enough balance.
+     *      Auto-registers the wallet with the ComplianceRegistry on Sepolia.
      * @param owner The address that will own the smart account.
      * @return account The deployed (or existing) SmartWallet proxy address.
      */

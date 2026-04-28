@@ -312,9 +312,14 @@ export const SmartWalletABI = [
         "internalType": "uint256[]"
       },
       {
-        "name": "encryptedPayload",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "categories",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "jurisdictions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "outputs": [],

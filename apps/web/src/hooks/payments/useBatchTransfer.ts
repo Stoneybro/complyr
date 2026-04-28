@@ -2,12 +2,11 @@ import { toast } from "sonner";
 import { useWallets } from "@privy-io/react-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
-import { parseUnits, encodeFunctionData } from "viem";
+import { parseUnits, encodeFunctionData, bytesToHex } from "viem";
 import { BatchTransferParams } from "./types";
 import { checkSufficientBalance } from "./utils";
-import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { getFhevmInstance } from "@/lib/fhevm";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { MockUSDCAddress, ComplianceRegistryAddress } from "@/lib/CA";
 
 export function useBatchTransfer(availableBalance?: string) {
@@ -32,7 +31,7 @@ export function useBatchTransfer(availableBalance?: string) {
                     const balanceCheck = checkSufficientBalance({
                         availableBalance: availableBalance,
                         requiredAmount: totalAmount,
-                        token: params.tokenAddress ? "USDC" : "HSK"
+                        token: params.tokenAddress ? "USDC" : "ETH"
                     });
 
                     if (!balanceCheck.sufficient) {
@@ -53,12 +52,11 @@ export function useBatchTransfer(availableBalance?: string) {
 
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
 
-                // 1. Setup calls
+                // 1. Setup calls array
                 const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
 
                 if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
-                    // Call transfer on the ERC20 token contract directly for each recipient
-                    // NOTE: Optimization could be using a batch transfer contract, but individual calls in one UserOp works fine.
+                    // Batch ERC-20 Transfers
                     params.recipients.forEach((recipient, index) => {
                         calls.push({
                             to: params.tokenAddress as `0x${string}`,
@@ -77,12 +75,12 @@ export function useBatchTransfer(availableBalance?: string) {
                                     }
                                 ],
                                 functionName: "transfer",
-                                args: [recipient, amountsInUnits[index]]
+                                args: [recipient as `0x${string}`, amountsInUnits[index]]
                             })
                         });
                     });
                 } else {
-                    // Native HSK transfers
+                    // Batch Native ETH Transfers
                     params.recipients.forEach((recipient, index) => {
                         calls.push({
                             to: recipient as `0x${string}`,
@@ -92,57 +90,65 @@ export function useBatchTransfer(availableBalance?: string) {
                     });
                 }
 
-                // 2. Client-side AES-256 Encryption
+                // 2. Client-side Zama FHE Encryption (Per-recipient)
                 const hasComplianceData = params.compliance && (
                     params.compliance.categories?.length || 
-                    params.compliance.jurisdictions?.length || 
-                    params.compliance.referenceIds?.length
+                    params.compliance.jurisdictions?.length
                 );
 
                 if (hasComplianceData) {
                     statusUpdate("Encrypting...");
-                    const loadingId = toast.loading("Encrypting batch compliance payload...");
+                    const loadingId = toast.loading(`Encrypting FHE metadata for ${params.recipients.length} recipients...`);
                     try {
-                        const payloadData = params.recipients.map((recipient, i) => ({
-                            recipient,
-                            category: params.compliance?.categories?.[i] ?? 0,
-                            jurisdiction: params.compliance?.jurisdictions?.[i] ?? 0,
-                            referenceId: params.compliance?.referenceIds?.[i] ?? ""
-                        }));
-                        
-                        const jsonPayload = JSON.stringify({ payments: payloadData });
-                        const aesKey = await deriveAESKey(owner.address);
-                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
-                        const encryptedPayloadHex = bufferToHex(encryptedBytes);
+                        const fhevm = await getFhevmInstance();
+                        const catHandles: bigint[] = [];
+                        const jurHandles: bigint[] = [];
+
+                        for (let i = 0; i < params.recipients.length; i++) {
+                            const catInput = fhevm.createEncryptedInput(ComplianceRegistryAddress, proxyAddress);
+                            catInput.add8(params.compliance?.categories?.[i] !== undefined ? Number(params.compliance.categories[i]) : 0);
+                            const catEnc = await catInput.encrypt();
+                            catHandles.push(BigInt(bytesToHex(catEnc.handles[0])));
+
+                            const jurInput = fhevm.createEncryptedInput(ComplianceRegistryAddress, proxyAddress);
+                            jurInput.add8(params.compliance?.jurisdictions?.[i] !== undefined ? Number(params.compliance.jurisdictions[i]) : 0);
+                            const jurEnc = await jurInput.encrypt();
+                            jurHandles.push(BigInt(bytesToHex(jurEnc.handles[0])));
+                        }
 
                         // Generate a unique 32-byte ID for this batch payment
-                        const paymentIdBytes = window.crypto.getRandomValues(new Uint8Array(32));
-                        const paymentId = bufferToHex(paymentIdBytes) as `0x${string}`;
+                        const txHash = bytesToHex(window.crypto.getRandomValues(new Uint8Array(32)));
 
-                        // Call ComplianceRegistry directly
+                        // Add recordCompliance call to the batch
                         calls.push({
-                            to: ComplianceRegistryAddress as `0x${string}`,
+                            to: proxyAddress,
                             value: 0n,
                             data: encodeFunctionData({
-                                abi: ComplianceRegistryABI,
-                                functionName: "recordTransaction",
-                                args: [paymentId, proxyAddress, params.recipients, amountsInUnits, encryptedPayloadHex]
+                                abi: SmartWalletABI,
+                                functionName: "recordCompliance",
+                                args: [
+                                    txHash as `0x${string}`,
+                                    params.recipients.map(r => r as `0x${string}`),
+                                    amountsInUnits,
+                                    catHandles,
+                                    jurHandles
+                                ]
                             })
                         });
 
                         toast.dismiss(loadingId);
                     } catch (e) {
-                        console.error(e);
+                        console.error("FHE Batch Encryption Error:", e);
                         toast.dismiss(loadingId);
                         statusUpdate("Error");
-                        throw new Error("Failed to encrypt batch compliance parameters.");
+                        throw new Error("Failed to encrypt batch compliance parameters with Zama FHE.");
                     }
                 }
 
-                // 3. Send Base Transaction
+                // 3. Send Unified Batch Transaction
                 statusUpdate("Signing...");
-                const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
-                const txLoading = toast.loading(`Transferring ${tokenSymbol} batch (${params.recipients.length})...`);
+                const tokenSymbol = params.tokenAddress ? "USDC" : "ETH";
+                const txLoading = toast.loading(`Sending ${tokenSymbol} batch (${params.recipients.length}) & FHE records...`);
                 let hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,
@@ -160,7 +166,7 @@ export function useBatchTransfer(availableBalance?: string) {
                 }
 
                 statusUpdate("Complete");
-                toast.success(`Batch ${tokenSymbol} transfer completed!`);
+                toast.success(`Batch ${tokenSymbol} transfer completed with FHE compliance!`);
 
                 return receipt;
             } catch (error) {

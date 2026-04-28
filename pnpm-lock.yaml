@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fhevm/solidity':
+        specifier: ^0.11.1
+        version: 0.11.1
       '@layerzerolabs/lz-evm-messagelib-v2':
         specifier: ^3.0.167
         version: 3.0.167(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6(bufferutil@4.1.0)(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(utf-8-validate@6.0.6))(@eth-optimism/contracts@0.6.0(bufferutil@4.1.0)(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(utf-8-validate@6.0.6))(@layerzerolabs/lz-evm-protocol-v2@3.0.167(@openzeppelin/contracts-upgradeable@5.6.1(@openzeppelin/contracts@5.6.1))(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4(bufferutil@4.1.0)(utf-8-validate@6.0.6))(solidity-bytes-utils@0.8.4))(@layerzerolabs/lz-evm-v1-0.7@3.0.167(@openzeppelin/contracts-upgradeable@5.6.1(@openzeppelin/contracts@5.6.1))(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4(bufferutil@4.1.0)(utf-8-validate@6.0.6)))(@openzeppelin/contracts-upgradeable@5.6.1(@openzeppelin/contracts@5.6.1))(@openzeppelin/contracts@5.6.1)(hardhat-deploy@0.12.4(bufferutil@4.1.0)(utf-8-validate@6.0.6))(solidity-bytes-utils@0.8.4)
@@ -28,7 +31,7 @@ importers:
     dependencies:
       '@neondatabase/serverless':
         specifier: github:neondatabase/serverless
-        version: https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6
+        version: https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f
       '@privy-io/react-auth':
         specifier: ^3.3.0
         version: 3.18.0(@solana-program/system@0.10.0(@solana/kit@5.5.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)))(@solana-program/token@0.9.0(@solana/kit@5.5.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)))(@solana/kit@5.5.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@5.5.1(typescript@5.9.3))(@tanstack/query-core@5.91.2)(@tanstack/react-query@5.91.2(react@18.3.1))(@types/react@18.3.28)(@vercel/blob@2.3.0)(bufferutil@4.1.0)(permissionless@0.2.57(viem@2.47.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@18.3.1))(utf-8-validate@6.0.6)(zod@3.25.76)
@@ -103,7 +106,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: ^0.45.1
-        version: 0.45.1(@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(postgres@3.4.1)
+        version: 0.45.1(@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(postgres@3.4.1)
       ethers:
         specifier: ^6.16.0
         version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -1445,6 +1448,10 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  '@fhevm/solidity@0.11.1':
+    resolution: {integrity: sha512-KBHCF0an1sOqoABJ30p5foldSHy14F3jaQmYX+BKogpUJ1OFhNMzYfRkmPkJkwetyDcYg/euXcYQncYgHRT9aQ==}
+    engines: {node: '>=20.0.0'}
+
   '@floating-ui/core@1.7.5':
     resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
 
@@ -1936,8 +1943,8 @@ packages:
   '@napi-rs/wasm-runtime@1.1.1':
     resolution: {integrity: sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A==}
 
-  '@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6':
-    resolution: {tarball: https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6}
+  '@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f':
+    resolution: {tarball: https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f}
     version: 1.0.2
     engines: {node: '>=19.0.0'}
 
@@ -5583,6 +5590,9 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
+  encrypted-types@0.0.4:
+    resolution: {integrity: sha512-f55ccBBUwvqWqr3ymAVOLZ6bzjsSQZlDN0GcKFmzkvTpml4Vm3Y6BCaHhCuW/ctrabTJJ3DFnUsjtFOpokJUaQ==}
+
   end-of-stream@1.1.0:
     resolution: {integrity: sha512-EoulkdKF/1xa92q25PbjuDcgJ9RDHYU2Rs3SCIvs2/dSQ3BpmxneNHmA/M7fe60M3PrV7nNGTTNbkK62l6vXiQ==}
 
@@ -8720,6 +8730,19 @@ packages:
   solidity-bytes-utils@0.8.4:
     resolution: {integrity: sha512-/bjac5YR12i0plOKvGlhE51F5IWGP6rI8DJetCQlXcnwKWz/Hgf/vr+Qlk1BWz56xVcwVhmhCaDkTMnx5xvt0g==}
 
+  solidity-comments-darwin-arm64@0.1.1:
+    resolution: {integrity: sha512-ze1+YboHm8tRJXCoFEsxtU1gpvQ3rCH55xMtBH6dtyh1/gz4qrKCOUBaAP+IHplbzCacZBn+Pz3UmMDOoGshRw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  solidity-comments-linux-x64-gnu@0.1.1:
+    resolution: {integrity: sha512-oiU4yhh1Q9SeGXQ+/sogfTNoOkU8I8IvlIeotBQziTOonUHrxQk4E63kNiYGPDn5ZbB3BhKFmGHNRNrkufsxcQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
   sonic-boom@2.8.0:
     resolution: {integrity: sha512-kuonw1YOYYNOve5iHdSahXPOK49GqwA+LZhI6Wz/l0rP57iKyXXIHaRagOBHAPmGwJC6od2Z9zgvZ5loSgMlVg==}
 
@@ -10977,6 +11000,13 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
+  '@fhevm/solidity@0.11.1':
+    dependencies:
+      encrypted-types: 0.0.4
+    optionalDependencies:
+      solidity-comments-darwin-arm64: 0.1.1
+      solidity-comments-linux-x64-gnu: 0.1.1
+
   '@floating-ui/core@1.7.5':
     dependencies:
       '@floating-ui/utils': 0.2.11
@@ -11563,10 +11593,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6':
-    dependencies:
-      '@types/node': 22.19.15
-      '@types/pg': 8.20.0
+  '@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f': {}
 
   '@next/env@16.1.1': {}
 
@@ -14139,6 +14166,7 @@ snapshots:
       '@types/node': 20.8.8
       pg-protocol: 1.13.0
       pg-types: 2.2.0
+    optional: true
 
   '@types/prop-types@15.7.15': {}
 
@@ -16547,9 +16575,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.21.0
 
-  drizzle-orm@0.45.1(@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(postgres@3.4.1):
+  drizzle-orm@0.45.1(@neondatabase/serverless@https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(postgres@3.4.1):
     optionalDependencies:
-      '@neondatabase/serverless': https://codeload.github.com/neondatabase/serverless/tar.gz/2c51902827a043df0646caf6a5ed8d812e7fb9b6
+      '@neondatabase/serverless': https://codeload.github.com/neondatabase/serverless/tar.gz/ecce07e41487303a67095f7a95a9194d7ce4d89f
       '@opentelemetry/api': 1.9.1
       '@types/pg': 8.20.0
       postgres: 3.4.1
@@ -16611,6 +16639,8 @@ snapshots:
   encodeurl@1.0.2: {}
 
   encodeurl@2.0.0: {}
+
+  encrypted-types@0.0.4: {}
 
   end-of-stream@1.1.0:
     dependencies:
@@ -19815,9 +19845,11 @@ snapshots:
     dependencies:
       viem: 2.47.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)
 
-  pg-int8@1.0.1: {}
+  pg-int8@1.0.1:
+    optional: true
 
-  pg-protocol@1.13.0: {}
+  pg-protocol@1.13.0:
+    optional: true
 
   pg-types@2.2.0:
     dependencies:
@@ -19826,6 +19858,7 @@ snapshots:
       postgres-bytea: 1.0.1
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
+    optional: true
 
   picocolors@1.0.0: {}
 
@@ -19993,15 +20026,19 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postgres-array@2.0.0: {}
+  postgres-array@2.0.0:
+    optional: true
 
-  postgres-bytea@1.0.1: {}
+  postgres-bytea@1.0.1:
+    optional: true
 
-  postgres-date@1.0.7: {}
+  postgres-date@1.0.7:
+    optional: true
 
   postgres-interval@1.2.0:
     dependencies:
       xtend: 4.0.2
+    optional: true
 
   postgres@3.4.1: {}
 
@@ -20894,6 +20931,12 @@ snapshots:
       smart-buffer: 4.2.0
 
   solidity-bytes-utils@0.8.4: {}
+
+  solidity-comments-darwin-arm64@0.1.1:
+    optional: true
+
+  solidity-comments-linux-x64-gnu@0.1.1:
+    optional: true
 
   sonic-boom@2.8.0:
     dependencies:

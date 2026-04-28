@@ -22,7 +22,7 @@ const formatCurrency = (amount?: string, token?: string) => {
     // We assume indexer stores raw units.
     if (!amount.includes('.')) {
         try {
-            // Determine decimals: USDC (6) or HSK (18)
+            // Determine decimals: USDC (6) or ETH (18)
             const decimals = isUsdc ? 6 : 18;
             
             formatted = formatUnits(BigInt(amount), decimals);
@@ -31,7 +31,7 @@ const formatCurrency = (amount?: string, token?: string) => {
         }
     }
 
-    return `${Number(formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${isUsdc ? 'USDC' : (token || 'HSK')}`;
+    return `${Number(formatted).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${isUsdc ? 'USDC' : (token || 'ETH')}`;
 };
 
 export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
@@ -79,7 +79,7 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                         <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Tx Hash</span>
                             <a
-                                href={`https://testnet.hsk.xyz/tx/${item.id.split('-')[0]}`}
+                                href={`https://sepolia.etherscan.io/tx/${item.id.split('-')[0]}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-primary hover:text-primary/80 truncate block underline text-xs font-mono"

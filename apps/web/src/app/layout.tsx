@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Complyr | Confidential Onchain Finance",
-  description: "Confidential audit infrastructure for onchain business finance built on Base.",
+  description: "Confidential audit infrastructure for onchain business finance built on Zama fhEVM.",
   icons: {
     icon: "/complyrlogo.ico",
     shortcut: "/complyrlogo.ico",
@@ -53,6 +53,10 @@ export default function RootLayout({
         className={`${outfit.variable} ${geistMono.variable} antialiased font-sans`}
         suppressHydrationWarning
       >
+        <Script 
+          src="https://cdn.zama.org/relayer-sdk-js/0.3.0-8/relayer-sdk-js.umd.cjs" 
+          strategy="beforeInteractive" 
+        />
         <Provider>{children}</Provider>
         <Analytics />
       </body>
