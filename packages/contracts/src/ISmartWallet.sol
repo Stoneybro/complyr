@@ -14,21 +14,21 @@ interface ISmartWallet {
 
     /**
      * @notice Increases the committed funds for intents.
-     * @param token  The token address (address(0) for native HSK).
+     * @param token  The token address (address(0) for native ETH).
      * @param amount The amount to add to committed funds.
      */
     function increaseCommitment(address token, uint256 amount) external;
 
     /**
      * @notice Decreases the committed funds after intent execution/cancellation.
-     * @param token  The token address (address(0) for native HSK).
+     * @param token  The token address (address(0) for native ETH).
      * @param amount The amount to subtract from committed funds.
      */
     function decreaseCommitment(address token, uint256 amount) external;
 
     /**
      * @notice Executes a batch of transfers as part of an intent.
-     * @param token            The token address (address(0) for native HSK).
+     * @param token            The token address (address(0) for native ETH).
      * @param recipients       The array of recipient addresses.
      * @param amounts          The array of amounts corresponding to each recipient.
      * @param intentId         The unique identifier for the intent being executed.
@@ -45,13 +45,13 @@ interface ISmartWallet {
 
     /**
      * @notice Returns the available (uncommitted) balance for a specific token.
-     * @param token The token address (address(0) for native HSK).
+     * @param token The token address (address(0) for native ETH).
      * @return The available balance.
      */
     function getAvailableBalance(address token) external view returns (uint256);
 
     /**
-     * @notice Records an AES-256 encrypted compliance payload directly on HashKey Chain.
+     * @notice Records an AES-256 encrypted compliance payload directly on Ethereum Sepolia.
      * @param txHash           Deterministic hash of the payment tx or intent ID.
      * @param recipients       Recipient addresses (plaintext).
      * @param amounts          Amounts per recipient (plaintext).

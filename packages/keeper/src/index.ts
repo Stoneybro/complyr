@@ -1,35 +1,12 @@
 
-import { createPublicClient, createWalletClient, http, parseAbi, parseAbiItem, defineChain } from 'viem';
+import { createPublicClient, createWalletClient, http, parseAbi, zeroAddress } from 'viem';
+import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Define HashKey Chain Testnet
-const hashkeyTestnet = defineChain({
-    id: 133,
-    name: 'HashKey Chain Testnet',
-    network: 'hashkey-testnet',
-    nativeCurrency: {
-        decimals: 18,
-        name: 'HSK',
-        symbol: 'HSK',
-    },
-    rpcUrls: {
-        default: {
-            http: ['https://testnet.hsk.xyz'],
-        },
-        public: {
-            http: ['https://testnet.hsk.xyz'],
-        },
-    },
-    blockExplorers: {
-        default: { name: 'HashKey Explorer', url: 'https://testnet.hsk.xyz' },
-    },
-    testnet: true,
-});
-
-const RPC_URL = process.env.RPC_URL || 'https://testnet.hsk.xyz';
+const RPC_URL = process.env.RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
 
 
 if (!process.env.PRIVATE_KEY) {
@@ -59,18 +36,17 @@ const PRIVATE_KEY = privateKey as `0x${string}`;
 const account = privateKeyToAccount(PRIVATE_KEY);
 
 const publicClient = createPublicClient({
-    chain: hashkeyTestnet,
+    chain: sepolia,
     transport: http(RPC_URL)
 });
 
 const walletClient = createWalletClient({
     account,
-    chain: hashkeyTestnet,
+    chain: sepolia,
     transport: http(RPC_URL)
 });
 
-// IntentRegistry Address (HashKey Testnet)
-const REGISTRY_ADDRESS = '0x6A0C73162c20Bc56212D643112c339f654C45198';
+const REGISTRY_ADDRESS = (process.env.INTENT_REGISTRY_ADDRESS || zeroAddress) as `0x${string}`;
 
 // Minimal ABI for automation
 const ABI = parseAbi([

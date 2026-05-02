@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http, createWalletClient, custom, getAddress } from "viem";
-import { baseSepolia } from "viem/chains";
 import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check } from "lucide-react";
 import { ComplianceRegistryAddress } from "@/lib/CA";
+import { complyrChain } from "@/lib/chain";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
@@ -29,7 +29,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         setIsLoading(true);
         try {
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: http(),
             });
 
@@ -74,17 +74,17 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(baseSepolia.id);
+            await ownerWallet.switchChain(complyrChain.id);
 
-            let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
+            const balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
                 toast.loading("Preparing transaction environment...", { id: loadingId });
                 const fundRes = await fetch("/api/relay/fund-wallet", {
@@ -95,7 +95,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 
                 const fundData = await fundRes.json();
                 if (!fundData.success) {
-                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
+                    throw new Error("Insufficient Sepolia ETH to pay for gas and auto-funding failed.");
                 }
                 
                 // Wait for chain sync
@@ -142,17 +142,17 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const provider = await ownerWallet.getEthereumProvider();
             const walletClient = createWalletClient({
                 account: ownerWallet.address as `0x${string}`,
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: custom(provider),
             });
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: custom(provider)
             });
 
-            await ownerWallet.switchChain(baseSepolia.id);
+            await ownerWallet.switchChain(complyrChain.id);
 
-            let balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
+            const balance = await publicClient.getBalance({ address: ownerWallet.address as `0x${string}` });
             if (balance === 0n) {
                 toast.loading("Preparing transaction environment...", { id: loadingId });
                 const fundRes = await fetch("/api/relay/fund-wallet", {
@@ -163,7 +163,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 
                 const fundData = await fundRes.json();
                 if (!fundData.success) {
-                    throw new Error("Insufficient HSK to pay for gas and auto-funding failed.");
+                    throw new Error("Insufficient Sepolia ETH to pay for gas and auto-funding failed.");
                 }
                 
                 // Wait for chain sync

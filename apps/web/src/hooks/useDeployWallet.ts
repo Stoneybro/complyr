@@ -37,7 +37,7 @@ export function useDeployWallet() {
         throw new Error("Smart Account Client is not initialized");
       }
 
-      setBridgeStatus("hsk_tx_pending");
+      setBridgeStatus("deployment_pending");
 
       // perform a minimal zero-value call to trigger wallet deployment
       const hash = await smartAccountClient.sendUserOperation({

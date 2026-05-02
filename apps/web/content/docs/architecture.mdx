@@ -13,7 +13,7 @@ At a high level, every Complyr payment follows a consistent sequence:
 
 **2. Client-side encryption.** Before anything reaches the blockchain, the compliance metadata is encrypted in the user's browser using AES-256-GCM. The resulting ciphertext encodes the compliance payload without revealing the underlying data.
 
-**3. Payment execution on Base Sepolia.** The ERC-4337 smart wallet executes the payment. For single and batch transfers, funds move immediately. For recurring payments, the intent is registered with the on-chain scheduler and funds are locked until each payment cycle executes.
+**3. Payment execution on Ethereum Sepolia.** The ERC-4337 smart wallet executes the payment. For single and batch transfers, funds move immediately. For recurring payments, the intent is registered with the on-chain scheduler and funds are locked until each payment cycle executes.
 
 **4. Encrypted record storage.** The compliance payload is submitted to `ComplianceRegistry` and cryptographically linked to the transaction hash.
 
@@ -32,7 +32,7 @@ Complyr spans three distinct layers. Each layer has a specific responsibility an
 └────────────────────────────┬────────────────────────────────────┘
                              │ UserOperations (ERC-4337)
 ┌────────────────────────────▼────────────────────────────────────┐
-│                 SMART CONTRACT LAYER — Base Sepolia             │
+│              SMART CONTRACT LAYER — Ethereum Sepolia            │
 │   SmartWallet · SmartWalletFactory · IntentRegistry             │
 │   ComplianceRegistry · MockUSDC                                 │
 └────────────────────────────┬────────────────────────────────────┘
@@ -47,7 +47,7 @@ Complyr spans three distinct layers. Each layer has a specific responsibility an
 
 ## ERC-4337 Bundler
 
-Complyr uses account abstraction (ERC-4337) so that businesses interact through smart wallets rather than EOAs. UserOperations are routed through Pimlico's bundler and paymaster services on Base Sepolia.
+Complyr uses account abstraction (ERC-4337) so that businesses interact through smart wallets rather than EOAs. UserOperations are routed through Pimlico's bundler and paymaster services on Ethereum Sepolia.
 
 The bundler receives signed UserOperations from the frontend via `Permissionless.js`, validates them, and submits them to the EntryPoint contract. Pimlico sponsorship handles gas abstraction for supported flows.
 
@@ -55,7 +55,7 @@ The bundler receives signed UserOperations from the frontend via `Permissionless
 
 ## Data Layer — Envio Indexer
 
-The Envio indexer provides the real-time transaction history that powers the Complyr dashboard. It runs on Envio's hosted infrastructure and indexes events across contracts on Base Sepolia:
+The Envio indexer provides the real-time transaction history that powers the Complyr dashboard. It runs on Envio's hosted infrastructure and indexes events across contracts on Ethereum Sepolia:
 
 **SmartWallet events:**
 - `Executed` — single payment transfers

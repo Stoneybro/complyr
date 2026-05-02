@@ -6,6 +6,7 @@ import { useAuditLogs, AuditRecord } from "@/hooks/useAuditLogs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { complyrExplorerUrl } from "@/lib/chain";
 
 interface AuditTrailProps {
     walletAddress?: string;
@@ -140,7 +141,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                             <div className="font-medium text-sm flex items-center gap-2">
                                                 {record.timestamp.toLocaleString()}
                                                 <a
-                                                    href={`https://sepolia.basescan.org/tx/${record.txHash}`}
+                                                    href={`${complyrExplorerUrl}/tx/${record.txHash}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="text-xs text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded"

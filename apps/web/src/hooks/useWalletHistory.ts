@@ -85,7 +85,7 @@ const mapTransactionToItem = (tx: Transaction): TransactionItemProps => {
             return {
                 ...base,
                 type: ActivityType.EXECUTE,
-                description: details.functionCall === 'Token Transfer' || details.functionCall === 'Native HSK Transfer'
+                description: details.functionCall === 'Token Transfer' || details.functionCall === 'Native ETH Transfer'
                     ? `Transfer to ${details.recipient?.slice(0, 6)}...` // Use recipient, NOT target (which is token contract)
                     : `${details.functionCall}`,
                 details: details,

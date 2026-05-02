@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 /**
  * @title IComplianceRegistry
- * @notice Interface for the on-chain ComplianceRegistry deployed on HashKey Chain.
+ * @notice Interface for the on-chain ComplianceRegistry deployed on Ethereum Sepolia.
  *         Stores AES-256 encrypted compliance payloads linked to payment transactions.
  * @custom:security-contact zionlivingstone4@gmail.com
  */

@@ -62,11 +62,11 @@ export const useComplianceData = (walletAddress?: string) => {
 
                 // Determine decimals and currency based on token
                 // Indexer might put token address in 'token' or 'target'
-                // For IntentExecution, it might be "FLOW" (HSK)
+                // For IntentExecution, native value is denominated in ETH wei
                 const tokenAddr = (details.token || details.target || "").toLowerCase();
                 const isUsdc = tokenAddr === MockUSDCAddress.toLowerCase();
                 const decimals = isUsdc ? 1e6 : 1e18;
-                const currency = isUsdc ? "USDC" : "HSK";
+                const currency = isUsdc ? "USDC" : "ETH";
 
                 // 1. Single Execution
                 if (tx.transactionType === ActivityType.EXECUTE) {

@@ -32,7 +32,7 @@ export function useBatchTransfer(availableBalance?: string) {
                     const balanceCheck = checkSufficientBalance({
                         availableBalance: availableBalance,
                         requiredAmount: totalAmount,
-                        token: params.tokenAddress ? "USDC" : "HSK"
+                        token: params.tokenAddress ? "USDC" : "ETH"
                     });
 
                     if (!balanceCheck.sufficient) {
@@ -82,7 +82,7 @@ export function useBatchTransfer(availableBalance?: string) {
                         });
                     });
                 } else {
-                    // Native HSK transfers
+                    // Native ETH transfers
                     params.recipients.forEach((recipient, index) => {
                         calls.push({
                             to: recipient as `0x${string}`,
@@ -139,11 +139,11 @@ export function useBatchTransfer(availableBalance?: string) {
                     }
                 }
 
-                // 3. Send Base Transaction
+                // 3. Send Ethereum Sepolia transaction
                 statusUpdate("Signing...");
-                const tokenSymbol = params.tokenAddress ? "USDC" : "HSK";
+                const tokenSymbol = params.tokenAddress ? "USDC" : "ETH";
                 const txLoading = toast.loading(`Transferring ${tokenSymbol} batch (${params.recipients.length})...`);
-                let hash = await smartAccountClient.sendUserOperation({
+                const hash = await smartAccountClient.sendUserOperation({
                     account: smartAccountClient.account,
                     calls,
                 });

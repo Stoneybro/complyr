@@ -49,7 +49,7 @@ NEXT_PUBLIC_PIMPLICO_SPONSOR_ID=...
 ### Build contracts
 
 ```bash
-# Base Sepolia contracts
+# Ethereum Sepolia contracts
 pnpm forge:build
 
 # Run tests
@@ -72,7 +72,7 @@ Then point the web app to `http://localhost:8080/v1/graphql` via `NEXT_PUBLIC_EN
 
 ### Account abstraction setup
 
-Complyr uses Pimlico on Base Sepolia for ERC-4337 bundling and sponsorship. Bundler and paymaster configuration lives in `apps/web/src/lib/bundler.ts` and `apps/web/src/lib/smartAccountClient.ts`.
+Complyr uses Pimlico on Ethereum Sepolia for ERC-4337 bundling and sponsorship. Bundler and paymaster configuration lives in `apps/web/src/lib/bundler.ts` and `apps/web/src/lib/smartAccountClient.ts`.
 
 Recurring payment execution is exposed through Chainlink Automation-compatible methods (`checkUpkeep` and `performUpkeep`) in `IntentRegistry`.
 

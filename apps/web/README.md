@@ -37,23 +37,23 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Complyr Overview
 
-Complyr is a compliance intelligence layer for programmable payments on HashKey Chain. It captures encrypted compliance metadata at payment creation time and makes records reviewable in audit workflows.
+Complyr is a compliance intelligence layer for programmable payments on Ethereum Sepolia. It captures encrypted compliance metadata at payment creation time and makes records reviewable in audit workflows.
 
-## HashKey Integrations
+## Ethereum Sepolia Integrations
 
-- **HashKey KYC SBT:** Reads on-chain identity status to surface recipient verification and KYC level in payment and compliance views.
-- **HashKey Settlement Protocol (HSP):** Supports controlled checkout flows for inbound payment collection with embedded compliance context.
-- **APRO Oracle (USDC/USD):** Adds verifiable USD valuation for treasury and compliance reporting.
+- **ERC-4337 smart accounts:** Routes payment operations through account abstraction infrastructure.
+- **Pimlico bundler/paymaster:** Sponsors user operations on Ethereum Sepolia.
+- **Envio indexer:** Reads Sepolia contract events for dashboard and compliance activity.
 
 ## Outbound + Inbound Compliance Coverage
 
 Complyr covers both sides of the payment lifecycle:
 
 - **Outbound payments (onchain transfers):** Compliance metadata is attached when payments are created and submitted.
-- **Inbound payments (HSP checkout):** Checkout orchestration allows compliance fields to be captured before settlement, addressing the metadata gap found in direct inbound onchain transfers.
+- **Inbound payments:** Checkout orchestration can capture compliance fields before settlement, addressing the metadata gap found in direct inbound onchain transfers.
 
 This model improves audit readiness by making compliance evidence available for both funds sent and funds received.
 
-## HSP Integration Status
+## Integration Status
 
-The HSP security flow (HMAC signing, merchant JWT, cart-hash binding) is integrated in architecture and documentation. In the current demo build, checkout is simulated because production merchant signing credentials were not provided during the hackathon window.
+The current demo build is configured for Ethereum Sepolia. Contract addresses must be updated after the Sepolia deployment.

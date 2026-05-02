@@ -16,7 +16,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /**
  * @title Smart Wallet
  * @author zion Livingstone
- * @notice ERC-4337 compliant smart account. Supports native HSK and ERC-20 stablecoin transfers.
+ * @notice ERC-4337 compliant smart account. Supports native ETH and ERC-20 stablecoin transfers.
  *         Records encrypted compliance metadata directly to the on-chain ComplianceRegistry.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
@@ -44,11 +44,11 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Intent registry authorized to trigger scheduled transfers.
     address public immutable INTENT_REGISTRY;
 
-    /// @notice On-chain compliance registry on HashKey Chain.
+    /// @notice On-chain compliance registry on Ethereum Sepolia.
     address public immutable COMPLIANCE_REGISTRY;
 
     /// @notice Amount of funds committed to intents (locked) per token.
-    /// @dev address(0) is used for native HSK.
+    /// @dev address(0) is used for native ETH.
     mapping(address token => uint256 amount) public sCommittedFunds;
 
     /// @notice EIP-1271 magic return value for valid signatures.
@@ -150,7 +150,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /**
      * @notice Initializes immutable addresses. Disables proxy initialization.
      * @param registry    The IntentRegistry address.
-     * @param complianceRegistry The on-chain ComplianceRegistry on HashKey Chain.
+     * @param complianceRegistry The on-chain ComplianceRegistry on Ethereum Sepolia.
      */
     constructor(address registry, address complianceRegistry) {
         if (registry == address(0)) revert SmartWallet__IntentRegistryZeroAddress();
@@ -332,7 +332,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Records an AES-256 encrypted compliance payload directly on HashKey Chain.
+     * @notice Records an AES-256 encrypted compliance payload directly on Ethereum Sepolia.
      * @dev The payload bytes are opaque to the chain — encrypted client-side before submission.
      *      The txHash links this record deterministically to the payment transaction.
      * @param txHash        Deterministic hash of the payment tx or intent ID.

@@ -65,7 +65,7 @@ contract IntentRegistryTest is Test {
         vm.prank(walletAddr);
         bytes32 intentId = registry.createIntent(
             "Payroll",
-            address(0), // token (HSK)
+            address(0), // token (ETH)
             recipients,
             amounts,
             1 days, // duration
@@ -104,7 +104,7 @@ contract IntentRegistryTest is Test {
         vm.prank(walletAddr);
         registry.createIntent(
             "Payroll",
-            address(0), // token (HSK)
+            address(0), // token (ETH)
             recipients,
             amounts,
             1 days, // duration

@@ -31,6 +31,7 @@ import { useCancelIntent } from "@/hooks/payments/useCancelIntent"
 import { formatUnits } from "viem"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ExternalLink } from "lucide-react"
+import { complyrExplorerUrl } from "@/lib/chain"
 
 interface PaymentTableProps {
     walletAddress?: string;
@@ -203,7 +204,7 @@ export default function PaymentTable({ walletAddress }: PaymentTableProps) {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                         <a
-                            href={`https://sepolia.basescan.org/tx/${tx.txHash}`}
+                            href={`${complyrExplorerUrl}/tx/${tx.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:text-primary transition-colors"

@@ -17,13 +17,13 @@ export type ComplianceMetadataUI = {
 export type BalanceCheckParams = {
     availableBalance: string;
     requiredAmount: string;
-    token: "HSK" | "USDC" | "USDT";
+    token: "ETH" | "USDC" | "USDT";
 };
 
 export type SingleTransferParams = {
     to: `0x${string}`;
     amount: string;
-    tokenAddress?: `0x${string}`; // undefined for native HSK
+    tokenAddress?: `0x${string}`; // undefined for native ETH
     compliance?: ComplianceMetadata;
     onStatusUpdate?: (status: string) => void;
 };
@@ -31,7 +31,7 @@ export type SingleTransferParams = {
 export type BatchTransferParams = {
     recipients: `0x${string}`[];
     amounts: string[];
-    tokenAddress?: `0x${string}`; // undefined for native HSK
+    tokenAddress?: `0x${string}`; // undefined for native ETH
     compliance?: ComplianceMetadata;
     onStatusUpdate?: (status: string) => void;
 };
@@ -40,7 +40,7 @@ export type RecurringPaymentParams = {
     name: string;
     recipients: `0x${string}`[];
     amounts: string[];
-    tokenAddress?: `0x${string}`; // undefined for native HSK
+    tokenAddress?: `0x${string}`; // undefined for native ETH
     duration: number;
     interval: number;
     transactionStartTime: number;

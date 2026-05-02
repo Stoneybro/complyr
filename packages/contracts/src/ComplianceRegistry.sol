@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title ComplianceRegistry
  * @author zion livingstone
- * @notice On-chain encrypted compliance ledger deployed on HashKey Chain.
+ * @notice On-chain encrypted compliance ledger deployed on Ethereum Sepolia.
  *
  * @dev Stores AES-256 ciphertext blobs linked to payment transactions.
  *      The compliance metadata (expense category + regulatory jurisdiction + reference ID per recipient)

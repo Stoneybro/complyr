@@ -7,7 +7,7 @@ import "../src/SmartWalletFactory.sol";
 import "../src/ComplianceRegistry.sol";
 
 /**
- * @notice Unit tests for SmartWallet on HashKey Chain.
+ * @notice Unit tests for SmartWallet on Ethereum Sepolia.
  *         Uses a live ComplianceRegistry (deployed in setUp) instead of a bridge mock.
  */
 contract SmartWalletTest is Test {

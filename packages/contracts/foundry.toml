@@ -18,8 +18,8 @@ via_ir = true
 optimizer = true
 allow_paths = ["../../node_modules"]
 
-# Base Sepolia network configuration
+# Ethereum Sepolia network configuration
 [rpc_endpoints]
-base_sepolia = "https://sepolia.base.org"
+sepolia = "https://ethereum-sepolia-rpc.publicnode.com"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

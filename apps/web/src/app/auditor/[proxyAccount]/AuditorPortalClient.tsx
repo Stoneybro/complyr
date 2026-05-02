@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { ShieldCheck, LogIn, Lock, CheckCircle2, Loader2, XCircle } from "lucide
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ComplianceRegistryAddress } from "@/lib/CA";
+import { complyrChain } from "@/lib/chain";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
@@ -25,7 +25,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         setIsLoadingAuditors(true);
         try {
             const publicClient = createPublicClient({
-                chain: baseSepolia,
+                chain: complyrChain,
                 transport: http(),
             });
 

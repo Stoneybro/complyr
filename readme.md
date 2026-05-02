@@ -13,7 +13,7 @@
 
 <br />
 
-![Base Sepolia](https://img.shields.io/badge/Base%20Sepolia-0052FF?style=flat-square)
+![Ethereum Sepolia](https://img.shields.io/badge/Ethereum%20Sepolia-3C3C3D?style=flat-square&logo=ethereum&logoColor=white)
 ![ERC-4337](https://img.shields.io/badge/ERC--4337-3C3C3D?style=flat-square&logo=ethereum&logoColor=white)
 ![Pimlico](https://img.shields.io/badge/Pimlico-AA-111827?style=flat-square)
 ![Chainlink Automation](https://img.shields.io/badge/Chainlink-Automation-375BD2?style=flat-square)
@@ -30,7 +30,7 @@ Complyr solves a simple but critical gap in onchain business payments: blockchai
 
 For each payment, Complyr encrypts and stores compliance context (category, jurisdiction, reference) so companies can preserve privacy while still producing audit-ready records when needed.
 
-Current deployment target: **Base Sepolia**.
+Current deployment target: **Ethereum Sepolia**.
 
 ---
 
@@ -54,7 +54,7 @@ Complyr is split into three layers:
    - Captures payment intent and compliance metadata
    - Encrypts compliance payloads in-browser before submission
 
-2. **Smart contract layer (Base Sepolia)**
+2. **Smart contract layer (Ethereum Sepolia)**
    - `SmartWallet` (ERC-4337 account)
    - `SmartWalletFactory`
    - `IntentRegistry` (implements `checkUpkeep` / `performUpkeep`)
@@ -84,7 +84,7 @@ Complyr guarantees record existence, immutability, and transaction linkage. It d
 
 | Layer | Technology |
 |---|---|
-| Chain | Base Sepolia |
+| Chain | Ethereum Sepolia |
 | Account abstraction | ERC-4337, EntryPoint v0.7 |
 | Bundler + paymaster | Pimlico |
 | Automation | Chainlink Automation interface (`checkUpkeep`/`performUpkeep`) |
@@ -118,6 +118,12 @@ NEXT_PUBLIC_ENVIO_API_URL=https://indexer.dev.hyperindex.xyz/63b8cce/v1/graphql
 # Pimlico
 NEXT_PUBLIC_PIMLICO_API_KEY=...
 NEXT_PUBLIC_PIMPLICO_SPONSOR_ID=...
+
+# Ethereum Sepolia deployments
+NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0x...
+NEXT_PUBLIC_COMPLIANCE_REGISTRY_ADDRESS=0x...
+NEXT_PUBLIC_SMART_WALLET_FACTORY_ADDRESS=0x...
+NEXT_PUBLIC_MOCK_USDC_ADDRESS=0x...
 ```
 
 Run app and contracts checks:
@@ -130,12 +136,12 @@ pnpm forge:test
 
 ---
 
-## Contracts deployment (Base Sepolia)
+## Contracts deployment (Ethereum Sepolia)
 
 From repo root:
 
 ```bash
-PRIVATE_KEY=0xyour_private_key forge script packages/contracts/script/DeployAll.s.sol:DeployAll --rpc-url base_sepolia --broadcast
+PRIVATE_KEY=0xyour_private_key forge script packages/contracts/script/DeployAll.s.sol:DeployAll --rpc-url sepolia --broadcast
 ```
 
 This deploys and wires:
@@ -146,4 +152,4 @@ This deploys and wires:
 - `SmartWalletFactory`
 - `MockUSDC`
 
-After deployment, update app/indexer address config files with emitted addresses.
+After deployment, update the `NEXT_PUBLIC_*` address variables and the address placeholders in `packages/indexer/config.yaml` with emitted Sepolia addresses.

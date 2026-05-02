@@ -12,7 +12,7 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 
 /**
  * @title DeployAll
- * @notice Master deploy script for Complyr on Base Sepolia.
+ * @notice Master deploy script for Complyr on Ethereum Sepolia.
  */
 contract DeployAll is Script {
     function run() external {
@@ -70,7 +70,7 @@ contract DeployAll is Script {
         usdc.mint(address(factory), 1_000_000 * 10**6);
         console.log("-> Funded Factory with 1M Mock USDC");
 
-        // Native token drip funding handled separately for Base Sepolia if needed.
+        // Native token drip funding handled separately for Ethereum Sepolia if needed.
 
         vm.stopBroadcast();
 
