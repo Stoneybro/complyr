@@ -330,6 +330,24 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
         };
     };
 
+    const validateRequiredCompliance = (recipients: RecipientData[]) => {
+        const missingCompliance = recipients.some((recipient) => (
+            !recipient.referenceId?.trim()
+            || !recipient.jurisdiction
+            || recipient.jurisdiction === "none"
+            || !recipient.category
+            || recipient.category === "none"
+        ));
+
+        if (missingCompliance) {
+            toast.error("Reference ID, jurisdiction, and category are required for every recipient");
+            setTransactionStatus("");
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setTransactionStatus("Initializing...");
@@ -343,6 +361,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
+                if (!validateRequiredCompliance([singleRecipient])) return;
                 await singleMutation.mutateAsync({
                     to: singleRecipient.address as `0x${string}`,
                     amount: singleRecipient.amount,
@@ -365,6 +384,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
+                if (!validateRequiredCompliance(validRecipients)) return;
                 
                 await batchMutation.mutateAsync({
                     recipients: validRecipients.map(r => r.address as `0x${string}`),
@@ -397,6 +417,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
+                if (!validateRequiredCompliance(validRecipients)) return;
                 await recurringMutation.mutateAsync({
                     name: recurringName,
                     recipients: validRecipients.map(r => r.address as `0x${string}`),

@@ -143,9 +143,39 @@ export const IntentRegistryABI = [
         "internalType": "uint256"
       },
       {
-        "name": "encryptedPayload",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "encryptedAmountHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint128[]"
+      },
+      {
+        "name": "encryptedAmountProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "encryptedCategoryHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint8[]"
+      },
+      {
+        "name": "encryptedCategoryProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "encryptedJurisdictionHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint8[]"
+      },
+      {
+        "name": "encryptedJurisdictionProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "referenceIds",
+        "type": "string[]",
+        "internalType": "string[]"
       }
     ],
     "outputs": [
@@ -692,6 +722,11 @@ export const IntentRegistryABI = [
   {
     "type": "error",
     "name": "IntentRegistry__InvalidTotalTransactionCount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IntentRegistry__MissingComplianceInfo",
     "inputs": []
   },
   {

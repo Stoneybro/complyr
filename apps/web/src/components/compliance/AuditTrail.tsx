@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, ShieldCheck, ExternalLink, LockIcon, UnlockIcon, RefreshCw, Loader2, CheckCircle2, UserX } from "lucide-react";
+import { ShieldCheck, LockIcon, UnlockIcon, RefreshCw, Loader2, UserX } from "lucide-react";
 import { useAuditLogs, AuditRecord } from "@/hooks/useAuditLogs";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { complyrExplorerUrl } from "@/lib/chain";
 
 interface AuditTrailProps {
     walletAddress?: string;
@@ -16,7 +14,7 @@ interface AuditTrailProps {
     isLoading?: boolean;
 }
 
-const RecipientKycBadge = ({ address }: { address: string }) => {
+const RecipientKycBadge = () => {
     return (
         <TooltipProvider>
             <Tooltip>
@@ -63,7 +61,10 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
         : records;
 
     const totalPaid = displayRecords.reduce((sum, item) => {
-        return sum + item.amounts.reduce((subSum, amt) => subSum + parseFloat(amt), 0);
+        return sum + item.amounts.reduce((subSum, amt) => {
+            const parsed = parseFloat(amt);
+            return Number.isFinite(parsed) ? subSum + parsed : subSum;
+        }, 0);
     }, 0);
 
     const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -140,14 +141,9 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="font-medium text-sm flex items-center gap-2">
                                                 {record.timestamp.toLocaleString()}
-                                                <a
-                                                    href={`${complyrExplorerUrl}/tx/${record.txHash}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="text-xs text-primary hover:underline flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded"
-                                                >
-                                                    View Source Tx <ExternalLink className="h-3 w-3" />
-                                                </a>
+                                                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">
+                                                    Record ID: {record.txHash.slice(0, 10)}...{record.txHash.slice(-8)}
+                                                </span>
                                             </div>
                                              <div className="flex gap-2 items-center">
                                                  {record.decrypted ? (
@@ -166,7 +162,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                             {record.recipients.map((recipient, i) => (
                                                 <div key={i} className="grid grid-cols-12 gap-2 text-sm items-center py-1">
                                                     <div className="col-span-1 flex justify-center">
-                                                        <RecipientKycBadge address={recipient} />
+                                                        <RecipientKycBadge />
                                                     </div>
                                                     <div className="col-span-3 font-mono text-muted-foreground">
                                                         {formatAddress(recipient)}
@@ -189,7 +185,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                                             </>
                                                         ) : (
                                                               <span className="px-2 py-0.5 bg-muted rounded text-[10px] font-mono tracking-tighter opacity-10">
-                                                                  {record.encryptedPayload.slice(0, 30)}...
+                                                                  {record.encryptedAmountHandles[i]?.slice(0, 30)}...
                                                               </span>
                                                         )}
                                                     </div>

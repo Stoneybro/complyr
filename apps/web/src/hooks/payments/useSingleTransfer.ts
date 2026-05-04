@@ -4,11 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
 import { parseUnits, encodeFunctionData } from "viem";
 import { SingleTransferParams } from "./types";
-import { checkSufficientBalance } from "./utils";
-import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { assertRequiredCompliance, checkSufficientBalance, createComplianceRecordId } from "./utils";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
-import { MockUSDCAddress, ComplianceRegistryAddress } from "@/lib/CA";
+import { MockUSDCAddress } from "@/lib/CA";
+import { encryptComplianceInput } from "@/lib/fhe-compliance";
 
 export function useSingleTransfer(availableBalance?: string) {
     const { getClient } = useSmartAccountContext();
@@ -48,86 +47,72 @@ export function useSingleTransfer(availableBalance?: string) {
                 const amountInUnits = parseUnits(params.amount, decimals);
                 const proxyAddress = smartAccountClient.account!.address;
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
+                assertRequiredCompliance(params.compliance, 1);
 
-                // 1. Setup calls
+                // 1. Client-side Zama encryption
+                statusUpdate("Encrypting...");
+                const loadingId = toast.loading("Encrypting compliance fields...");
+                let encryptedCompliance;
+                try {
+                    encryptedCompliance = await encryptComplianceInput({
+                        callerAddress: proxyAddress,
+                        amounts: [amountInUnits],
+                        categories: [params.compliance?.categories?.[0] ?? 0],
+                        jurisdictions: [params.compliance?.jurisdictions?.[0] ?? 0],
+                        referenceIds: [params.compliance?.referenceIds?.[0] ?? ""],
+                    });
+                    toast.dismiss(loadingId);
+                } catch (e) {
+                    console.error(e);
+                    toast.dismiss(loadingId);
+                    statusUpdate("Error");
+                    throw new Error("Failed to encrypt compliance parameters.");
+                }
+
+                // 2. Setup atomic compliant transfer call.
                 const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
+                const recordId = createComplianceRecordId();
+                const complianceArg = {
+                    amountHandles: encryptedCompliance.amountHandles,
+                    amountProofs: encryptedCompliance.amountProofs,
+                    categoryHandles: encryptedCompliance.categoryHandles,
+                    categoryProofs: encryptedCompliance.categoryProofs,
+                    jurisdictionHandles: encryptedCompliance.jurisdictionHandles,
+                    jurisdictionProofs: encryptedCompliance.jurisdictionProofs,
+                    referenceIds: encryptedCompliance.referenceIds,
+                };
 
                 if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
-                    // Call transfer on the ERC20 token contract directly
                     calls.push({
-                        to: params.tokenAddress as `0x${string}`,
+                        to: proxyAddress,
                         value: 0n,
                         data: encodeFunctionData({
-                            abi: [
-                                {
-                                    "type": "function",
-                                    "name": "transfer",
-                                    "inputs": [
-                                        { "name": "recipient", "type": "address" },
-                                        { "name": "amount", "type": "uint256" }
-                                    ],
-                                    "outputs": [{ "name": "", "type": "bool" }],
-                                    "stateMutability": "nonpayable"
-                                }
+                            abi: SmartWalletABI,
+                            functionName: "transferERC20WithCompliance",
+                            args: [
+                                recordId,
+                                params.tokenAddress,
+                                params.to,
+                                amountInUnits,
+                                complianceArg,
                             ],
-                            functionName: "transfer",
-                            args: [params.to, amountInUnits]
                         })
                     });
                 } else {
-                    // Native ETH transfer
                     calls.push({
-                        to: params.to,
-                        data: "0x" as `0x${string}`,
+                        to: proxyAddress,
                         value: amountInUnits,
+                        data: encodeFunctionData({
+                            abi: SmartWalletABI,
+                            functionName: "transferNativeWithCompliance",
+                            args: [
+                                recordId,
+                                params.to,
+                                amountInUnits,
+                                complianceArg,
+                            ],
+                        }),
                     });
-                }
-
-                // 2. Client-side AES-256 Encryption
-                const hasComplianceData = params.compliance && (
-                    params.compliance.categories?.length || 
-                    params.compliance.jurisdictions?.length || 
-                    params.compliance.referenceIds?.length
-                );
-
-                if (hasComplianceData) {
-                    statusUpdate("Encrypting...");
-                    const loadingId = toast.loading("Encrypting compliance payload...");
-                    try {
-                        const payloadData = [{
-                            recipient: params.to,
-                            category: params.compliance?.categories?.[0] ?? 0,
-                            jurisdiction: params.compliance?.jurisdictions?.[0] ?? 0,
-                            referenceId: params.compliance?.referenceIds?.[0] ?? ""
-                        }];
-                        
-                        const jsonPayload = JSON.stringify({ payments: payloadData });
-                        const aesKey = await deriveAESKey(owner.address);
-                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
-                        const encryptedPayloadHex = bufferToHex(encryptedBytes);
-
-                        // Generate a unique 32-byte ID for this payment
-                        const paymentIdBytes = window.crypto.getRandomValues(new Uint8Array(32));
-                        const paymentId = bufferToHex(paymentIdBytes) as `0x${string}`;
-
-                        // Call ComplianceRegistry directly
-                        calls.push({
-                            to: ComplianceRegistryAddress as `0x${string}`,
-                            value: 0n,
-                            data: encodeFunctionData({
-                                abi: ComplianceRegistryABI,
-                                functionName: "recordTransaction",
-                                args: [paymentId, proxyAddress, [params.to], [amountInUnits], encryptedPayloadHex]
-                            })
-                        });
-
-                        toast.dismiss(loadingId);
-                    } catch (e) {
-                        console.error(e);
-                        toast.dismiss(loadingId);
-                        statusUpdate("Error");
-                        throw new Error("Failed to encrypt compliance parameters.");
-                    }
                 }
 
                 // 3. Send Ethereum Sepolia transaction

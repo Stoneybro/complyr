@@ -14,7 +14,7 @@ const steps = [
     num: '02',
     title: 'Encryption',
     label: '02 / SECURE METADATA',
-    body: 'Attach necessary compliance data to your payment. AES-256-GCM encryption keeps this sensitive information completely hidden on-chain.',
+    body: 'Attach necessary compliance data to your payment. Zama FHE keeps amounts and metadata hidden on Ethereum Sepolia.',
   },
   {
     num: '03',

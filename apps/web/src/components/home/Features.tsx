@@ -22,7 +22,7 @@ const features = [
   {
     icon: 'lock',
     title: 'Data Privacy',
-    body: 'Sensitive compliance data is secured with AES-256-GCM encryption, ensuring the data remains strictly concealed from unauthorized parties.',
+    body: 'Sensitive compliance data and payment amounts are secured with Zama FHE on Ethereum Sepolia.',
   },
   {
     icon: 'fingerprint',

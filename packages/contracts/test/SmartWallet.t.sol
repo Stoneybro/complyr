@@ -4,7 +4,40 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/SmartWallet.sol";
 import "../src/SmartWalletFactory.sol";
-import "../src/ComplianceRegistry.sol";
+import "../src/IComplianceRegistry.sol";
+import "encrypted-types/EncryptedTypes.sol";
+
+contract MockWalletComplianceRegistry is IComplianceRegistry {
+    mapping(address => address) public companyMasters;
+    mapping(address => uint256) public recordCounts;
+
+    function setAuthorizedCaller(address, bool) external {}
+    function setFactory(address) external {}
+
+    function registerAccount(address proxyAccount, address masterEOA) external {
+        companyMasters[proxyAccount] = masterEOA;
+    }
+
+    function recordTransaction(
+        bytes32,
+        address proxyAccount,
+        address,
+        address[] calldata,
+        externalEuint128[] calldata,
+        bytes[] calldata,
+        externalEuint8[] calldata,
+        bytes[] calldata,
+        externalEuint8[] calldata,
+        bytes[] calldata,
+        string[] calldata
+    ) external {
+        recordCounts[proxyAccount]++;
+    }
+
+    function getRecordCount(address proxyAccount) external view returns (uint256) {
+        return recordCounts[proxyAccount];
+    }
+}
 
 /**
  * @notice Unit tests for SmartWallet on Ethereum Sepolia.
@@ -14,7 +47,7 @@ contract SmartWalletTest is Test {
     SmartWallet implementation;
     SmartWallet wallet;
     SmartWalletFactory factory;
-    ComplianceRegistry registry;
+    MockWalletComplianceRegistry registry;
 
     address owner = makeAddr("owner");
     address recipient = makeAddr("recipient");
@@ -26,7 +59,7 @@ contract SmartWalletTest is Test {
         vm.etch(dummyRegistry, "1");
 
         // Deploy the on-chain ComplianceRegistry
-        registry = new ComplianceRegistry();
+        registry = new MockWalletComplianceRegistry();
 
         // Deploy SmartWallet implementation pointing to complianceRegistry
         implementation = new SmartWallet(dummyRegistry, address(registry));
@@ -74,7 +107,21 @@ contract SmartWalletTest is Test {
         vm.deal(address(wallet), amount);
 
         vm.prank(owner);
+        vm.expectRevert(SmartWallet.SmartWallet__ComplianceRequired.selector);
         wallet.execute(recipient, amount, "");
+    }
+
+    function test_CompliantNativeTransfer() public {
+        uint256 amount = 1 ether;
+        vm.deal(address(wallet), amount);
+
+        vm.prank(owner);
+        wallet.transferNativeWithCompliance(
+            keccak256("compliant-payment"),
+            payable(recipient),
+            amount,
+            _mockComplianceData(1)
+        );
 
         assertEq(recipient.balance, amount);
     }
@@ -90,7 +137,31 @@ contract SmartWalletTest is Test {
         calls[1] = SmartWallet.Call({target: recipient2, value: amount2, data: ""});
 
         vm.prank(owner);
+        vm.expectRevert(SmartWallet.SmartWallet__ComplianceRequired.selector);
         wallet.executeBatch(calls);
+    }
+
+    function test_CompliantNativeBatchTransfer() public {
+        address recipient2 = makeAddr("recipient2");
+        uint256 amount1 = 1 ether;
+        uint256 amount2 = 2 ether;
+        vm.deal(address(wallet), amount1 + amount2);
+
+        address payable[] memory recipients = new address payable[](2);
+        recipients[0] = payable(recipient);
+        recipients[1] = payable(recipient2);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = amount1;
+        amounts[1] = amount2;
+
+        vm.prank(owner);
+        wallet.batchTransferNativeWithCompliance(
+            keccak256("compliant-batch"),
+            recipients,
+            amounts,
+            _mockComplianceData(2)
+        );
 
         assertEq(recipient.balance, amount1);
         assertEq(recipient2.balance, amount2);
@@ -122,15 +193,45 @@ contract SmartWalletTest is Test {
     function test_RecordCompliance() public {
         address[] memory recipients = new address[](1);
         recipients[0] = recipient;
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = 1e6; // 1 USDC
-        bytes memory encryptedPayload = hex"deadbeef"; // mock ciphertext
+        externalEuint128[] memory encryptedAmountHandles = new externalEuint128[](1);
+        bytes[] memory encryptedAmountProofs = new bytes[](1);
+        externalEuint8[] memory encryptedCategoryHandles = new externalEuint8[](1);
+        bytes[] memory encryptedCategoryProofs = new bytes[](1);
+        externalEuint8[] memory encryptedJurisdictionHandles = new externalEuint8[](1);
+        bytes[] memory encryptedJurisdictionProofs = new bytes[](1);
+        string[] memory referenceIds = new string[](1);
+        referenceIds[0] = "test-payment-1";
 
         bytes32 txHash = keccak256("test-payment-1");
 
         vm.prank(owner);
-        wallet.recordCompliance(txHash, recipients, amounts, encryptedPayload);
+        wallet.recordCompliance(
+            txHash,
+            address(0),
+            recipients,
+            encryptedAmountHandles,
+            encryptedAmountProofs,
+            encryptedCategoryHandles,
+            encryptedCategoryProofs,
+            encryptedJurisdictionHandles,
+            encryptedJurisdictionProofs,
+            referenceIds
+        );
 
         assertEq(registry.getRecordCount(address(wallet)), 1);
+    }
+
+    function _mockComplianceData(uint256 length) internal pure returns (SmartWallet.ComplianceData memory complianceData) {
+        complianceData.amountHandles = new externalEuint128[](length);
+        complianceData.amountProofs = new bytes[](length);
+        complianceData.categoryHandles = new externalEuint8[](length);
+        complianceData.categoryProofs = new bytes[](length);
+        complianceData.jurisdictionHandles = new externalEuint8[](length);
+        complianceData.jurisdictionProofs = new bytes[](length);
+        complianceData.referenceIds = new string[](length);
+
+        for (uint256 i; i < length; i++) {
+            complianceData.referenceIds[i] = "ref";
+        }
     }
 }

@@ -4,26 +4,38 @@ import { useWallets } from "@privy-io/react-auth";
 import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { toast } from "sonner";
 import { CATEGORY_DISPLAY, JURISDICTION_DISPLAY } from "@/lib/compliance-enums";
-import { ComplianceRegistryAddress } from "@/lib/CA";
-import { decryptMetadata, deriveAESKey, hexToBuffer } from "@/lib/encryption";
+import { ComplianceRegistryAddress, MockUSDCAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
+import { userDecryptComplianceHandles } from "@/lib/fhe-compliance";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
+
+type Eip1193Provider = {
+    request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+type EthereumWindow = Window & {
+    ethereum?: Eip1193Provider;
+};
 
 export type AuditRecord = {
     recordIndex: number;
     txHash: string;
+    token: string;
     timestamp: Date;
     recipients: string[];
     amounts: string[];
-    encryptedPayload: string;
+    encryptedAmountHandles: `0x${string}`[];
+    encryptedCategoryHandles: `0x${string}`[];
+    encryptedJurisdictionHandles: `0x${string}`[];
     decrypted: boolean;
     categories?: string[];
     jurisdictions?: string[];
     referenceIds?: string[];
 };
 
-export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean = false) {
+export function useAuditLogs(proxyAccount?: string, _isExternalAuditor: boolean = false) {
+    void _isExternalAuditor;
     const [records, setRecords] = useState<AuditRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isDecrypting, setIsDecrypting] = useState(false);
@@ -61,21 +73,25 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
                 });
 
                 const txHash = recordData[0];
-                const recipients = recordData[1] as string[];
-                const amountsWei = recordData[2] as bigint[];
-                const encryptedPayload = recordData[3] as string;
-                const timestamp = Number(recordData[4]);
-
-                // Mock USDC uses 6 decimals
-                const amounts = amountsWei.map(a => formatUnits(a, 6));
+                const token = recordData[1] as string;
+                const recipients = recordData[2] as string[];
+                const encryptedAmountHandles = recordData[3] as `0x${string}`[];
+                const encryptedCategoryHandles = recordData[4] as `0x${string}`[];
+                const encryptedJurisdictionHandles = recordData[5] as `0x${string}`[];
+                const referenceIds = recordData[6] as string[];
+                const timestamp = Number(recordData[7]);
 
                 loadedRecords.push({
                     recordIndex: i,
                     txHash: txHash,
+                    token,
                     timestamp: new Date(timestamp * 1000),
                     recipients,
-                    amounts,
-                    encryptedPayload,
+                    amounts: encryptedAmountHandles.map(() => "Encrypted"),
+                    encryptedAmountHandles,
+                    encryptedCategoryHandles,
+                    encryptedJurisdictionHandles,
+                    referenceIds,
                     decrypted: false
                 });
             }
@@ -93,14 +109,20 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
     const decryptLedger = async () => {
         if (!proxyAccount || records.length === 0) return;
         
-        const ownerWallet = !isExternalAuditor ? wallets?.find((w) => w.walletClientType === "privy") : null;
+        const ownerWallet = wallets?.find((w) => w.walletClientType === "privy");
         let address = ownerWallet?.address;
+        let provider: Eip1193Provider | null = null;
 
-        if (!address && typeof window !== "undefined" && (window as any).ethereum) {
+        if (ownerWallet) {
+            provider = await ownerWallet.getEthereumProvider();
+        }
+
+        const ethereum = typeof window !== "undefined" ? (window as EthereumWindow).ethereum : undefined;
+        if ((!address || !provider) && ethereum) {
             try {
-                const provider = (window as any).ethereum;
-                const accounts = await provider.request({ method: 'eth_accounts' });
-                if (accounts && accounts.length > 0) {
+                provider = ethereum;
+                const accounts = await ethereum.request({ method: 'eth_accounts' });
+                if (Array.isArray(accounts) && accounts.length > 0 && typeof accounts[0] === "string") {
                     address = accounts[0];
                 }
             } catch (e) {
@@ -114,59 +136,58 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
         }
 
         setIsDecrypting(true);
-        const loadingId = toast.loading("Decrypting ledger using local AES key...");
+        const loadingId = toast.loading("Requesting Zama decrypt authorization...");
 
         try {
-            let decryptionSeed = address;
-
-            if (isExternalAuditor) {
-                const publicClient = createPublicClient({
-                    chain: complyrChain,
-                    transport: http(),
-                });
-                const masterEOA = await publicClient.readContract({
-                    address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
-                    functionName: "companyMasters",
-                    args: [proxyAccount as `0x${string}`],
-                });
-                decryptionSeed = masterEOA as string;
+            if (!provider) {
+                throw new Error("Missing wallet provider for decrypt authorization.");
             }
 
-            if (!decryptionSeed) {
-                throw new Error("Missing owner address to derive decryption key.");
-            }
-
-            const aesKey = await deriveAESKey(decryptionSeed);
+            const signer = {
+                signTypedData: async (typedData: unknown) => {
+                    return provider.request({
+                        method: "eth_signTypedData_v4",
+                        params: [getAddress(address as string), JSON.stringify(typedData)],
+                    }) as Promise<`0x${string}`>;
+                },
+            };
 
             const mappedRecords = await Promise.all(records.map(async (record) => {
                 if (record.decrypted) return record;
 
                 try {
-                    // Decrypt the payload
-                    const buffer = hexToBuffer(record.encryptedPayload);
-                    const plaintext = await decryptMetadata(buffer, aesKey);
-                    
-                    const parsed = JSON.parse(plaintext);
-                    const payments = parsed.payments || [];
-                    
+                    const handles = [
+                        ...record.encryptedAmountHandles,
+                        ...record.encryptedCategoryHandles,
+                        ...record.encryptedJurisdictionHandles,
+                    ];
+                    const decrypted = await userDecryptComplianceHandles({
+                        handles,
+                        contractAddress: REGISTRY_ADDRESS,
+                        userAddress: getAddress(address as string),
+                        signer,
+                    });
+
                     const decCats: string[] = [];
                     const decJurs: string[] = [];
-                    const decRefs: string[] = [];
+                    const decAmounts: string[] = [];
+                    const decimals = record.token.toLowerCase() === MockUSDCAddress.toLowerCase() ? 6 : 18;
 
-                    // Map the results back based on order of recipients
                     for (let i = 0; i < record.recipients.length; i++) {
-                        const p = payments[i] || {};
-                        decCats.push(CATEGORY_DISPLAY[p.category] || "Unknown");
-                        decJurs.push(JURISDICTION_DISPLAY[p.jurisdiction] || "Unknown");
-                        decRefs.push(p.referenceId || "N/A");
+                        const amount = decrypted[record.encryptedAmountHandles[i]];
+                        const category = decrypted[record.encryptedCategoryHandles[i]];
+                        const jurisdiction = decrypted[record.encryptedJurisdictionHandles[i]];
+                        decAmounts.push(formatUnits(BigInt(amount as bigint), decimals));
+                        decCats.push(CATEGORY_DISPLAY[Number(category)] || "Unknown");
+                        decJurs.push(JURISDICTION_DISPLAY[Number(jurisdiction)] || "Unknown");
                     }
 
                     return {
                         ...record,
+                        amounts: decAmounts,
                         categories: decCats,
                         jurisdictions: decJurs,
-                        referenceIds: decRefs,
+                        referenceIds: record.referenceIds,
                         decrypted: true
                     };
                 } catch (e) {
@@ -176,7 +197,7 @@ export function useAuditLogs(proxyAccount?: string, isExternalAuditor: boolean =
             }));
 
             setRecords(mappedRecords);
-            toast.success("Ledger successfully decrypted!", { id: loadingId });
+            toast.success("Ledger successfully decrypted with Zama.", { id: loadingId });
 
         } catch (error) {
             console.error("Decryption failed:", error);

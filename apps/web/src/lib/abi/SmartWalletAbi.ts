@@ -54,6 +54,34 @@ export const SmartWalletABI = [
     "name": "batchTransferERC20",
     "inputs": [
       {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchTransferERC20WithCompliance",
+    "inputs": [
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
         "name": "token",
         "type": "address",
         "internalType": "address"
@@ -67,10 +95,117 @@ export const SmartWalletABI = [
         "name": "amounts",
         "type": "uint256[]",
         "internalType": "uint256[]"
+      },
+      {
+        "name": "compliance",
+        "type": "tuple",
+        "internalType": "struct SmartWallet.ComplianceData",
+        "components": [
+          {
+            "name": "amountHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint128[]"
+          },
+          {
+            "name": "amountProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "categoryHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "categoryProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "jurisdictionHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "jurisdictionProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "referenceIds",
+            "type": "string[]",
+            "internalType": "string[]"
+          }
+        ]
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchTransferNativeWithCompliance",
+    "inputs": [
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recipients",
+        "type": "address[]",
+        "internalType": "address payable[]"
+      },
+      {
+        "name": "amounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "compliance",
+        "type": "tuple",
+        "internalType": "struct SmartWallet.ComplianceData",
+        "components": [
+          {
+            "name": "amountHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint128[]"
+          },
+          {
+            "name": "amountProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "categoryHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "categoryProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "jurisdictionHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "jurisdictionProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "referenceIds",
+            "type": "string[]",
+            "internalType": "string[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -302,19 +437,49 @@ export const SmartWalletABI = [
         "internalType": "bytes32"
       },
       {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "recipients",
         "type": "address[]",
         "internalType": "address[]"
       },
       {
-        "name": "amounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "amountHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint128[]"
       },
       {
-        "name": "encryptedPayload",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "amountProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "categoryHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint8[]"
+      },
+      {
+        "name": "categoryProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "jurisdictionHandles",
+        "type": "bytes32[]",
+        "internalType": "externalEuint8[]"
+      },
+      {
+        "name": "jurisdictionProofs",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      },
+      {
+        "name": "referenceIds",
+        "type": "string[]",
+        "internalType": "string[]"
       }
     ],
     "outputs": [],
@@ -357,6 +522,34 @@ export const SmartWalletABI = [
     "name": "transferERC20",
     "inputs": [
       {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferERC20WithCompliance",
+    "inputs": [
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
         "name": "token",
         "type": "address",
         "internalType": "address"
@@ -370,10 +563,117 @@ export const SmartWalletABI = [
         "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "compliance",
+        "type": "tuple",
+        "internalType": "struct SmartWallet.ComplianceData",
+        "components": [
+          {
+            "name": "amountHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint128[]"
+          },
+          {
+            "name": "amountProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "categoryHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "categoryProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "jurisdictionHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "jurisdictionProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "referenceIds",
+            "type": "string[]",
+            "internalType": "string[]"
+          }
+        ]
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferNativeWithCompliance",
+    "inputs": [
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "compliance",
+        "type": "tuple",
+        "internalType": "struct SmartWallet.ComplianceData",
+        "components": [
+          {
+            "name": "amountHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint128[]"
+          },
+          {
+            "name": "amountProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "categoryHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "categoryProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "jurisdictionHandles",
+            "type": "bytes32[]",
+            "internalType": "externalEuint8[]"
+          },
+          {
+            "name": "jurisdictionProofs",
+            "type": "bytes[]",
+            "internalType": "bytes[]"
+          },
+          {
+            "name": "referenceIds",
+            "type": "string[]",
+            "internalType": "string[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -794,6 +1094,11 @@ export const SmartWalletABI = [
   {
     "type": "error",
     "name": "SmartWallet__ComplianceRegistryZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SmartWallet__ComplianceRequired",
     "inputs": []
   },
   {

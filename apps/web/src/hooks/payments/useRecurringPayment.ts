@@ -6,7 +6,8 @@ import { encodeFunctionData, parseUnits } from "viem";
 import { IntentRegistryABI } from "@/lib/abi/IntentRegistryABI";
 import { RegistryAddress, MockUSDCAddress } from "@/lib/CA";
 import { RecurringPaymentParams } from "./types";
-import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { encryptComplianceInput } from "@/lib/fhe-compliance";
+import { assertRequiredCompliance } from "./utils";
 
 export function useRecurringPayment() {
     const { getClient } = useSmartAccountContext();
@@ -31,49 +32,29 @@ export function useRecurringPayment() {
                 }
 
                 const amountsInUnits = params.amounts.map((amount) => parseUnits(amount, decimals));
-                const proxyAddress = smartAccountClient.account!.address;
-
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
+                assertRequiredCompliance(params.compliance, params.recipients.length);
 
-                // 1. Client-side AES-256 Encryption of unified metadata
-                let encryptedPayloadHex: `0x${string}` = "0x";
-                const hasComplianceData = params.compliance && (
-                    params.compliance.categories?.length || 
-                    params.compliance.jurisdictions?.length || 
-                    params.compliance.referenceIds?.length
-                );
-
-                if (hasComplianceData) {
-                    statusUpdate("Encrypting...");
-                    const loadingId = toast.loading("Encrypting recurring compliance rules...");
+                // 1. Client-side Zama encryption of recurring compliance fields.
+                statusUpdate("Encrypting...");
+                const loadingId = toast.loading("Encrypting recurring compliance fields...");
+                const encryptedCompliance = await (async () => {
                     try {
-                        // Create unified JSON payload matching the number of recipients
-                        const payloadData = params.recipients.map((recipient, i) => ({
-                            recipient,
-                            category: params.compliance?.categories?.[i] ?? 0,
-                            jurisdiction: params.compliance?.jurisdictions?.[i] ?? 0,
-                            referenceId: params.compliance?.referenceIds?.[i] ?? ""
-                        }));
-                        
-                        const jsonPayload = JSON.stringify({ payments: payloadData });
-
-                        // Derive AES key from the proxy address for consistency in the demo
-                        const aesKey = await deriveAESKey(owner.address);
-                        
-                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
-                        encryptedPayloadHex = bufferToHex(encryptedBytes);
-
-                        toast.dismiss(loadingId);
+                        return await encryptComplianceInput({
+                            callerAddress: RegistryAddress,
+                            amounts: amountsInUnits,
+                            categories: params.compliance?.categories,
+                            jurisdictions: params.compliance?.jurisdictions,
+                            referenceIds: params.compliance?.referenceIds,
+                        });
                     } catch (e) {
                         console.error(e);
-                        toast.dismiss(loadingId);
                         statusUpdate("Error");
                         throw new Error("Failed to encrypt compliance parameters.");
+                    } finally {
+                        toast.dismiss(loadingId);
                     }
-                } else {
-                    // Fallback empty bytes if no compliance data
-                    encryptedPayloadHex = "0x";
-                }
+                })();
 
                 // 2. Prepare Intent Registry call 
                 const tokenAddress = params.tokenAddress || "0x0000000000000000000000000000000000000000";
@@ -89,7 +70,13 @@ export function useRecurringPayment() {
                         BigInt(params.duration),
                         BigInt(params.interval),
                         BigInt(params.transactionStartTime || (Math.floor(Date.now() / 1000) + 120)),
-                        encryptedPayloadHex // Unified encrypted blob
+                        encryptedCompliance.amountHandles,
+                        encryptedCompliance.amountProofs,
+                        encryptedCompliance.categoryHandles,
+                        encryptedCompliance.categoryProofs,
+                        encryptedCompliance.jurisdictionHandles,
+                        encryptedCompliance.jurisdictionProofs,
+                        encryptedCompliance.referenceIds,
                     ],
                 });
 

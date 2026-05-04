@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
+
+import "encrypted-types/EncryptedTypes.sol";
 
 /**
  * @title ISmartWallet
@@ -51,16 +53,18 @@ interface ISmartWallet {
     function getAvailableBalance(address token) external view returns (uint256);
 
     /**
-     * @notice Records an AES-256 encrypted compliance payload directly on Ethereum Sepolia.
-     * @param txHash           Deterministic hash of the payment tx or intent ID.
-     * @param recipients       Recipient addresses (plaintext).
-     * @param amounts          Amounts per recipient (plaintext).
-     * @param encryptedPayload AES-256 ciphertext of compliance metadata.
+     * @notice Records Zama encrypted compliance data directly on Ethereum Sepolia.
      */
     function recordCompliance(
         bytes32 txHash,
+        address token,
         address[] calldata recipients,
-        uint256[] calldata amounts,
-        bytes calldata encryptedPayload
+        externalEuint128[] calldata amountHandles,
+        bytes[] calldata amountProofs,
+        externalEuint8[] calldata categoryHandles,
+        bytes[] calldata categoryProofs,
+        externalEuint8[] calldata jurisdictionHandles,
+        bytes[] calldata jurisdictionProofs,
+        string[] calldata referenceIds
     ) external;
 }

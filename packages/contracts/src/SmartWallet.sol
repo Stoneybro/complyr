@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import {IAccount} from "@account-abstraction/contracts/interfaces/IAccount.sol";
 import {PackedUserOperation} from "@account-abstraction/contracts/interfaces/PackedUserOperation.sol";
@@ -12,6 +12,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISmartWallet} from "./ISmartWallet.sol";
 import {IComplianceRegistry} from "./IComplianceRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "encrypted-types/EncryptedTypes.sol";
 
 /**
  * @title Smart Wallet
@@ -32,6 +33,16 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         address target;
         uint256 value;
         bytes data;
+    }
+
+    struct ComplianceData {
+        externalEuint128[] amountHandles;
+        bytes[] amountProofs;
+        externalEuint8[] categoryHandles;
+        bytes[] categoryProofs;
+        externalEuint8[] jurisdictionHandles;
+        bytes[] jurisdictionProofs;
+        string[] referenceIds;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -114,6 +125,11 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     error SmartWallet__InsufficientUncommittedFunds();
     error SmartWallet__NotFromRegistry();
     error SmartWallet__InvalidCommitmentDecrease();
+    error SmartWallet__ComplianceRequired();
+
+    bytes4 private constant _ERC20_TRANSFER_SELECTOR = IERC20.transfer.selector;
+    bytes4 private constant _ERC20_TRANSFER_FROM_SELECTOR = IERC20.transferFrom.selector;
+    bytes4 private constant _ERC20_APPROVE_SELECTOR = IERC20.approve.selector;
 
     /*//////////////////////////////////////////////////////////////
                               MODIFIERS
@@ -290,33 +306,55 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Transfers ERC-20 tokens (USDC / USDT) to a single recipient.
-     * @param token   The ERC-20 token contract address.
-     * @param to      The recipient address.
-     * @param amount  The amount in token's smallest unit.
+     * @notice Disabled. Use transferERC20WithCompliance so every payment records compliance metadata atomically.
      */
-    function transferERC20(address token, address to, uint256 amount)
+    function transferERC20(address, address, uint256)
         external
-        nonReentrant
         onlyEntryPointOrOwner
     {
+        revert SmartWallet__ComplianceRequired();
+    }
+
+    function transferERC20WithCompliance(
+        bytes32 recordId,
+        address token,
+        address to,
+        uint256 amount,
+        ComplianceData calldata compliance
+    ) external nonReentrant onlyEntryPointOrOwner {
+        address[] memory recipients = new address[](1);
+        recipients[0] = to;
+
+        _recordCompliance(recordId, token, recipients, compliance);
+
         _checkCommitment(token, amount);
         IERC20(token).safeTransfer(to, amount);
         emit ERC20Transferred(token, to, amount);
+        emit ComplianceRecorded(recordId);
     }
 
     /**
-     * @notice Batch transfers ERC-20 tokens to multiple recipients in a single tx.
-     * @param token      The ERC-20 token contract address.
-     * @param recipients Recipient addresses.
-     * @param amounts    Amounts per recipient (smallest unit).
+     * @notice Disabled. Use batchTransferERC20WithCompliance so every payment records compliance metadata atomically.
      */
     function batchTransferERC20(
+        address,
+        address[] calldata,
+        uint256[] calldata
+    ) external onlyEntryPointOrOwner {
+        revert SmartWallet__ComplianceRequired();
+    }
+
+    function batchTransferERC20WithCompliance(
+        bytes32 recordId,
         address token,
         address[] calldata recipients,
-        uint256[] calldata amounts
+        uint256[] calldata amounts,
+        ComplianceData calldata compliance
     ) external nonReentrant onlyEntryPointOrOwner {
         if (recipients.length == 0 || recipients.length != amounts.length) revert SmartWallet__InvalidBatchInput();
+
+        _recordCompliance(recordId, token, recipients, compliance);
+
         uint256 totalAmount = 0;
         for (uint256 i; i < amounts.length; i++) totalAmount += amounts[i];
         _checkCommitment(token, totalAmount);
@@ -325,6 +363,50 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             IERC20(token).safeTransfer(recipients[i], amounts[i]);
             emit ERC20Transferred(token, recipients[i], amounts[i]);
         }
+        emit ComplianceRecorded(recordId);
+    }
+
+    function transferNativeWithCompliance(
+        bytes32 recordId,
+        address payable to,
+        uint256 amount,
+        ComplianceData calldata compliance
+    ) external payable nonReentrant onlyEntryPointOrOwner {
+        address[] memory recipients = new address[](1);
+        recipients[0] = to;
+
+        _recordCompliance(recordId, address(0), recipients, compliance);
+
+        _checkCommitment(address(0), amount);
+        (bool success,) = to.call{value: amount}("");
+        if (!success) revert SmartWallet__InvalidBatchInput();
+        emit ComplianceRecorded(recordId);
+    }
+
+    function batchTransferNativeWithCompliance(
+        bytes32 recordId,
+        address payable[] calldata recipients,
+        uint256[] calldata amounts,
+        ComplianceData calldata compliance
+    ) external payable nonReentrant onlyEntryPointOrOwner {
+        if (recipients.length == 0 || recipients.length != amounts.length) revert SmartWallet__InvalidBatchInput();
+
+        address[] memory recipientAddresses = new address[](recipients.length);
+        for (uint256 i; i < recipients.length; i++) {
+            recipientAddresses[i] = recipients[i];
+        }
+
+        _recordCompliance(recordId, address(0), recipientAddresses, compliance);
+
+        uint256 totalAmount = 0;
+        for (uint256 i; i < amounts.length; i++) totalAmount += amounts[i];
+        _checkCommitment(address(0), totalAmount);
+
+        for (uint256 i; i < recipients.length; i++) {
+            (bool success,) = recipients[i].call{value: amounts[i]}("");
+            if (!success) revert SmartWallet__InvalidBatchInput();
+        }
+        emit ComplianceRecorded(recordId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -332,26 +414,32 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Records an AES-256 encrypted compliance payload directly on Ethereum Sepolia.
-     * @dev The payload bytes are opaque to the chain — encrypted client-side before submission.
-     *      The txHash links this record deterministically to the payment transaction.
-     * @param txHash        Deterministic hash of the payment tx or intent ID.
-     * @param recipients    Recipient addresses (plaintext — already public from payment).
-     * @param amounts       Amounts per recipient (plaintext).
-     * @param encryptedPayload  AES-256 ciphertext of the compliance metadata (categories + jurisdictions + reference IDs).
+     * @notice Records Zama encrypted compliance data directly on Ethereum Sepolia.
      */
     function recordCompliance(
         bytes32 txHash,
+        address token,
         address[] calldata recipients,
-        uint256[] calldata amounts,
-        bytes calldata encryptedPayload
+        externalEuint128[] calldata amountHandles,
+        bytes[] calldata amountProofs,
+        externalEuint8[] calldata categoryHandles,
+        bytes[] calldata categoryProofs,
+        externalEuint8[] calldata jurisdictionHandles,
+        bytes[] calldata jurisdictionProofs,
+        string[] calldata referenceIds
     ) external onlyEntryPointOrOwner {
         IComplianceRegistry(COMPLIANCE_REGISTRY).recordTransaction(
             txHash,
             address(this),
+            token,
             recipients,
-            amounts,
-            encryptedPayload
+            amountHandles,
+            amountProofs,
+            categoryHandles,
+            categoryProofs,
+            jurisdictionHandles,
+            jurisdictionProofs,
+            referenceIds
         );
         emit ComplianceRecorded(txHash);
     }
@@ -404,12 +492,50 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     }
 
     function _call(address target, uint256 value, bytes memory data) internal {
+        if (target != address(this) && _isFinancialCall(value, data)) {
+            revert SmartWallet__ComplianceRequired();
+        }
+
         (bool success, bytes memory result) = target.call{value: value}(data);
         if (!success) {
             assembly ("memory-safe") {
                 revert(add(result, 32), mload(result))
             }
         }
+    }
+
+    function _recordCompliance(
+        bytes32 recordId,
+        address token,
+        address[] memory recipients,
+        ComplianceData calldata compliance
+    ) internal {
+        IComplianceRegistry(COMPLIANCE_REGISTRY).recordTransaction(
+            recordId,
+            address(this),
+            token,
+            recipients,
+            compliance.amountHandles,
+            compliance.amountProofs,
+            compliance.categoryHandles,
+            compliance.categoryProofs,
+            compliance.jurisdictionHandles,
+            compliance.jurisdictionProofs,
+            compliance.referenceIds
+        );
+    }
+
+    function _isFinancialCall(uint256 value, bytes memory data) internal pure returns (bool) {
+        if (value > 0) return true;
+        if (data.length < 4) return false;
+
+        bytes4 selector;
+        assembly ("memory-safe") {
+            selector := mload(add(data, 32))
+        }
+
+        return selector == _ERC20_TRANSFER_SELECTOR || selector == _ERC20_TRANSFER_FROM_SELECTOR
+            || selector == _ERC20_APPROVE_SELECTOR;
     }
 
     receive() external payable {}

@@ -5,14 +5,61 @@ import "forge-std/Test.sol";
 import "../src/IntentRegistry.sol";
 import "../src/SmartWallet.sol";
 import "../src/SmartWalletFactory.sol";
-import "../src/ComplianceRegistry.sol";
+import "../src/IComplianceRegistry.sol";
 import "../src/MockUSDC.sol";
+import "encrypted-types/EncryptedTypes.sol";
+
+contract MockComplianceRegistry is IComplianceRegistry {
+    mapping(address => address) public companyMasters;
+    mapping(address => uint256) public recordCounts;
+    mapping(address => address[]) private _recipients;
+    mapping(address => string[]) private _referenceIds;
+    mapping(address => address) private _tokens;
+
+    function setAuthorizedCaller(address, bool) external {}
+    function setFactory(address) external {}
+
+    function registerAccount(address proxyAccount, address masterEOA) external {
+        companyMasters[proxyAccount] = masterEOA;
+    }
+
+    function recordTransaction(
+        bytes32,
+        address proxyAccount,
+        address token,
+        address[] calldata recipients,
+        externalEuint128[] calldata,
+        bytes[] calldata,
+        externalEuint8[] calldata,
+        bytes[] calldata,
+        externalEuint8[] calldata,
+        bytes[] calldata,
+        string[] calldata referenceIds
+    ) external {
+        recordCounts[proxyAccount]++;
+        _tokens[proxyAccount] = token;
+        _recipients[proxyAccount] = recipients;
+        _referenceIds[proxyAccount] = referenceIds;
+    }
+
+    function getRecordCount(address proxyAccount) external view returns (uint256) {
+        return recordCounts[proxyAccount];
+    }
+
+    function getRecordMetadata(address proxyAccount, uint256)
+        external
+        view
+        returns (bytes32, address, address[] memory, string[] memory, uint256)
+    {
+        return (bytes32(0), _tokens[proxyAccount], _recipients[proxyAccount], _referenceIds[proxyAccount], block.timestamp);
+    }
+}
 
 contract IntentRegistryTest is Test {
     IntentRegistry registry;
     SmartWalletFactory factory;
     SmartWallet implementation;
-    ComplianceRegistry compliance;
+    MockComplianceRegistry compliance;
     MockUSDC usdc;
 
     address owner = makeAddr("owner");
@@ -21,7 +68,7 @@ contract IntentRegistryTest is Test {
 
     function setUp() public {
         registry = new IntentRegistry(address(this));
-        compliance = new ComplianceRegistry();
+        compliance = new MockComplianceRegistry();
         
         implementation = new SmartWallet(address(registry), address(compliance));
         factory = new SmartWalletFactory(address(implementation), address(compliance));
@@ -59,8 +106,15 @@ contract IntentRegistryTest is Test {
         amounts[0] = 1 ether;
         amounts[1] = 1 ether;
 
-        // Mock encrypted payload (now includes Reference IDs internally)
-        bytes memory encryptedPayload = "mock_encrypted_payload_with_refs";
+        (
+            externalEuint128[] memory encryptedAmountHandles,
+            bytes[] memory encryptedAmountProofs,
+            externalEuint8[] memory encryptedCategoryHandles,
+            bytes[] memory encryptedCategoryProofs,
+            externalEuint8[] memory encryptedJurisdictionHandles,
+            bytes[] memory encryptedJurisdictionProofs,
+            string[] memory referenceIds
+        ) = _mockComplianceInputs(recipients.length);
 
         vm.prank(walletAddr);
         bytes32 intentId = registry.createIntent(
@@ -71,7 +125,13 @@ contract IntentRegistryTest is Test {
             1 days, // duration
             1 hours, // interval
             0, // start time (now)
-            encryptedPayload
+            encryptedAmountHandles,
+            encryptedAmountProofs,
+            encryptedCategoryHandles,
+            encryptedCategoryProofs,
+            encryptedJurisdictionHandles,
+            encryptedJurisdictionProofs,
+            referenceIds
         );
 
         assertTrue(intentId != bytes32(0));
@@ -82,9 +142,12 @@ contract IntentRegistryTest is Test {
         // Check compliance record exists
         assertEq(compliance.getRecordCount(walletAddr), 1);
         
-        // Verify payload is stored
-        (,,,bytes memory storedPayload,) = compliance.getRecord(walletAddr, 0);
-        assertEq(storedPayload, encryptedPayload);
+        // Verify metadata is stored
+        (, address token, address[] memory storedRecipients, string[] memory storedRefs,) =
+            compliance.getRecordMetadata(walletAddr, 0);
+        assertEq(token, address(0));
+        assertEq(storedRecipients.length, recipients.length);
+        assertEq(storedRefs[0], "ref-0");
     }
 
     function test_ExecuteIntentViaUpkeep() public {
@@ -98,8 +161,15 @@ contract IntentRegistryTest is Test {
         amounts[0] = 1 ether;
         amounts[1] = 1 ether;
 
-        // Mock encrypted payload
-        bytes memory encryptedPayload = "mock_payload";
+        (
+            externalEuint128[] memory encryptedAmountHandles,
+            bytes[] memory encryptedAmountProofs,
+            externalEuint8[] memory encryptedCategoryHandles,
+            bytes[] memory encryptedCategoryProofs,
+            externalEuint8[] memory encryptedJurisdictionHandles,
+            bytes[] memory encryptedJurisdictionProofs,
+            string[] memory referenceIds
+        ) = _mockComplianceInputs(recipients.length);
 
         vm.prank(walletAddr);
         registry.createIntent(
@@ -110,7 +180,13 @@ contract IntentRegistryTest is Test {
             1 days, // duration
             1 hours, // interval
             0, // start time (now)
-            encryptedPayload
+            encryptedAmountHandles,
+            encryptedAmountProofs,
+            encryptedCategoryHandles,
+            encryptedCategoryProofs,
+            encryptedJurisdictionHandles,
+            encryptedJurisdictionProofs,
+            referenceIds
         );
 
         // checkUpkeep should be true immediately for the first execution
@@ -146,10 +222,33 @@ contract IntentRegistryTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 1 ether;
 
-        bytes memory encryptedPayload = "mock_payload";
+        (
+            externalEuint128[] memory encryptedAmountHandles,
+            bytes[] memory encryptedAmountProofs,
+            externalEuint8[] memory encryptedCategoryHandles,
+            bytes[] memory encryptedCategoryProofs,
+            externalEuint8[] memory encryptedJurisdictionHandles,
+            bytes[] memory encryptedJurisdictionProofs,
+            string[] memory referenceIds
+        ) = _mockComplianceInputs(recipients.length);
 
         vm.prank(walletAddr);
-        bytes32 intentId = registry.createIntent("Test", address(0), recipients, amounts, 10 hours, 1 hours, 0, encryptedPayload);
+        bytes32 intentId = registry.createIntent(
+            "Test",
+            address(0),
+            recipients,
+            amounts,
+            10 hours,
+            1 hours,
+            0,
+            encryptedAmountHandles,
+            encryptedAmountProofs,
+            encryptedCategoryHandles,
+            encryptedCategoryProofs,
+            encryptedJurisdictionHandles,
+            encryptedJurisdictionProofs,
+            referenceIds
+        );
 
         assertEq(SmartWallet(payable(walletAddr)).sCommittedFunds(address(0)), 10 ether);
 
@@ -158,5 +257,34 @@ contract IntentRegistryTest is Test {
         registry.cancelIntent(intentId);
 
         assertEq(SmartWallet(payable(walletAddr)).sCommittedFunds(address(0)), 0);
+    }
+
+    function _mockComplianceInputs(uint256 length)
+        internal
+        pure
+        returns (
+            externalEuint128[] memory encryptedAmountHandles,
+            bytes[] memory encryptedAmountProofs,
+            externalEuint8[] memory encryptedCategoryHandles,
+            bytes[] memory encryptedCategoryProofs,
+            externalEuint8[] memory encryptedJurisdictionHandles,
+            bytes[] memory encryptedJurisdictionProofs,
+            string[] memory referenceIds
+        )
+    {
+        encryptedAmountHandles = new externalEuint128[](length);
+        encryptedAmountProofs = new bytes[](length);
+        encryptedCategoryHandles = new externalEuint8[](length);
+        encryptedCategoryProofs = new bytes[](length);
+        encryptedJurisdictionHandles = new externalEuint8[](length);
+        encryptedJurisdictionProofs = new bytes[](length);
+        referenceIds = new string[](length);
+
+        for (uint256 i; i < length; i++) {
+            encryptedAmountProofs[i] = "";
+            encryptedCategoryProofs[i] = "";
+            encryptedJurisdictionProofs[i] = "";
+            referenceIds[i] = i == 0 ? "ref-0" : "ref-1";
+        }
     }
 }

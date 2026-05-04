@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ISmartWallet} from "./ISmartWallet.sol";
 import {IComplianceRegistry} from "./IComplianceRegistry.sol";
 
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+import "encrypted-types/EncryptedTypes.sol";
 
 /**
  * @title Intent Registry
@@ -166,6 +167,9 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     /// @notice Thrown when intent not found for wallet
     error IntentRegistry__IntentNotFound();
 
+    /// @notice Thrown when required compliance metadata is missing
+    error IntentRegistry__MissingComplianceInfo();
+
     /*//////////////////////////////////////////////////////////////
                               MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -179,7 +183,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         complianceRegistry = _registry;
     }
 
-    /// @notice Receive native fees from proxy accounts to forward to LayerZero
+    /// @notice Receive native funds from proxy accounts.
     receive() external payable {}
 
     /*//////////////////////////////////////////////////////////////
@@ -195,7 +199,6 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
      * @param duration The total duration of the intent in seconds
      * @param interval The interval between transactions in seconds
      * @param transactionStartTime The start time of the transaction (0 for immediate start)
-     * @param encryptedPayload AES-256 ciphertext of compliance metadata (including Reference IDs)
      * @return intentId The unique identifier for the created intent
      */
     function createIntent(
@@ -206,7 +209,13 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         uint256 duration,
         uint256 interval,
         uint256 transactionStartTime,
-        bytes calldata encryptedPayload
+        externalEuint128[] calldata encryptedAmountHandles,
+        bytes[] calldata encryptedAmountProofs,
+        externalEuint8[] calldata encryptedCategoryHandles,
+        bytes[] calldata encryptedCategoryProofs,
+        externalEuint8[] calldata encryptedJurisdictionHandles,
+        bytes[] calldata encryptedJurisdictionProofs,
+        string[] calldata referenceIds
     ) external returns (bytes32) {
         address wallet = msg.sender;
 
@@ -222,8 +231,12 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         if (recipients.length != amounts.length) revert IntentRegistry__ArrayLengthMismatch();
         if (recipients.length > MAX_RECIPIENTS) revert IntentRegistry__TooManyRecipients();
 
-        ///@notice Validate compliance payload exists
-        if (encryptedPayload.length == 0) revert IntentRegistry__ArrayLengthMismatch();
+        if (
+            recipients.length != encryptedAmountHandles.length || recipients.length != encryptedAmountProofs.length
+                || recipients.length != encryptedCategoryHandles.length || recipients.length != encryptedCategoryProofs.length
+                || recipients.length != encryptedJurisdictionHandles.length
+                || recipients.length != encryptedJurisdictionProofs.length || recipients.length != referenceIds.length
+        ) revert IntentRegistry__ArrayLengthMismatch();
 
         ///@notice Validate timing parameters
         if (duration == 0 || duration > MAX_DURATION) revert IntentRegistry__InvalidDuration();
@@ -239,6 +252,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         for (uint256 i = 0; i < recipients.length; i++) {
             if (recipients[i] == address(0)) revert IntentRegistry__InvalidRecipient();
             if (amounts[i] == 0) revert IntentRegistry__InvalidAmount();
+            if (bytes(referenceIds[i]).length == 0) revert IntentRegistry__MissingComplianceInfo();
             totalAmountPerExecution += amounts[i];
         }
 
@@ -291,9 +305,15 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
             IComplianceRegistry(complianceRegistry).recordTransaction(
                 intentId,
                 wallet,
+                token,
                 recipients,
-                amounts,
-                encryptedPayload
+                encryptedAmountHandles,
+                encryptedAmountProofs,
+                encryptedCategoryHandles,
+                encryptedCategoryProofs,
+                encryptedJurisdictionHandles,
+                encryptedJurisdictionProofs,
+                referenceIds
             );
         }
 
@@ -315,7 +335,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     }
 
     /**
-     * @notice Custom Keeper calls this to check if any intents need execution
+     * @notice Chainlink Automation calls this to check if any intents need execution.
      */
     function checkUpkeep(
         bytes calldata /* checkData */
@@ -344,7 +364,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     }
 
     /**
-     * @notice Custom Keeper calls this to execute an intent
+     * @notice Chainlink Automation calls this to execute an intent.
      */
     function performUpkeep(bytes calldata performData) external {
         (address wallet, bytes32 intentId) = abi.decode(performData, (address, bytes32));

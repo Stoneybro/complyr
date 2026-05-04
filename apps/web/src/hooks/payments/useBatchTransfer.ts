@@ -4,11 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
 import { parseUnits, encodeFunctionData } from "viem";
 import { BatchTransferParams } from "./types";
-import { checkSufficientBalance } from "./utils";
-import { encryptMetadata, deriveAESKey, bufferToHex } from "@/lib/encryption";
+import { assertRequiredCompliance, checkSufficientBalance, createComplianceRecordId } from "./utils";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
-import { MockUSDCAddress, ComplianceRegistryAddress } from "@/lib/CA";
+import { MockUSDCAddress } from "@/lib/CA";
+import { encryptComplianceInput } from "@/lib/fhe-compliance";
 
 export function useBatchTransfer(availableBalance?: string) {
     const { getClient } = useSmartAccountContext();
@@ -52,91 +51,73 @@ export function useBatchTransfer(availableBalance?: string) {
                 const proxyAddress = smartAccountClient.account!.address;
 
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
+                assertRequiredCompliance(params.compliance, params.recipients.length);
 
-                // 1. Setup calls
-                const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
-
-                if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
-                    // Call transfer on the ERC20 token contract directly for each recipient
-                    // NOTE: Optimization could be using a batch transfer contract, but individual calls in one UserOp works fine.
-                    params.recipients.forEach((recipient, index) => {
-                        calls.push({
-                            to: params.tokenAddress as `0x${string}`,
-                            value: 0n,
-                            data: encodeFunctionData({
-                                abi: [
-                                    {
-                                        "type": "function",
-                                        "name": "transfer",
-                                        "inputs": [
-                                            { "name": "recipient", "type": "address" },
-                                            { "name": "amount", "type": "uint256" }
-                                        ],
-                                        "outputs": [{ "name": "", "type": "bool" }],
-                                        "stateMutability": "nonpayable"
-                                    }
-                                ],
-                                functionName: "transfer",
-                                args: [recipient, amountsInUnits[index]]
-                            })
-                        });
+                // 1. Client-side Zama encryption
+                statusUpdate("Encrypting...");
+                const loadingId = toast.loading("Encrypting batch compliance fields...");
+                let encryptedCompliance;
+                try {
+                    encryptedCompliance = await encryptComplianceInput({
+                        callerAddress: proxyAddress,
+                        amounts: amountsInUnits,
+                        categories: params.compliance?.categories,
+                        jurisdictions: params.compliance?.jurisdictions,
+                        referenceIds: params.compliance?.referenceIds,
                     });
-                } else {
-                    // Native ETH transfers
-                    params.recipients.forEach((recipient, index) => {
-                        calls.push({
-                            to: recipient as `0x${string}`,
-                            data: "0x" as `0x${string}`,
-                            value: amountsInUnits[index],
-                        });
-                    });
+                    toast.dismiss(loadingId);
+                } catch (e) {
+                    console.error(e);
+                    toast.dismiss(loadingId);
+                    statusUpdate("Error");
+                    throw new Error("Failed to encrypt batch compliance parameters.");
                 }
 
-                // 2. Client-side AES-256 Encryption
-                const hasComplianceData = params.compliance && (
-                    params.compliance.categories?.length || 
-                    params.compliance.jurisdictions?.length || 
-                    params.compliance.referenceIds?.length
-                );
+                // 2. Setup atomic compliant transfer call.
+                const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
+                const recordId = createComplianceRecordId();
+                const complianceArg = {
+                    amountHandles: encryptedCompliance.amountHandles,
+                    amountProofs: encryptedCompliance.amountProofs,
+                    categoryHandles: encryptedCompliance.categoryHandles,
+                    categoryProofs: encryptedCompliance.categoryProofs,
+                    jurisdictionHandles: encryptedCompliance.jurisdictionHandles,
+                    jurisdictionProofs: encryptedCompliance.jurisdictionProofs,
+                    referenceIds: encryptedCompliance.referenceIds,
+                };
 
-                if (hasComplianceData) {
-                    statusUpdate("Encrypting...");
-                    const loadingId = toast.loading("Encrypting batch compliance payload...");
-                    try {
-                        const payloadData = params.recipients.map((recipient, i) => ({
-                            recipient,
-                            category: params.compliance?.categories?.[i] ?? 0,
-                            jurisdiction: params.compliance?.jurisdictions?.[i] ?? 0,
-                            referenceId: params.compliance?.referenceIds?.[i] ?? ""
-                        }));
-                        
-                        const jsonPayload = JSON.stringify({ payments: payloadData });
-                        const aesKey = await deriveAESKey(owner.address);
-                        const encryptedBytes = await encryptMetadata(jsonPayload, aesKey);
-                        const encryptedPayloadHex = bufferToHex(encryptedBytes);
-
-                        // Generate a unique 32-byte ID for this batch payment
-                        const paymentIdBytes = window.crypto.getRandomValues(new Uint8Array(32));
-                        const paymentId = bufferToHex(paymentIdBytes) as `0x${string}`;
-
-                        // Call ComplianceRegistry directly
-                        calls.push({
-                            to: ComplianceRegistryAddress as `0x${string}`,
-                            value: 0n,
-                            data: encodeFunctionData({
-                                abi: ComplianceRegistryABI,
-                                functionName: "recordTransaction",
-                                args: [paymentId, proxyAddress, params.recipients, amountsInUnits, encryptedPayloadHex]
-                            })
-                        });
-
-                        toast.dismiss(loadingId);
-                    } catch (e) {
-                        console.error(e);
-                        toast.dismiss(loadingId);
-                        statusUpdate("Error");
-                        throw new Error("Failed to encrypt batch compliance parameters.");
-                    }
+                if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
+                    calls.push({
+                        to: proxyAddress,
+                        value: 0n,
+                        data: encodeFunctionData({
+                            abi: SmartWalletABI,
+                            functionName: "batchTransferERC20WithCompliance",
+                            args: [
+                                recordId,
+                                params.tokenAddress,
+                                params.recipients,
+                                amountsInUnits,
+                                complianceArg,
+                            ],
+                        })
+                    });
+                } else {
+                    const totalNativeValue = amountsInUnits.reduce((sum, amount) => sum + amount, 0n);
+                    calls.push({
+                        to: proxyAddress,
+                        value: totalNativeValue,
+                        data: encodeFunctionData({
+                            abi: SmartWalletABI,
+                            functionName: "batchTransferNativeWithCompliance",
+                            args: [
+                                recordId,
+                                params.recipients,
+                                amountsInUnits,
+                                complianceArg,
+                            ],
+                        }),
+                    });
                 }
 
                 // 3. Send Ethereum Sepolia transaction

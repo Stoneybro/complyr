@@ -14,6 +14,15 @@ import { complyrChain } from "@/lib/chain";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 
+function getErrorMessage(error: unknown, fallback: string) {
+    if (typeof error === "object" && error !== null) {
+        const candidate = error as { shortMessage?: unknown; message?: unknown };
+        if (typeof candidate.shortMessage === "string") return candidate.shortMessage;
+        if (typeof candidate.message === "string") return candidate.message;
+    }
+    return fallback;
+}
+
 export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
     const [auditors, setAuditors] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -104,15 +113,12 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             toast.loading("Requesting signature to add auditor...", { id: loadingId });
 
-            // Passing a dummy encrypted key for the hackathon demo
-            const dummyEncryptedKey = "0x0000000000000000000000000000000000000000000000000000000000000000" as `0x${string}`;
-
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
                 abi: ComplianceRegistryABI,
                 functionName: "addAuditor",
-                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress), dummyEncryptedKey],
+                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress)],
             });
 
             toast.loading("Transaction signed. Adding auditor...", { id: loadingId });
@@ -123,9 +129,9 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             toast.success("External auditor successfully added!", { id: loadingId });
             setNewAuditorAddress("");
             fetchAuditors();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(err.shortMessage || err.message || "Failed to add auditor", { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to add auditor"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -185,8 +191,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             toast.success("External auditor successfully removed!", { id: loadingId });
             fetchAuditors();
-        } catch (err: any) {
-            toast.error(err.shortMessage || err.message || "Failed to remove auditor", { id: loadingId });
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, "Failed to remove auditor"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -200,7 +206,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             await navigator.clipboard.writeText(url);
             toast.success("Auditor portal link copied to clipboard!");
             setTimeout(() => setIsCopying(false), 2000);
-        } catch (err) {
+        } catch {
             toast.error("Failed to copy link");
             setIsCopying(false);
         }

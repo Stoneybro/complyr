@@ -1,12 +1,12 @@
 import React from 'react';
 
 const stack = [
-  { name: 'Base', role: 'Settlement' },
+  { name: 'Ethereum Sepolia', role: 'Settlement' },
   { name: 'Chainlink', role: 'Automation' },
-  { name: 'AES-256', role: 'Client Encryption' },
+  { name: 'Zama FHE', role: 'Encryption' },
   { name: 'Envio', role: 'Data Indexing' },
   { name: 'ERC-4337', role: 'Account Abstraction' },
-  { name: 'Custom Keepers', role: 'Automated Execution' },
+  { name: 'Automation', role: 'Scheduled Execution' },
 ];
 
 export default function Technology() {
