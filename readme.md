@@ -4,7 +4,7 @@
 
 # Complyr
 
-### A smart-account based business payment app that embeds encrypted compliance metadata into every treasury flow.
+### Business payments with built-in, encrypted compliance tracking.
 
 <br />
 
@@ -24,13 +24,70 @@
 
 ---
 
-## Executive summary
+## The problem
 
-Complyr solves a simple but critical gap in onchain business payments: blockchains capture **who** got paid and **how much**, but not **why**.
+Blockchains are excellent at recording **who** got paid and **how much**, but they completely miss **why**.
 
-For each payment, Complyr encrypts and stores compliance context (category, jurisdiction, reference) so companies can preserve privacy while still producing audit-ready records when needed.
+For businesses operating onchain, this creates a critical gap:
+- Payments happen onchain, but compliance records live offline in spreadsheets
+- Auditors require full access to payment data, exposing sensitive business information
+- No way to prove payment legitimacy without revealing commercial details
+- Recurring payments (payroll, subscriptions) lack audit trails
 
-Current deployment target: **Ethereum Sepolia**.
+Complyr bridges this gap by embedding encrypted compliance metadata directly into every transaction.
+
+---
+
+## The solution
+
+Complyr is a smart-account based payment system that attaches encrypted compliance data to every treasury flow.
+
+**What it does:**
+- Encrypts payment amounts, categories, and jurisdictions using Zama Fully Homomorphic Encryption (FHE)
+- Stores encrypted data onchain alongside the transaction
+- Allows authorized auditors to decrypt and verify compliance without exposing data publicly
+- Supports single transfers, batch payouts, and automated recurring payments
+- Provides a complete, immutable audit trail for every payment
+
+**Who it's for:**
+- Companies making onchain B2B payments
+- Businesses needing audit-ready payment records
+- Teams managing payroll or subscriptions onchain
+- Organizations requiring regulatory compliance for crypto transactions
+
+---
+
+## Key features
+
+- **Payroll & Subscriptions** - Automated, stateful recurring payments. Manage employee salaries and subscriptions securely on-chain.
+- **Batch Payouts** - Execute mass vendor payments in a single transaction. Highly scalable infrastructure designed to save gas.
+- **Single Transfers** - Fast, reliable direct B2B transactions. The foundational layer for moving treasury funds efficiently.
+- **Data Privacy** - Sensitive compliance data and payment amounts are secured with Zama FHE on Ethereum Sepolia.
+- **Account Abstraction** - Seamless gasless transactions and simple Web2-style social logins for frictionless enterprise onboarding.
+- **Auditor Portal** - An isolated environment for external regulators to verify compliance proofs without exposing underlying corporate data.
+
+---
+
+## How it works
+
+```
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│  1. Smart Vault │ ───▶ │  2. Encryption  │ ───▶ │  3. Settlement   │ ───▶ │  4. Audit       │
+│                 │      │                 │      │                 │      │                 │
+│ Deploy a        │      │ Attach          │      │ Payment settles │      │ Authorize       │
+│ compliance-aware│      │ compliance data │      │ natively onchain │      │ specific        │
+│ smart account   │      │ Zama FHE keeps  │      │ Encrypted records│      │ auditors to     │
+│ as treasury     │      │ amounts hidden  │      │ anchored in tx  │      │ verify without  │
+└─────────────────┘      └─────────────────┘      └─────────────────┘      └─────────────────┘
+```
+
+**Step 1: Smart Vault** - Deploy a compliance-aware smart account onchain to act as your business's primary treasury.
+
+**Step 2: Encryption** - Attach necessary compliance data to your payment. Zama FHE keeps amounts and metadata hidden on Ethereum Sepolia.
+
+**Step 3: Settlement** - The payment settles natively onchain while your encrypted compliance records are permanently anchored in the same transaction.
+
+**Step 4: Audit** - Authorize specific auditors. They can decrypt and verify the legality of your transactions without exposing your underlying company data to the public.
 
 ---
 
