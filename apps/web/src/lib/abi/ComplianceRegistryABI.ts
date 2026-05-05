@@ -6,6 +6,58 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "MAX_ACTIVE_REVIEW_TESTS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_AUDITORS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_CATEGORY_ID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_JURISDICTION_ID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "addAuditor",
     "inputs": [
       {
@@ -99,6 +151,150 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "createCategoryExposureReviewTest",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "category",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "thresholdHandle",
+        "type": "bytes32",
+        "internalType": "externalEuint128"
+      },
+      {
+        "name": "thresholdProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createJurisdictionExposureReviewTest",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jurisdiction",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "thresholdHandle",
+        "type": "bytes32",
+        "internalType": "externalEuint128"
+      },
+      {
+        "name": "thresholdProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createLargePaymentReviewTest",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "thresholdHandle",
+        "type": "bytes32",
+        "internalType": "externalEuint128"
+      },
+      {
+        "name": "thresholdProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createRecipientExposureReviewTest",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "thresholdHandle",
+        "type": "bytes32",
+        "internalType": "externalEuint128"
+      },
+      {
+        "name": "thresholdProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deactivateReviewTest",
+    "inputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "factory",
     "inputs": [],
     "outputs": [
@@ -106,6 +302,25 @@ export const ComplianceRegistryABI = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAuditorReviewTestIds",
+    "inputs": [
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -189,6 +404,49 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "getEncryptedCategoryTotal",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "category",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEncryptedGlobalTotal",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getEncryptedJurisdiction",
     "inputs": [
       {
@@ -212,6 +470,54 @@ export const ComplianceRegistryABI = [
         "name": "",
         "type": "bytes32",
         "internalType": "euint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEncryptedJurisdictionTotal",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "jurisdiction",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEncryptedRecipientTotal",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -340,6 +646,128 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "getReviewResult",
+    "inputs": [
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "resultHandle",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getReviewResultCount",
+    "inputs": [
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getReviewTest",
+    "inputs": [
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "testType",
+        "type": "uint8",
+        "internalType": "enum ComplianceRegistry.ReviewTestType"
+      },
+      {
+        "name": "recipientScope",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "numericScope",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "thresholdHandle",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "createdAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isAuditorActive",
     "inputs": [
       {
@@ -358,6 +786,19 @@ export const ComplianceRegistryABI = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextReviewTestId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -620,6 +1061,111 @@ export const ComplianceRegistryABI = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "ReviewResultRecorded",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "testId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordId",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ReviewTestCreated",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "testId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "testType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ComplianceRegistry.ReviewTestType"
+      },
+      {
+        "name": "recipientScope",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "numericScope",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ReviewTestDeactivated",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "testId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "ComplianceRegistry__AlreadyRegistered",
     "inputs": []
@@ -641,7 +1187,17 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "error",
+    "name": "ComplianceRegistry__InvalidScope",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ComplianceRegistry__MaxAuditorsReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ComplianceRegistry__MaxReviewTestsReached",
     "inputs": []
   },
   {
@@ -657,6 +1213,11 @@ export const ComplianceRegistryABI = [
   {
     "type": "error",
     "name": "ComplianceRegistry__NotRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ComplianceRegistry__ReviewTestNotFound",
     "inputs": []
   },
   {

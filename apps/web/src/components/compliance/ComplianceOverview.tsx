@@ -18,7 +18,7 @@ export function ComplianceOverview({ stats }: { stats: ComplianceStats | null })
             {/* Health Score Card */}
             <Card className="@container/card">
                 <CardHeader>
-                    <CardDescription className="text-sm font-bold text-foreground">Compliance Status</CardDescription>
+                    <CardDescription className="text-sm font-bold text-foreground">Audit Coverage</CardDescription>
                     <CardTitle className="text-3xl font-semibold tabular-nums @[250px]/card:text-3xl">
                         {stats.healthScore}%
                     </CardTitle>
@@ -36,7 +36,7 @@ export function ComplianceOverview({ stats }: { stats: ComplianceStats | null })
                 </CardHeader>
                 <CardFooter className="flex-col items-start gap-3 mt-4">
                     <p className="text-sm font-semibold text-muted-foreground font-mono">
-                        {stats.totalCategorized} categorized / {stats.totalUncategorized} pending validation
+                        {stats.totalCategorized} classified / {stats.totalUncategorized} pending context
                     </p>
                     <Progress
                         value={stats.healthScore}
@@ -50,7 +50,7 @@ export function ComplianceOverview({ stats }: { stats: ComplianceStats | null })
                 <CardHeader>
                     <CardDescription className="text-sm font-bold text-foreground">Jurisdiction Distribution</CardDescription>
                     <CardTitle className="text-xs font-medium text-muted-foreground leading-relaxed">
-                        Breakdown of payments by regulatory jurisdiction derived from encrypted transaction metadata.
+                        Breakdown of payments by jurisdiction after local decryption.
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -70,7 +70,7 @@ export function ComplianceOverview({ stats }: { stats: ComplianceStats | null })
                                 </div>
                             ))}
                         {Object.keys(stats.byJurisdiction).length === 0 && (
-                            <p className="text-sm text-muted-foreground">No compliance records available.</p>
+                            <p className="text-sm text-muted-foreground">No audit records available.</p>
                         )}
                     </div>
                 </CardContent>

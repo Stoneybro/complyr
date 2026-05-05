@@ -21,8 +21,8 @@ const features = [
   },
   {
     icon: 'lock',
-    title: 'Data Privacy',
-    body: 'Sensitive compliance data and payment amounts are secured with Zama FHE on Ethereum Sepolia.',
+    title: 'Private Audit Data',
+    body: 'Sensitive payment context and reviewer thresholds are secured with Zama FHE on Ethereum Sepolia.',
   },
   {
     icon: 'fingerprint',
@@ -31,8 +31,8 @@ const features = [
   },
   {
     icon: 'policy',
-    title: 'Auditor Portal',
-    body: 'An isolated environment for external regulators to verify compliance proofs without exposing underlying corporate data.',
+    title: 'Reviewer Portal',
+    body: 'An isolated environment for external reviewers to run encrypted threshold tests without exposing underlying corporate data.',
   },
 ];
 

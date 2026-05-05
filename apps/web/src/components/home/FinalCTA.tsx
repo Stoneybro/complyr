@@ -16,7 +16,7 @@ export default function FinalCTA() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-4xl md:text-6xl font-bold tracking-tighter uppercase mb-10 leading-none"
         >
-          Your business is already operating onchain. Your compliance layer should be too.
+          Your business is already operating onchain. Your audit infrastructure should be too.
         </motion.h2>
         
         <motion.p 

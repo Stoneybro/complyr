@@ -31,7 +31,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchWalletBalance } from "@/utils/helper";
 
-// Compliance options
+// Audit context options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
 const CATEGORY_OPTIONS = getCategoryOptions();
 
@@ -39,7 +39,7 @@ const KYC_LEVEL_LABELS: Record<number, string> = {
     0: "None", 1: "Basic", 2: "Advanced", 3: "Premium", 4: "Ultimate",
 };
 
-// Recipient with optional compliance data from contact
+// Recipient with optional audit context from contact
 type RecipientData = {
     address: string;
     amount: string;
@@ -118,7 +118,7 @@ const RecipientRow = React.memo(({
             )}
         </div>
         <div className="pt-3 border-t border-dashed">
-            <h4 className="text-sm font-medium mb-3">Compliance Records (Encrypted)</h4>
+            <h4 className="text-sm font-medium mb-3">Audit Context (Encrypted)</h4>
             <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Reference ID</Label>
@@ -454,7 +454,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                 <SelectContent>
                     {contacts.length === 0 ? (
                         <SelectItem value="empty" disabled className="text-sm text-foreground py-3 max-w-[250px] whitespace-normal pointer-events-none data-[disabled]:opacity-100">
-                            No contacts found. Use the sidebar to add a contact and automate compliance data.
+                            No contacts found. Use the sidebar to add a contact and automate audit context.
                         </SelectItem>
                     ) : (
                         contacts.map((contact) => (
@@ -480,7 +480,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
             <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none py-3">
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                    You can create and manage contacts in the sidebar to automate compliance data.
+                    You can create and manage contacts in the sidebar to automate audit context.
                 </AlertDescription>
             </Alert>
         </div>
@@ -536,7 +536,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                             </div>
                                             
                                             <div className="pt-3 border-t border-dashed">
-                                                <h4 className="text-sm font-medium mb-3">Compliance Records (Encrypted)</h4>
+                                                <h4 className="text-sm font-medium mb-3">Audit Context (Encrypted)</h4>
                                                 <div className="grid grid-cols-3 gap-3">
                                                     <div className="space-y-1">
                                                         <Label htmlFor="single-ref" className="text-xs text-muted-foreground">Reference ID</Label>
@@ -747,7 +747,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                             <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none">
                                 <Info className="h-4 w-4" />
                                 <AlertDescription className="text-xs">
-                                    Compliance records are encrypted end-to-end and stored on-chain.
+                                    Audit context is encrypted end-to-end and stored on-chain.
                                 </AlertDescription>
                             </Alert>
                         </div>

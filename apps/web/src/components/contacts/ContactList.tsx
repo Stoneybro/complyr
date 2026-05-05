@@ -45,12 +45,12 @@ export function ContactList({ walletAddress, showForm, onCloseForm }: ContactLis
     onCloseForm();
   };
 
-  // Check if contact has any compliance info
+  // Check if contact has any audit context
   const hasComplianceInfo = (contact: Contact) => {
     return contact.addresses.some(a => a.entityId || a.jurisdiction || a.category);
   };
 
-  // Get first compliance badge info
+  // Get first audit context badge info
   const getComplianceSummary = (contact: Contact) => {
     const addr = contact.addresses.find(a => a.entityId || a.jurisdiction || a.category);
     if (!addr) return null;
@@ -108,7 +108,7 @@ export function ContactList({ walletAddress, showForm, onCloseForm }: ContactLis
                         : `${contact.addresses.length} addresses`}
                     </div>
 
-                    {/* Compliance badges */}
+                    {/* Audit context badges */}
                     {compliance && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {compliance.jurisdiction && (

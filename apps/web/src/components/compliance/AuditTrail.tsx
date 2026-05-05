@@ -75,10 +75,10 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                 <div>
                     <CardTitle className="text-xl flex items-center gap-2">
                         <ShieldCheck className="h-5 w-5" />
-                        Transaction Logs
+                        Audit Trail
                     </CardTitle>
                     <CardDescription className="mt-1">
-                        Immutable ledger of all payments and their associated compliance metadata.
+                        Immutable ledger of payments and their encrypted audit context.
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                     ) : (
                         <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed flex flex-col gap-1 items-center">
                             <span className="font-semibold">No payments recorded yet.</span>
-                            <span className="text-xs">Compliance records will appear here after transactions are executed.</span>
+                            <span className="text-xs">Audit records will appear here after transactions are executed.</span>
                         </div>
                     )}
                 </div>

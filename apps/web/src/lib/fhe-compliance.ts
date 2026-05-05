@@ -17,6 +17,11 @@ export type EncryptedComplianceInput = {
     referenceIds: string[];
 };
 
+export type EncryptedThresholdInput = {
+    thresholdHandle: `0x${string}`;
+    thresholdProof: `0x${string}`;
+};
+
 async function getFhevmInstance() {
     if (fhevmInstance) return fhevmInstance;
     if (typeof window === "undefined") {
@@ -78,6 +83,26 @@ export async function encryptComplianceInput(params: {
         jurisdictionHandles,
         jurisdictionProofs: Array(params.amounts.length).fill(proof),
         referenceIds: Array.from({ length: params.amounts.length }, (_, i) => params.referenceIds?.[i] ?? ""),
+    };
+}
+
+export async function encryptThresholdInput(params: {
+    callerAddress: `0x${string}`;
+    threshold: bigint;
+    registryAddress?: `0x${string}`;
+}): Promise<EncryptedThresholdInput> {
+    const fhevm = await getFhevmInstance();
+    const registryAddress = getAddress(params.registryAddress ?? ComplianceRegistryAddress);
+    const callerAddress = getAddress(params.callerAddress);
+    const input = fhevm.createEncryptedInput(registryAddress, callerAddress);
+
+    input.add128(params.threshold);
+
+    const encrypted = await input.encrypt();
+
+    return {
+        thresholdHandle: bytesToHex(encrypted.handles[0]),
+        thresholdProof: bytesToHex(encrypted.inputProof),
     };
 }
 

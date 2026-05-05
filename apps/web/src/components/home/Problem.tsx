@@ -24,7 +24,7 @@ export default function Problem() {
           className="md:col-span-8"
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-16 leading-tight">
-            Blockchain transactions lack the compliance info businesses are required to keep.
+            Blockchain transactions lack the business context needed for credible audits.
           </h2>
           <motion.div 
             initial={{ scaleX: 0 }}
@@ -34,7 +34,7 @@ export default function Problem() {
             className="h-px w-full bg-outline-variant/30 mb-8 origin-left"
           />
           <p className="text-lg text-on-surface-variant max-w-2xl leading-relaxed">
-            While the transaction itself is permanently recorded, the actual business context—like expense categories and compliance data—remains scattered across emails and spreadsheets. For a business, this missing connection is a massive regulatory liability.
+            While the transfer itself is permanently recorded, the actual business context, like expense categories, jurisdictions, and reviewer checks, remains scattered across emails and spreadsheets. For a business, this missing connection creates a weak audit trail.
           </p>
         </motion.div>
       </div>

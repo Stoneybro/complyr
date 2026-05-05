@@ -104,7 +104,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `tax_report_${jurisdiction}_${category}.csv`;
+        a.download = `private_audit_report_${jurisdiction}_${category}.csv`;
         a.click();
     };
 
@@ -113,10 +113,10 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
             <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Compliance Report Generator
+                    Private Report Generator
                 </CardTitle>
                 <div className="text-sm text-muted-foreground mt-1 font-medium">
-                    Generate structured compliance reports with real-time USD valuations.
+                    Generate decrypted internal reports from encrypted audit context.
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -144,7 +144,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Regulatory Jurisdiction</label>
+                        <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Jurisdiction</label>
                         <Select value={jurisdiction} onValueChange={setJurisdiction}>
                             <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Select jurisdiction" />
@@ -176,7 +176,7 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
 
                 <div className="bg-muted/30 rounded-lg p-4 border border-muted-foreground/10">
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Compliance Manifest Preview</h3>
+                        <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Private Report Preview</h3>
                     </div>
 
                     <div className="max-h-[300px] overflow-y-auto hidden md:block mt-4">

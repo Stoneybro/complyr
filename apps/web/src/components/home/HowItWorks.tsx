@@ -8,25 +8,25 @@ const steps = [
     num: '01',
     title: 'Smart Vaults',
     label: '01 / SYSTEM TREASURY',
-    body: 'Deploy a compliance-aware smart account onchain to act as your business\'s primary treasury.',
+    body: 'Deploy an audit-aware smart account onchain to act as your business\'s primary treasury.',
   },
   {
     num: '02',
     title: 'Encryption',
     label: '02 / SECURE METADATA',
-    body: 'Attach necessary compliance data to your payment. Zama FHE keeps amounts and metadata hidden on Ethereum Sepolia.',
+    body: 'Attach required audit context to your payment. Zama FHE keeps private context and review thresholds encrypted on Ethereum Sepolia.',
   },
   {
     num: '03',
     title: 'Settlement',
     label: '03 / NATIVE EXECUTION',
-    body: 'The payment settles natively onchain while your encrypted compliance records are permanently anchored in the same transaction.',
+    body: 'The payment settles natively onchain while encrypted audit records are permanently anchored in the same transaction.',
   },
   {
     num: '04',
     title: 'Audit',
     label: '04 / VERIFIABLE PROOFS',
-    body: 'Authorize specific auditors. They can decrypt and verify the legality of your transactions without exposing your underlying company data to the public.',
+    body: 'Approve specific reviewers. They can create private threshold tests and decrypt only the resulting audit signals.',
   },
 ];
 

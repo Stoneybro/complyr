@@ -22,11 +22,11 @@ export default function Footer() {
             </div>
           </div>
           <p className="font-inter text-[10px] uppercase tracking-widest leading-relaxed text-gray-400 dark:text-gray-600 max-w-xs mb-10">
-            The compliance layer for onchain business payments. Built for the future of institutional treasury.
+            Private audit infrastructure for onchain business payments. Built for the future of institutional treasury.
           </p>
           <div className="flex gap-4 items-center">
             <div className="w-10 h-px bg-black dark:bg-white"></div>
-            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">Built for Onchain Compliance</span>
+            <span className="font-inter text-[10px] uppercase tracking-widest font-bold">Built for Onchain Auditability</span>
           </div>
         </div>
         <div>

@@ -310,6 +310,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
      */
     function transferERC20(address, address, uint256)
         external
+        view
         onlyEntryPointOrOwner
     {
         revert SmartWallet__ComplianceRequired();
@@ -340,7 +341,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         address,
         address[] calldata,
         uint256[] calldata
-    ) external onlyEntryPointOrOwner {
+    ) external view onlyEntryPointOrOwner {
         revert SmartWallet__ComplianceRequired();
     }
 

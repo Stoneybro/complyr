@@ -101,7 +101,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
         // Determine type based on address count
         const type = validAddresses.length > 1 ? 'group' : 'individual';
 
-        // Prepare addresses with compliance data
+        // Prepare addresses with reusable audit context
         const addressData: CreateAddressInput[] = validAddresses.map(a => ({
             address: a.address.trim(),
             jurisdiction: a.jurisdiction && a.jurisdiction !== 'none' ? a.jurisdiction : undefined,
@@ -204,7 +204,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
                                     />
                                 </Field>
 
-                                <FieldSeparator>Compliance Requirements</FieldSeparator>
+                                <FieldSeparator>Audit Context</FieldSeparator>
 
                                 <Field>
                                     <FieldLabel htmlFor={`entityId-${index}`}>Reference ID</FieldLabel>

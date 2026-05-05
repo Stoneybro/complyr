@@ -2,6 +2,7 @@
 import { AppSidebar } from "@/components/wallet/app-sidebar";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
+import { AuditorsManager } from "@/components/compliance/AuditorsManager";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import { PaymentForm } from "@/components/payment-form/PaymentForm";
@@ -48,7 +49,8 @@ export default function Page() {
               <TabsList className="flex justify-center mx-auto">
                 <TabsTrigger value="form">Payments</TabsTrigger>
                 <TabsTrigger value="dashboard">Treasury</TabsTrigger>
-                <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                <TabsTrigger value="compliance">Audit Hub</TabsTrigger>
+                <TabsTrigger value="review-access">Review Access</TabsTrigger>
               </TabsList>
               <TabsContent value="chat">
 
@@ -61,6 +63,11 @@ export default function Page() {
               </TabsContent>
               <TabsContent value="compliance">
                 <ComplianceDashboard walletAddress={walletAddress!} />
+              </TabsContent>
+              <TabsContent value="review-access">
+                <div className="flex justify-center py-4">
+                  <AuditorsManager proxyAccount={walletAddress} />
+                </div>
               </TabsContent>
             </Tabs>
           </div>

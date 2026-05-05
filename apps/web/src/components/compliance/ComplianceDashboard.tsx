@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComplianceOverview } from "@/components/compliance/ComplianceOverview";
 import { TaxReportGenerator } from "@/components/compliance/TaxReportGenerator";
 import { AuditTrail } from "@/components/compliance/AuditTrail";
-import { AuditorsManager } from "@/components/compliance/AuditorsManager";
 import { useAuditLogs } from "@/hooks/useAuditLogs";
 import { Button } from "@/components/ui/button";
 import { Loader2, LockIcon, UnlockIcon, RefreshCw, AlertTriangle } from "lucide-react";
@@ -13,17 +12,16 @@ import { ComplianceStats, ComplianceData } from "@/hooks/useComplianceData";
 
 interface ComplianceDashboardProps {
     walletAddress?: string;
-    isExternalAuditor?: boolean; // Hides Access Control Tab
 }
 
-export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }: ComplianceDashboardProps) {
+export function ComplianceDashboard({ walletAddress }: ComplianceDashboardProps) {
     const {
         records,
         isLoading,
         isDecrypting,
         fetchLogs,
         decryptLedger
-    } = useAuditLogs(walletAddress, isExternalAuditor);
+    } = useAuditLogs(walletAddress);
 
     useEffect(() => {
         if (walletAddress) {
@@ -104,12 +102,10 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div className="flex flex-col gap-1">
                     <h2 className="text-2xl font-bold tracking-tight">
-                        {isExternalAuditor ? "Compliance Audit" : "Compliance Dashboard"}
+                        Audit Hub
                     </h2>
                     <p className="text-muted-foreground">
-                        {isExternalAuditor 
-                            ? "Review verified transaction intents and their associated compliance metadata."
-                            : "Monitor compliance health directly from the encrypted ledger."}
+                        Internal view of encrypted payment context, private reports, and the audit trail.
                     </p>
                 </div>
                 
@@ -131,7 +127,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                         ) : (
                             <LockIcon className="h-4 w-4 mr-2" />
                         )}
-                        {allDecrypted ? "Data Decrypted" : "Decrypt Compliance Data"}
+                        {allDecrypted ? "Data Decrypted" : "Decrypt Audit Data"}
                     </Button>
                 </div>
             </div>
@@ -139,7 +135,7 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
             <div className="flex items-start gap-3 px-4 py-3 bg-muted/30 border text-muted-foreground rounded-lg text-xs leading-relaxed">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <p>
-                    All compliance records are cryptographically secured and permanently linked to their transactions. Metadata remains encrypted by default and can only be decrypted by authorized entities.
+                    Payment context is cryptographically secured and linked to executed transfers. Private fields remain encrypted by default and can only be decrypted by authorized addresses.
                 </p>
             </div>
 
@@ -152,11 +148,8 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                 <Tabs defaultValue="overview" className="space-y-4 h-full flex flex-col">
                     <TabsList>
                         <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="reports">Reports</TabsTrigger>
-                        <TabsTrigger value="audit">Logs</TabsTrigger>
-                        {!isExternalAuditor && (
-                            <TabsTrigger value="auditors">Access</TabsTrigger>
-                        )}
+                        <TabsTrigger value="reports">Private Reports</TabsTrigger>
+                        <TabsTrigger value="audit">Audit Trail</TabsTrigger>
                     </TabsList>
 
                     <div className="flex-1 overflow-auto">
@@ -171,12 +164,6 @@ export function ComplianceDashboard({ walletAddress, isExternalAuditor = false }
                         <TabsContent value="audit" className="space-y-4 m-0 h-full">
                             <AuditTrail walletAddress={walletAddress} recordsOverride={records} onDecrypt={decryptLedger} isDecrypting={isDecrypting} isLoading={isLoading} />
                         </TabsContent>
-                        
-                        {!isExternalAuditor && (
-                            <TabsContent value="auditors" className="space-y-4 m-0 h-full">
-                                <AuditorsManager proxyAccount={walletAddress} />
-                            </TabsContent>
-                        )}
                     </div>
                 </Tabs>
             )}

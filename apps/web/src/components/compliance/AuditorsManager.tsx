@@ -13,6 +13,7 @@ import { ComplianceRegistryAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
+const MAX_REVIEWERS = 5;
 
 function getErrorMessage(error: unknown, fallback: string) {
     if (typeof error === "object" && error !== null) {
@@ -111,7 +112,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 await new Promise(r => setTimeout(r, 2000));
             }
 
-            toast.loading("Requesting signature to add auditor...", { id: loadingId });
+            toast.loading("Requesting signature to approve reviewer...", { id: loadingId });
 
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
@@ -121,17 +122,17 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress)],
             });
 
-            toast.loading("Transaction signed. Adding auditor...", { id: loadingId });
+            toast.loading("Transaction signed. Approving reviewer...", { id: loadingId });
             
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
 
-            toast.success("External auditor successfully added!", { id: loadingId });
+            toast.success("External reviewer approved.", { id: loadingId });
             setNewAuditorAddress("");
             fetchAuditors();
         } catch (err: unknown) {
             console.error(err);
-            toast.error(getErrorMessage(err, "Failed to add auditor"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to approve reviewer"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -142,7 +143,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         if (!ownerWallet) return toast.error("Connect wallet");
 
         setIsManaging(true);
-        const loadingId = toast.loading("Requesting signature to remove auditor...");
+        const loadingId = toast.loading("Requesting signature to remove reviewer...");
 
         try {
             const provider = await ownerWallet.getEthereumProvider();
@@ -176,7 +177,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 await new Promise(r => setTimeout(r, 2000));
             }
 
-            toast.loading("Requesting signature to remove auditor...", { id: loadingId });
+            toast.loading("Requesting signature to remove reviewer...", { id: loadingId });
 
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
@@ -189,10 +190,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
 
-            toast.success("External auditor successfully removed!", { id: loadingId });
+            toast.success("External reviewer removed.", { id: loadingId });
             fetchAuditors();
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, "Failed to remove auditor"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to remove reviewer"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -204,7 +205,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
         const url = `${window.location.origin}/auditor/${proxyAccount}`;
         try {
             await navigator.clipboard.writeText(url);
-            toast.success("Auditor portal link copied to clipboard!");
+            toast.success("Reviewer portal link copied to clipboard.");
             setTimeout(() => setIsCopying(false), 2000);
         } catch {
             toast.error("Failed to copy link");
@@ -218,7 +219,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-xl flex items-center gap-2 font-semibold">
                         <ShieldCheck className="h-5 w-5" />
-                        Third-Party Access
+                        Review Access
                     </CardTitle>
                     <Button 
                         variant="outline" 
@@ -232,12 +233,12 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     </Button>
                 </div>
                 <CardDescription className="text-sm leading-relaxed max-w-2xl">
-                    Authorized auditors can verify encrypted transaction records without exposing operational details on the public ledger.
+                    Approved reviewers can run private encrypted review tests and decrypt permitted audit context.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
-                    <h3 className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Authorized Auditors</h3>
+                    <h3 className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Approved Reviewers</h3>
                     
                     {isLoading ? (
                          <div className="py-4 flex justify-center text-muted-foreground">
@@ -246,7 +247,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     ) : auditors.length === 0 ? (
                         <div className="bg-muted/30 border border-dashed rounded-lg p-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                             <Fingerprint className="h-8 w-8 text-muted-foreground/50" />
-                            No external Auditors have been authorized.
+                            No external reviewers have been approved.
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -268,31 +269,31 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-sm font-medium">Add New Auditor</h3>
+                    <h3 className="text-sm font-medium">Add New Reviewer</h3>
                     <div className="flex gap-2">
                         <Input 
                             value={newAuditorAddress}
                             onChange={(e) => setNewAuditorAddress(e.target.value)}
                             placeholder="0x... (e.g. 0x123...abc)"
                             className="font-mono"
-                            disabled={isManaging || auditors.length >= 3}
+                            disabled={isManaging || auditors.length >= MAX_REVIEWERS}
                         />
                         <Button 
                             onClick={handleAdd} 
-                            disabled={isManaging || !newAuditorAddress || auditors.length >= 3}
+                            disabled={isManaging || !newAuditorAddress || auditors.length >= MAX_REVIEWERS}
                             className="shrink-0"
                         >
                             {isManaging ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                            Authorize Auditor
+                            Approve Reviewer
                         </Button>
                     </div>
-                    {auditors.length >= 3 && (
+                    {auditors.length >= MAX_REVIEWERS && (
                         <p className="text-sm text-destructive font-medium">
-                            You have reached the maximum limit of 3 external auditors. Please remove one to add another.
+                            You have reached the maximum limit of {MAX_REVIEWERS} external reviewers. Remove one before adding another.
                         </p>
                     )}
                     <p className="text-xs text-muted-foreground font-mono">
-                        Authorizing an address grants permission to decrypt and verify compliance metadata associated with this wallet.
+                        Approving an address grants access to the reviewer portal for this wallet. Removed reviewers lose future review-test access, but historical FHE decrypt grants cannot be cryptographically revoked.
                     </p>
                 </div>
             </CardContent>

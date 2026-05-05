@@ -38,7 +38,7 @@ export default function UseCases() {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-outline block mb-4">Who is Complyr for?</span>
-            <h2 className="text-5xl font-bold tracking-tighter uppercase leading-[1.1] mb-8 text-black">Any business that pays people on-chain needs a compliance layer.</h2>
+            <h2 className="text-5xl font-bold tracking-tighter uppercase leading-[1.1] mb-8 text-black">Any business that pays people on-chain needs a private audit layer.</h2>
             <div className="h-2 w-24 bg-primary mb-12"></div>
             <p className="text-sm text-gray-500 uppercase leading-loose tracking-tighter max-w-xs">
               From decentralized protocols to established fintech platforms moving to the public ledger.

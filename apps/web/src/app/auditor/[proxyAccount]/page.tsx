@@ -16,7 +16,7 @@ export default async function AuditorPage({
                     <div className="flex items-center gap-4">
                         <Image src="/complyrlogo.svg" alt="Complyr" width={100} height={24} className="h-5 w-auto" />
                         <span className="font-mono font-normal text-muted-foreground text-[10px] uppercase tracking-widest hidden sm:inline-block border-l pl-4 border-muted-foreground/20">
-                            External Auditor Portal
+                            External Review Portal
                         </span>
                     </div>
                 </div>
