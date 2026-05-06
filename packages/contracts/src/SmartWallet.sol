@@ -10,7 +10,7 @@ import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.s
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISmartWallet} from "./ISmartWallet.sol";
-import {IComplianceRegistry} from "./IComplianceRegistry.sol";
+import {IAuditRegistry} from "./IAuditRegistry.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "encrypted-types/EncryptedTypes.sol";
 
@@ -18,7 +18,7 @@ import "encrypted-types/EncryptedTypes.sol";
  * @title Smart Wallet
  * @author zion Livingstone
  * @notice ERC-4337 compliant smart account. Supports native ETH and ERC-20 stablecoin transfers.
- *         Records encrypted compliance metadata directly to the on-chain ComplianceRegistry.
+ *         Records encrypted audit metadata directly to the on-chain AuditRegistry.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
 contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
@@ -35,7 +35,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         bytes data;
     }
 
-    struct ComplianceData {
+    struct AuditData {
         externalEuint128[] amountHandles;
         bytes[] amountProofs;
         externalEuint8[] categoryHandles;
@@ -55,8 +55,8 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Intent registry authorized to trigger scheduled transfers.
     address public immutable INTENT_REGISTRY;
 
-    /// @notice On-chain compliance registry on Ethereum Sepolia.
-    address public immutable COMPLIANCE_REGISTRY;
+    /// @notice On-chain audit registry on Ethereum Sepolia.
+    address public immutable AUDIT_REGISTRY;
 
     /// @notice Amount of funds committed to intents (locked) per token.
     /// @dev address(0) is used for native ETH.
@@ -109,8 +109,8 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /// @notice Emitted when an ERC-20 token transfer is executed.
     event ERC20Transferred(address indexed token, address indexed to, uint256 amount);
 
-    /// @notice Emitted when a compliance record is stored on-chain.
-    event ComplianceRecorded(bytes32 indexed txHash);
+    /// @notice Emitted when a audit record is stored on-chain.
+    event AuditRecorded(bytes32 indexed txHash);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -120,12 +120,12 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     error SmartWallet__Unauthorized();
     error SmartWallet__OwnerIsZeroAddress();
     error SmartWallet__IntentRegistryZeroAddress();
-    error SmartWallet__ComplianceRegistryZeroAddress();
+    error SmartWallet__AuditRegistryZeroAddress();
     error SmartWallet__InvalidBatchInput();
     error SmartWallet__InsufficientUncommittedFunds();
     error SmartWallet__NotFromRegistry();
     error SmartWallet__InvalidCommitmentDecrease();
-    error SmartWallet__ComplianceRequired();
+    error SmartWallet__AuditRequired();
 
     bytes4 private constant _ERC20_TRANSFER_SELECTOR = IERC20.transfer.selector;
     bytes4 private constant _ERC20_TRANSFER_FROM_SELECTOR = IERC20.transferFrom.selector;
@@ -166,13 +166,13 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     /**
      * @notice Initializes immutable addresses. Disables proxy initialization.
      * @param registry    The IntentRegistry address.
-     * @param complianceRegistry The on-chain ComplianceRegistry on Ethereum Sepolia.
+     * @param auditRegistry The on-chain AuditRegistry on Ethereum Sepolia.
      */
-    constructor(address registry, address complianceRegistry) {
+    constructor(address registry, address auditRegistry) {
         if (registry == address(0)) revert SmartWallet__IntentRegistryZeroAddress();
-        if (complianceRegistry == address(0)) revert SmartWallet__ComplianceRegistryZeroAddress();
+        if (auditRegistry == address(0)) revert SmartWallet__AuditRegistryZeroAddress();
         INTENT_REGISTRY = registry;
-        COMPLIANCE_REGISTRY = complianceRegistry;
+        AUDIT_REGISTRY = auditRegistry;
         _disableInitializers();
     }
 
@@ -306,55 +306,55 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Disabled. Use transferERC20WithCompliance so every payment records compliance metadata atomically.
+     * @notice Disabled. Use transferERC20WithAudit so every payment records audit metadata atomically.
      */
     function transferERC20(address, address, uint256)
         external
         view
         onlyEntryPointOrOwner
     {
-        revert SmartWallet__ComplianceRequired();
+        revert SmartWallet__AuditRequired();
     }
 
-    function transferERC20WithCompliance(
+    function transferERC20WithAudit(
         bytes32 recordId,
         address token,
         address to,
         uint256 amount,
-        ComplianceData calldata compliance
+        AuditData calldata audit
     ) external nonReentrant onlyEntryPointOrOwner {
         address[] memory recipients = new address[](1);
         recipients[0] = to;
 
-        _recordCompliance(recordId, token, recipients, compliance);
+        _recordAudit(recordId, token, recipients, audit);
 
         _checkCommitment(token, amount);
         IERC20(token).safeTransfer(to, amount);
         emit ERC20Transferred(token, to, amount);
-        emit ComplianceRecorded(recordId);
+        emit AuditRecorded(recordId);
     }
 
     /**
-     * @notice Disabled. Use batchTransferERC20WithCompliance so every payment records compliance metadata atomically.
+     * @notice Disabled. Use batchTransferERC20WithAudit so every payment records audit metadata atomically.
      */
     function batchTransferERC20(
         address,
         address[] calldata,
         uint256[] calldata
     ) external view onlyEntryPointOrOwner {
-        revert SmartWallet__ComplianceRequired();
+        revert SmartWallet__AuditRequired();
     }
 
-    function batchTransferERC20WithCompliance(
+    function batchTransferERC20WithAudit(
         bytes32 recordId,
         address token,
         address[] calldata recipients,
         uint256[] calldata amounts,
-        ComplianceData calldata compliance
+        AuditData calldata audit
     ) external nonReentrant onlyEntryPointOrOwner {
         if (recipients.length == 0 || recipients.length != amounts.length) revert SmartWallet__InvalidBatchInput();
 
-        _recordCompliance(recordId, token, recipients, compliance);
+        _recordAudit(recordId, token, recipients, audit);
 
         uint256 totalAmount = 0;
         for (uint256 i; i < amounts.length; i++) totalAmount += amounts[i];
@@ -364,31 +364,31 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             IERC20(token).safeTransfer(recipients[i], amounts[i]);
             emit ERC20Transferred(token, recipients[i], amounts[i]);
         }
-        emit ComplianceRecorded(recordId);
+        emit AuditRecorded(recordId);
     }
 
-    function transferNativeWithCompliance(
+    function transferNativeWithAudit(
         bytes32 recordId,
         address payable to,
         uint256 amount,
-        ComplianceData calldata compliance
+        AuditData calldata audit
     ) external payable nonReentrant onlyEntryPointOrOwner {
         address[] memory recipients = new address[](1);
         recipients[0] = to;
 
-        _recordCompliance(recordId, address(0), recipients, compliance);
+        _recordAudit(recordId, address(0), recipients, audit);
 
         _checkCommitment(address(0), amount);
         (bool success,) = to.call{value: amount}("");
         if (!success) revert SmartWallet__InvalidBatchInput();
-        emit ComplianceRecorded(recordId);
+        emit AuditRecorded(recordId);
     }
 
-    function batchTransferNativeWithCompliance(
+    function batchTransferNativeWithAudit(
         bytes32 recordId,
         address payable[] calldata recipients,
         uint256[] calldata amounts,
-        ComplianceData calldata compliance
+        AuditData calldata audit
     ) external payable nonReentrant onlyEntryPointOrOwner {
         if (recipients.length == 0 || recipients.length != amounts.length) revert SmartWallet__InvalidBatchInput();
 
@@ -397,7 +397,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             recipientAddresses[i] = recipients[i];
         }
 
-        _recordCompliance(recordId, address(0), recipientAddresses, compliance);
+        _recordAudit(recordId, address(0), recipientAddresses, audit);
 
         uint256 totalAmount = 0;
         for (uint256 i; i < amounts.length; i++) totalAmount += amounts[i];
@@ -407,17 +407,17 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             (bool success,) = recipients[i].call{value: amounts[i]}("");
             if (!success) revert SmartWallet__InvalidBatchInput();
         }
-        emit ComplianceRecorded(recordId);
+        emit AuditRecorded(recordId);
     }
 
     /*//////////////////////////////////////////////////////////////
-                     ON-CHAIN COMPLIANCE RECORDING
+                     ON-CHAIN AUDIT RECORDING
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Records Zama encrypted compliance data directly on Ethereum Sepolia.
+     * @notice Records Zama encrypted audit data directly on Ethereum Sepolia.
      */
-    function recordCompliance(
+    function recordAudit(
         bytes32 txHash,
         address token,
         address[] calldata recipients,
@@ -429,7 +429,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         bytes[] calldata jurisdictionProofs,
         string[] calldata referenceIds
     ) external onlyEntryPointOrOwner {
-        IComplianceRegistry(COMPLIANCE_REGISTRY).recordTransaction(
+        IAuditRegistry(AUDIT_REGISTRY).recordTransaction(
             txHash,
             address(this),
             token,
@@ -442,7 +442,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
             jurisdictionProofs,
             referenceIds
         );
-        emit ComplianceRecorded(txHash);
+        emit AuditRecorded(txHash);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -494,7 +494,7 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
 
     function _call(address target, uint256 value, bytes memory data) internal {
         if (target != address(this) && _isFinancialCall(value, data)) {
-            revert SmartWallet__ComplianceRequired();
+            revert SmartWallet__AuditRequired();
         }
 
         (bool success, bytes memory result) = target.call{value: value}(data);
@@ -505,24 +505,24 @@ contract SmartWallet is IAccount, ISmartWallet, ReentrancyGuard, Initializable {
         }
     }
 
-    function _recordCompliance(
+    function _recordAudit(
         bytes32 recordId,
         address token,
         address[] memory recipients,
-        ComplianceData calldata compliance
+        AuditData calldata audit
     ) internal {
-        IComplianceRegistry(COMPLIANCE_REGISTRY).recordTransaction(
+        IAuditRegistry(AUDIT_REGISTRY).recordTransaction(
             recordId,
             address(this),
             token,
             recipients,
-            compliance.amountHandles,
-            compliance.amountProofs,
-            compliance.categoryHandles,
-            compliance.categoryProofs,
-            compliance.jurisdictionHandles,
-            compliance.jurisdictionProofs,
-            compliance.referenceIds
+            audit.amountHandles,
+            audit.amountProofs,
+            audit.categoryHandles,
+            audit.categoryProofs,
+            audit.jurisdictionHandles,
+            audit.jurisdictionProofs,
+            audit.referenceIds
         );
     }
 

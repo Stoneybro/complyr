@@ -16,7 +16,7 @@ import { Download } from "lucide-react";
 import { TransactionItemProps } from "@/hooks/useWalletHistory";
 import { ActivityType } from "@/lib/envio/client";
 
-interface ComplianceSummaryProps {
+interface AuditSummaryProps {
     transactions?: TransactionItemProps[];
     isLoading?: boolean;
 }
@@ -44,10 +44,10 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
     "SUBSCRIPTION": { label: "Subscription", color: "bg-cyan-100 text-cyan-800" },
 };
 
-export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSummaryProps) {
-    // Extract compliance-related transactions
-    const complianceData = useMemo(() => {
-        const complianceTxs = transactions.filter((tx) =>
+export function AuditSummary({ transactions = [], isLoading }: AuditSummaryProps) {
+    // Extract audit-related transactions
+    const auditData = useMemo(() => {
+        const auditTxs = transactions.filter((tx) =>
             tx.type === ActivityType.INTENT_CREATED ||
             tx.type === ActivityType.INTENT_EXECUTION
         );
@@ -55,10 +55,10 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
         const byJurisdiction: Record<string, { count: number; total: number }> = {};
         const byCategory: Record<string, { count: number; total: number }> = {};
 
-        complianceTxs.forEach((tx) => {
+        auditTxs.forEach((tx) => {
             const details = tx.details || {};
-            const jurisdiction = details.compliance?.jurisdiction || details.jurisdiction || "";
-            const category = details.compliance?.category || details.category || "";
+            const jurisdiction = details.audit?.jurisdiction || details.jurisdiction || "";
+            const category = details.audit?.category || details.category || "";
             const amount = parseFloat(details.totalAmount || "0");
 
             if (jurisdiction) {
@@ -75,7 +75,7 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
         });
 
         return {
-            transactions: complianceTxs,
+            transactions: auditTxs,
             byJurisdiction,
             byCategory,
             jurisdictionCount: Object.keys(byJurisdiction).length,
@@ -86,15 +86,15 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
     // Export to CSV
     const handleExport = () => {
         const headers = ["Date", "Name", "Amount", "Category", "Jurisdiction", "Reference"];
-        const rows = complianceData.transactions.map((tx) => {
+        const rows = auditData.transactions.map((tx) => {
             const details = tx.details || {};
             return [
                 new Date(tx.timestamp).toISOString().split("T")[0],
                 details.scheduleName || "Untitled",
                 parseFloat(details.totalAmount || "0").toFixed(2),
-                details.compliance?.category || details.category || "",
-                details.compliance?.jurisdiction || details.jurisdiction || "",
-                details.compliance?.referenceId || details.referenceId || "",
+                details.audit?.category || details.category || "",
+                details.audit?.jurisdiction || details.jurisdiction || "",
+                details.audit?.referenceId || details.referenceId || "",
             ];
         });
 
@@ -103,36 +103,36 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `compliance-report-${new Date().toISOString().split("T")[0]}.csv`;
+        a.download = `audit-report-${new Date().toISOString().split("T")[0]}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
-    const hasComplianceData = complianceData.jurisdictionCount > 0 || complianceData.categoryCount > 0;
+    const hasAuditData = auditData.jurisdictionCount > 0 || auditData.categoryCount > 0;
 
     return (
         <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2">
             {/* Jurisdiction Card */}
             <Card className="@container/card">
                 <CardHeader>
-                    <CardDescription>Compliance by Jurisdiction</CardDescription>
+                    <CardDescription>Audit by Jurisdiction</CardDescription>
                     <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                         {isLoading ? (
                             <Skeleton className="h-8 w-16" />
                         ) : (
-                            `${complianceData.jurisdictionCount} Regions`
+                            `${auditData.jurisdictionCount} Regions`
                         )}
                     </CardTitle>
                     <CardAction>
-                        <Button variant="ghost" size="sm" onClick={handleExport} disabled={!hasComplianceData}>
+                        <Button variant="ghost" size="sm" onClick={handleExport} disabled={!hasAuditData}>
                             <Download className="h-4 w-4" />
                         </Button>
                     </CardAction>
                 </CardHeader>
                 <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                    {complianceData.jurisdictionCount > 0 ? (
+                    {auditData.jurisdictionCount > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                            {Object.entries(complianceData.byJurisdiction).slice(0, 3).map(([key, data]) => {
+                            {Object.entries(auditData.byJurisdiction).slice(0, 3).map(([key, data]) => {
                                 const config = JURISDICTION_CONFIG[key] || { label: key, flag: "🌍" };
                                 return (
                                     <Badge key={key} variant="secondary" className="text-xs">
@@ -140,15 +140,15 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
                                     </Badge>
                                 );
                             })}
-                            {Object.keys(complianceData.byJurisdiction).length > 3 && (
+                            {Object.keys(auditData.byJurisdiction).length > 3 && (
                                 <Badge variant="secondary" className="text-xs">
-                                    +{Object.keys(complianceData.byJurisdiction).length - 3} more
+                                    +{Object.keys(auditData.byJurisdiction).length - 3} more
                                 </Badge>
                             )}
                         </div>
                     ) : (
                         <div className="text-muted-foreground">
-                            No jurisdiction data yet - use compliance metadata
+                            No jurisdiction data yet - use audit metadata
                         </div>
                     )}
                 </CardFooter>
@@ -157,12 +157,12 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
             {/* Category Card */}
             <Card className="@container/card">
                 <CardHeader>
-                    <CardDescription>Compliance by Category</CardDescription>
+                    <CardDescription>Audit by Category</CardDescription>
                     <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                         {isLoading ? (
                             <Skeleton className="h-8 w-16" />
                         ) : (
-                            `${complianceData.categoryCount} Types`
+                            `${auditData.categoryCount} Types`
                         )}
                     </CardTitle>
                     <CardAction>
@@ -170,9 +170,9 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
                     </CardAction>
                 </CardHeader>
                 <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                    {complianceData.categoryCount > 0 ? (
+                    {auditData.categoryCount > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                            {Object.entries(complianceData.byCategory).map(([key, data]) => {
+                            {Object.entries(auditData.byCategory).map(([key, data]) => {
                                 const config = CATEGORY_CONFIG[key] || { label: key, color: "bg-gray-100 text-gray-800" };
                                 return (
                                     <Badge key={key} className={config.color}>
@@ -183,7 +183,7 @@ export function ComplianceSummary({ transactions = [], isLoading }: ComplianceSu
                         </div>
                     ) : (
                         <div className="text-muted-foreground">
-                            No category data yet - add compliance metadata
+                            No category data yet - add audit metadata
                         </div>
                     )}
                 </CardFooter>

@@ -1,11 +1,11 @@
 
 import { Card, CardContent, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComplianceStats } from "@/hooks/useComplianceData";
+import { AuditStats } from "@/hooks/useAuditData";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-export function ComplianceOverview({ stats }: { stats: ComplianceStats | null }) {
+export function AuditOverview({ stats }: { stats: AuditStats | null }) {
     if (!stats) return <div>Loading insights...</div>;
 
     const formatCurrency = (amount: number) => {

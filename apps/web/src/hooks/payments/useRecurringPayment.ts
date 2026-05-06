@@ -6,8 +6,8 @@ import { encodeFunctionData, parseUnits } from "viem";
 import { IntentRegistryABI } from "@/lib/abi/IntentRegistryABI";
 import { RegistryAddress, MockUSDCAddress } from "@/lib/CA";
 import { RecurringPaymentParams } from "./types";
-import { encryptComplianceInput } from "@/lib/fhe-compliance";
-import { assertRequiredCompliance } from "./utils";
+import { encryptAuditInput } from "@/lib/fhe-audit";
+import { assertRequiredAudit } from "./utils";
 
 export function useRecurringPayment() {
     const { getClient } = useSmartAccountContext();
@@ -33,24 +33,24 @@ export function useRecurringPayment() {
 
                 const amountsInUnits = params.amounts.map((amount) => parseUnits(amount, decimals));
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
-                assertRequiredCompliance(params.compliance, params.recipients.length);
+                assertRequiredAudit(params.audit, params.recipients.length);
 
-                // 1. Client-side Zama encryption of recurring compliance fields.
+                // 1. Client-side Zama encryption of recurring audit fields.
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting recurring compliance fields...");
-                const encryptedCompliance = await (async () => {
+                const loadingId = toast.loading("Encrypting recurring audit fields...");
+                const encryptedAudit = await (async () => {
                     try {
-                        return await encryptComplianceInput({
+                        return await encryptAuditInput({
                             callerAddress: RegistryAddress,
                             amounts: amountsInUnits,
-                            categories: params.compliance?.categories,
-                            jurisdictions: params.compliance?.jurisdictions,
-                            referenceIds: params.compliance?.referenceIds,
+                            categories: params.audit?.categories,
+                            jurisdictions: params.audit?.jurisdictions,
+                            referenceIds: params.audit?.referenceIds,
                         });
                     } catch (e) {
                         console.error(e);
                         statusUpdate("Error");
-                        throw new Error("Failed to encrypt compliance parameters.");
+                        throw new Error("Failed to encrypt audit parameters.");
                     } finally {
                         toast.dismiss(loadingId);
                     }
@@ -70,13 +70,13 @@ export function useRecurringPayment() {
                         BigInt(params.duration),
                         BigInt(params.interval),
                         BigInt(params.transactionStartTime || (Math.floor(Date.now() / 1000) + 120)),
-                        encryptedCompliance.amountHandles,
-                        encryptedCompliance.amountProofs,
-                        encryptedCompliance.categoryHandles,
-                        encryptedCompliance.categoryProofs,
-                        encryptedCompliance.jurisdictionHandles,
-                        encryptedCompliance.jurisdictionProofs,
-                        encryptedCompliance.referenceIds,
+                        encryptedAudit.amountHandles,
+                        encryptedAudit.amountProofs,
+                        encryptedAudit.categoryHandles,
+                        encryptedAudit.categoryProofs,
+                        encryptedAudit.jurisdictionHandles,
+                        encryptedAudit.jurisdictionProofs,
+                        encryptedAudit.referenceIds,
                     ],
                 });
 
@@ -112,7 +112,7 @@ export function useRecurringPayment() {
                 }
 
                 statusUpdate("Complete");
-                toast.success("Recurring intent created and compliance recorded!");
+                toast.success("Recurring intent created and audit recorded!");
 
                 return receipt;
             } catch (error) {

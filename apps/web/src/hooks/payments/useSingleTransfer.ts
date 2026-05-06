@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
 import { parseUnits, encodeFunctionData } from "viem";
 import { SingleTransferParams } from "./types";
-import { assertRequiredCompliance, checkSufficientBalance, createComplianceRecordId } from "./utils";
+import { assertRequiredAudit, checkSufficientBalance, createAuditRecordId } from "./utils";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
 import { MockUSDCAddress } from "@/lib/CA";
-import { encryptComplianceInput } from "@/lib/fhe-compliance";
+import { encryptAuditInput } from "@/lib/fhe-audit";
 
 export function useSingleTransfer(availableBalance?: string) {
     const { getClient } = useSmartAccountContext();
@@ -47,39 +47,39 @@ export function useSingleTransfer(availableBalance?: string) {
                 const amountInUnits = parseUnits(params.amount, decimals);
                 const proxyAddress = smartAccountClient.account!.address;
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
-                assertRequiredCompliance(params.compliance, 1);
+                assertRequiredAudit(params.audit, 1);
 
                 // 1. Client-side Zama encryption
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting compliance fields...");
-                let encryptedCompliance;
+                const loadingId = toast.loading("Encrypting audit fields...");
+                let encryptedAudit;
                 try {
-                    encryptedCompliance = await encryptComplianceInput({
+                    encryptedAudit = await encryptAuditInput({
                         callerAddress: proxyAddress,
                         amounts: [amountInUnits],
-                        categories: [params.compliance?.categories?.[0] ?? 0],
-                        jurisdictions: [params.compliance?.jurisdictions?.[0] ?? 0],
-                        referenceIds: [params.compliance?.referenceIds?.[0] ?? ""],
+                        categories: [params.audit?.categories?.[0] ?? 0],
+                        jurisdictions: [params.audit?.jurisdictions?.[0] ?? 0],
+                        referenceIds: [params.audit?.referenceIds?.[0] ?? ""],
                     });
                     toast.dismiss(loadingId);
                 } catch (e) {
                     console.error(e);
                     toast.dismiss(loadingId);
                     statusUpdate("Error");
-                    throw new Error("Failed to encrypt compliance parameters.");
+                    throw new Error("Failed to encrypt audit parameters.");
                 }
 
                 // 2. Setup atomic compliant transfer call.
                 const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
-                const recordId = createComplianceRecordId();
-                const complianceArg = {
-                    amountHandles: encryptedCompliance.amountHandles,
-                    amountProofs: encryptedCompliance.amountProofs,
-                    categoryHandles: encryptedCompliance.categoryHandles,
-                    categoryProofs: encryptedCompliance.categoryProofs,
-                    jurisdictionHandles: encryptedCompliance.jurisdictionHandles,
-                    jurisdictionProofs: encryptedCompliance.jurisdictionProofs,
-                    referenceIds: encryptedCompliance.referenceIds,
+                const recordId = createAuditRecordId();
+                const auditArg = {
+                    amountHandles: encryptedAudit.amountHandles,
+                    amountProofs: encryptedAudit.amountProofs,
+                    categoryHandles: encryptedAudit.categoryHandles,
+                    categoryProofs: encryptedAudit.categoryProofs,
+                    jurisdictionHandles: encryptedAudit.jurisdictionHandles,
+                    jurisdictionProofs: encryptedAudit.jurisdictionProofs,
+                    referenceIds: encryptedAudit.referenceIds,
                 };
 
                 if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
@@ -88,13 +88,13 @@ export function useSingleTransfer(availableBalance?: string) {
                         value: 0n,
                         data: encodeFunctionData({
                             abi: SmartWalletABI,
-                            functionName: "transferERC20WithCompliance",
+                            functionName: "transferERC20WithAudit",
                             args: [
                                 recordId,
                                 params.tokenAddress,
                                 params.to,
                                 amountInUnits,
-                                complianceArg,
+                                auditArg,
                             ],
                         })
                     });
@@ -104,12 +104,12 @@ export function useSingleTransfer(availableBalance?: string) {
                         value: amountInUnits,
                         data: encodeFunctionData({
                             abi: SmartWalletABI,
-                            functionName: "transferNativeWithCompliance",
+                            functionName: "transferNativeWithAudit",
                             args: [
                                 recordId,
                                 params.to,
                                 amountInUnits,
-                                complianceArg,
+                                auditArg,
                             ],
                         }),
                     });

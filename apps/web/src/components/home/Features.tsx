@@ -21,8 +21,8 @@ const features = [
   },
   {
     icon: 'lock',
-    title: 'Private Audit Data',
-    body: 'Sensitive payment context and reviewer thresholds are secured with Zama FHE on Ethereum Sepolia.',
+    title: 'Encrypted Audit Layer',
+    body: 'Zama FHE lets the contract run checks on private data without decrypting it. Auditors get answers, not access.',
   },
   {
     icon: 'fingerprint',
@@ -31,8 +31,8 @@ const features = [
   },
   {
     icon: 'policy',
-    title: 'Reviewer Portal',
-    body: 'An isolated environment for external reviewers to run encrypted threshold tests without exposing underlying corporate data.',
+    title: 'External Audit Portal',
+    body: 'Give specific auditors a private portal. They set their own rules, the contract checks payments against those rules, and they decrypt only the outcome.',
   },
 ];
 
@@ -48,11 +48,11 @@ export default function Features() {
           className="mb-20"
         >
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-outline block mb-4">Built for real business operations</span>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight max-w-2xl">Everything a corporate treasury needs. Nothing it doesn't.</h2>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight max-w-2xl">Everything a corporate treasury needs. Nothing it doesn&apos;t.</h2>
         </motion.div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-outline-variant/20 border border-outline-variant/20 mt-12">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <div 
               key={f.title}
               className="bg-surface p-10 flex flex-col justify-between min-h-[280px] hover:bg-surface-container-high transition-colors"

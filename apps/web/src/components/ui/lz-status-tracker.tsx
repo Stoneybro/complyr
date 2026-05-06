@@ -11,7 +11,7 @@ interface LZStatusTrackerProps {
   className?: string;
 }
 
-export function LZStatusTracker({ status, title = "Compliance Wallet Deployment", className }: LZStatusTrackerProps) {
+export function LZStatusTracker({ status, title = "Audit Wallet Deployment", className }: LZStatusTrackerProps) {
   if (status === "idle") return null;
 
   const steps = [
@@ -23,8 +23,8 @@ export function LZStatusTracker({ status, title = "Compliance Wallet Deployment"
       icon: CircleDashed,
     },
     {
-      id: "compliance",
-      label: "Compliance Registry Initialization",
+      id: "audit",
+      label: "Audit Registry Initialization",
       activeStates: [],
       completedStates: ["confirmed"],
       icon: ShieldCheck,

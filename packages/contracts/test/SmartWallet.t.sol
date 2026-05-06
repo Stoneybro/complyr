@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/SmartWallet.sol";
 import "../src/SmartWalletFactory.sol";
-import "../src/IComplianceRegistry.sol";
+import "../src/IAuditRegistry.sol";
 import "encrypted-types/EncryptedTypes.sol";
 
-contract MockWalletComplianceRegistry is IComplianceRegistry {
+contract MockWalletAuditRegistry is IAuditRegistry {
     mapping(address => address) public companyMasters;
     mapping(address => uint256) public recordCounts;
 
@@ -41,13 +41,13 @@ contract MockWalletComplianceRegistry is IComplianceRegistry {
 
 /**
  * @notice Unit tests for SmartWallet on Ethereum Sepolia.
- *         Uses a live ComplianceRegistry (deployed in setUp) instead of a bridge mock.
+ *         Uses a live AuditRegistry (deployed in setUp) instead of a bridge mock.
  */
 contract SmartWalletTest is Test {
     SmartWallet implementation;
     SmartWallet wallet;
     SmartWalletFactory factory;
-    MockWalletComplianceRegistry registry;
+    MockWalletAuditRegistry registry;
 
     address owner = makeAddr("owner");
     address recipient = makeAddr("recipient");
@@ -58,16 +58,16 @@ contract SmartWalletTest is Test {
         vm.label(entryPoint, "EntryPoint");
         vm.etch(dummyRegistry, "1");
 
-        // Deploy the on-chain ComplianceRegistry
-        registry = new MockWalletComplianceRegistry();
+        // Deploy the on-chain AuditRegistry
+        registry = new MockWalletAuditRegistry();
 
-        // Deploy SmartWallet implementation pointing to complianceRegistry
+        // Deploy SmartWallet implementation pointing to auditRegistry
         implementation = new SmartWallet(dummyRegistry, address(registry));
 
-        // Deploy factory — also points to the ComplianceRegistry
+        // Deploy factory — also points to the AuditRegistry
         factory = new SmartWalletFactory(address(implementation), address(registry));
 
-        // Authorize factory in ComplianceRegistry
+        // Authorize factory in AuditRegistry
         registry.setFactory(address(factory));
         registry.setAuthorizedCaller(dummyRegistry, true); // Authorize dummy intent registry
 
@@ -81,7 +81,7 @@ contract SmartWalletTest is Test {
     function test_Initialization() public view {
         assertEq(wallet.sOwner(), owner);
         assertEq(wallet.INTENT_REGISTRY(), dummyRegistry);
-        assertEq(wallet.COMPLIANCE_REGISTRY(), address(registry));
+        assertEq(wallet.AUDIT_REGISTRY(), address(registry));
     }
 
     function test_RegistryRegistration() public view {
@@ -107,7 +107,7 @@ contract SmartWalletTest is Test {
         vm.deal(address(wallet), amount);
 
         vm.prank(owner);
-        vm.expectRevert(SmartWallet.SmartWallet__ComplianceRequired.selector);
+        vm.expectRevert(SmartWallet.SmartWallet__AuditRequired.selector);
         wallet.execute(recipient, amount, "");
     }
 
@@ -116,11 +116,11 @@ contract SmartWalletTest is Test {
         vm.deal(address(wallet), amount);
 
         vm.prank(owner);
-        wallet.transferNativeWithCompliance(
+        wallet.transferNativeWithAudit(
             keccak256("compliant-payment"),
             payable(recipient),
             amount,
-            _mockComplianceData(1)
+            _mockAuditData(1)
         );
 
         assertEq(recipient.balance, amount);
@@ -137,7 +137,7 @@ contract SmartWalletTest is Test {
         calls[1] = SmartWallet.Call({target: recipient2, value: amount2, data: ""});
 
         vm.prank(owner);
-        vm.expectRevert(SmartWallet.SmartWallet__ComplianceRequired.selector);
+        vm.expectRevert(SmartWallet.SmartWallet__AuditRequired.selector);
         wallet.executeBatch(calls);
     }
 
@@ -156,11 +156,11 @@ contract SmartWalletTest is Test {
         amounts[1] = amount2;
 
         vm.prank(owner);
-        wallet.batchTransferNativeWithCompliance(
+        wallet.batchTransferNativeWithAudit(
             keccak256("compliant-batch"),
             recipients,
             amounts,
-            _mockComplianceData(2)
+            _mockAuditData(2)
         );
 
         assertEq(recipient.balance, amount1);
@@ -190,7 +190,7 @@ contract SmartWalletTest is Test {
         assertEq(magicValue, bytes4(0x1626ba7e));
     }
 
-    function test_RecordCompliance() public {
+    function test_RecordAudit() public {
         address[] memory recipients = new address[](1);
         recipients[0] = recipient;
         externalEuint128[] memory encryptedAmountHandles = new externalEuint128[](1);
@@ -205,7 +205,7 @@ contract SmartWalletTest is Test {
         bytes32 txHash = keccak256("test-payment-1");
 
         vm.prank(owner);
-        wallet.recordCompliance(
+        wallet.recordAudit(
             txHash,
             address(0),
             recipients,
@@ -221,17 +221,17 @@ contract SmartWalletTest is Test {
         assertEq(registry.getRecordCount(address(wallet)), 1);
     }
 
-    function _mockComplianceData(uint256 length) internal pure returns (SmartWallet.ComplianceData memory complianceData) {
-        complianceData.amountHandles = new externalEuint128[](length);
-        complianceData.amountProofs = new bytes[](length);
-        complianceData.categoryHandles = new externalEuint8[](length);
-        complianceData.categoryProofs = new bytes[](length);
-        complianceData.jurisdictionHandles = new externalEuint8[](length);
-        complianceData.jurisdictionProofs = new bytes[](length);
-        complianceData.referenceIds = new string[](length);
+    function _mockAuditData(uint256 length) internal pure returns (SmartWallet.AuditData memory auditData) {
+        auditData.amountHandles = new externalEuint128[](length);
+        auditData.amountProofs = new bytes[](length);
+        auditData.categoryHandles = new externalEuint8[](length);
+        auditData.categoryProofs = new bytes[](length);
+        auditData.jurisdictionHandles = new externalEuint8[](length);
+        auditData.jurisdictionProofs = new bytes[](length);
+        auditData.referenceIds = new string[](length);
 
         for (uint256 i; i < length; i++) {
-            complianceData.referenceIds[i] = "ref";
+            auditData.referenceIds[i] = "ref";
         }
     }
 }

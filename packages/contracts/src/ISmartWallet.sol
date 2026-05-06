@@ -53,9 +53,9 @@ interface ISmartWallet {
     function getAvailableBalance(address token) external view returns (uint256);
 
     /**
-     * @notice Records Zama encrypted compliance data directly on Ethereum Sepolia.
+     * @notice Records Zama encrypted audit data directly on Ethereum Sepolia.
      */
-    function recordCompliance(
+    function recordAudit(
         bytes32 txHash,
         address token,
         address[] calldata recipients,

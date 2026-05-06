@@ -5,7 +5,7 @@ description: Deep dive into the Ethereum Sepolia smart contracts.
 
 ## Smart Contract Layer — Ethereum Sepolia
 
-The Ethereum Sepolia layer handles payment execution and compliance metadata collection. It consists of these main contracts.
+The Ethereum Sepolia layer handles payment execution and audit metadata collection. It consists of these main contracts.
 
 ### SmartWallet
 
@@ -25,11 +25,11 @@ The factory deploys and tracks smart wallet clones. It accepts a single `owner` 
 
 For testnet purposes, the factory is configured with a `MockUSDC` drip so newly onboarded wallets can receive stablecoin funds for simulated treasury flows.
 
-The factory also triggers automatic company registration on the ComplianceRegistry at wallet creation time. This establishes the identity link mapping the wallet proxy address to the owner's EOA at the earliest possible moment.
+The factory also triggers automatic company registration on the AuditRegistry at wallet creation time. This establishes the identity link mapping the wallet proxy address to the owner's EOA at the earliest possible moment.
 
 ### IntentRegistry
 
-The IntentRegistry is the scheduling and compliance dispatch engine. It manages the full lifecycle of recurring payment intents.
+The IntentRegistry is the scheduling and audit dispatch engine. It manages the full lifecycle of recurring payment intents.
 
 **Creating an intent.** The caller provides:
 - `name` — a human-readable label
@@ -38,19 +38,19 @@ The IntentRegistry is the scheduling and compliance dispatch engine. It manages 
 - `interval` — time between executions in seconds (minimum 30s)
 - `transactionStartTime` — Unix timestamp for first execution (0 = immediate)
 
-The registry validates fund availability, calculates total commitment (`amountPerCycle × totalCycles`), locks funds via `increaseCommitment`, and dispatches a compliance report at creation time. For recurring payments, each execution should ideally produce a corresponding compliance record referencing the originating intent.
+The registry validates fund availability, calculates total commitment (`amountPerCycle × totalCycles`), locks funds via `increaseCommitment`, and dispatches a audit report at creation time. For recurring payments, each execution should ideally produce a corresponding audit record referencing the originating intent.
 
 **Executing an intent.** The registry implements `checkUpkeep` and `performUpkeep`, the Chainlink Automation interface. Automation nodes call `checkUpkeep` and trigger `performUpkeep` when execution conditions are met. Execution is skipped (not reverted) if a recipient transfer fails, with the failed amount tracked in `intent.failedAmount` for recovery.
 
 **Cancelling an intent.** The wallet owner can cancel any active intent at any time. The remaining committed funds are released immediately.
 
-### ComplianceRegistry
+### AuditRegistry
 
-The ComplianceRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the wallet proxy address.
+The AuditRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the wallet proxy address.
 
-Each compliance record stores:
+Each audit record stores:
 - `txHash` — the deterministic link to the transaction or intent execution
-- `recipients[]` and `amounts[]` — plaintext payment data. Payment amounts and recipient addresses remain public on the compliance ledger because they already exist on the public payment ledger. Only the compliance context is encrypted.
+- `recipients[]` and `amounts[]` — plaintext payment data. Payment amounts and recipient addresses remain public on the audit ledger because they already exist on the public payment ledger. Only the audit context is encrypted.
 - `encryptedPayload` — AES-256-GCM ciphertext encapsulating categories and jurisdictions
 - `timestamp` — block timestamp at record creation
 

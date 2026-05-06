@@ -11,7 +11,7 @@ import CopyText from "@/components/ui/copy";
 import { Button } from "@/components/ui/button";
 import { BalanceCards } from "./Balancecard";
 import { InfoCards } from "./InfoCard";
-import { ComplianceSummary } from "./ComplianceSummary";
+import { AuditSummary } from "./AuditSummary";
 import { TransactionItemProps, useWalletHistory } from "@/hooks/useWalletHistory";
 import { ActivityType } from "@/lib/envio/client";
 import { useMemo } from "react";

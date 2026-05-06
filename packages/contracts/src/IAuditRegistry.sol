@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import "encrypted-types/EncryptedTypes.sol";
 
 /**
- * @title IComplianceRegistry
- * @notice Interface for the Zama FHE compliance ledger on Ethereum Sepolia.
+ * @title IAuditRegistry
+ * @notice Interface for the Zama FHE audit ledger on Ethereum Sepolia.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
-interface IComplianceRegistry {
+interface IAuditRegistry {
     function setAuthorizedCaller(address caller, bool authorized) external;
 
     function registerAccount(address proxyAccount, address masterEOA) external;

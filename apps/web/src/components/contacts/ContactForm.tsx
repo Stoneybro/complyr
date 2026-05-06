@@ -23,7 +23,7 @@ import {
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Contact, CreateAddressInput } from '@/lib/contact-store';
-import { getJurisdictionOptions, getCategoryOptions } from '@/lib/compliance-enums';
+import { getJurisdictionOptions, getCategoryOptions } from '@/lib/audit-enums';
 
 // Use centralized jurisdiction and category options
 const JURISDICTIONS = getJurisdictionOptions();
@@ -121,7 +121,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
                 { ...data, contactId: contact.id },
                 {
                     onSuccess: () => {
-                        toast.success('Contact updated');
+                    toast.success('Contact updated.');
                         onClose();
                     },
                     onError: () => toast.error('Failed to update contact'),
@@ -130,7 +130,7 @@ export function ContactForm({ walletAddress, contact, onClose }: ContactFormProp
         } else {
             createContact(data, {
                 onSuccess: () => {
-                    toast.success('Contact created');
+                    toast.success('Contact saved.');
                     onClose();
                 },
                 onError: () => toast.error('Failed to create contact'),

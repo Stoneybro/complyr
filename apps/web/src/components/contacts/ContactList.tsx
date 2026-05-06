@@ -45,13 +45,8 @@ export function ContactList({ walletAddress, showForm, onCloseForm }: ContactLis
     onCloseForm();
   };
 
-  // Check if contact has any audit context
-  const hasComplianceInfo = (contact: Contact) => {
-    return contact.addresses.some(a => a.entityId || a.jurisdiction || a.category);
-  };
-
   // Get first audit context badge info
-  const getComplianceSummary = (contact: Contact) => {
+  const getAuditSummary = (contact: Contact) => {
     const addr = contact.addresses.find(a => a.entityId || a.jurisdiction || a.category);
     if (!addr) return null;
     return {
@@ -80,12 +75,12 @@ export function ContactList({ walletAddress, showForm, onCloseForm }: ContactLis
           </div>
         ) : contacts.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No contacts yet. Add one to get started!
+            No contacts yet. Add one to pre-fill audit records on future payments.
           </div>
         ) : (
           <div className="space-y-1 p-2">
             {contacts.map((contact) => {
-              const compliance = getComplianceSummary(contact);
+              const audit = getAuditSummary(contact);
               return (
                 <div
                   key={contact.id}
@@ -109,18 +104,18 @@ export function ContactList({ walletAddress, showForm, onCloseForm }: ContactLis
                     </div>
 
                     {/* Audit context badges */}
-                    {compliance && (
+                    {audit && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {compliance.jurisdiction && (
+                        {audit.jurisdiction && (
                           <Badge variant="secondary" className="text-[10px] h-5 px-1.5 gap-0.5">
                             <MapPin className="h-2.5 w-2.5" />
-                            {compliance.jurisdiction}
+                            {audit.jurisdiction}
                           </Badge>
                         )}
-                        {compliance.category && (
+                        {audit.category && (
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5">
                             <Tag className="h-2.5 w-2.5" />
-                            {compliance.category.replace('PAYROLL_', '').replace('_', ' ')}
+                            {audit.category.replace('PAYROLL_', '').replace('_', ' ')}
                           </Badge>
                         )}
                       </div>

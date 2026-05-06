@@ -11,33 +11,28 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Plus, Trash2, Users, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, Info } from "lucide-react";
 import { useRecurringPayment } from "@/hooks/payments/useRecurringPayment";
 import { useSingleTransfer } from "@/hooks/payments/useSingleTransfer";
 import { useBatchTransfer } from "@/hooks/payments/useBatchTransfer";
 import { useContacts } from "@/hooks/useContacts";
 import { toast } from "sonner";
-import type { Contact } from "@/lib/contact-store";
 import { MockUSDCAddress } from "@/lib/CA";
 import {
     stringsToJurisdictions,
     stringsToCategories,
     getJurisdictionOptions,
     getCategoryOptions
-} from "@/lib/compliance-enums";
+} from "@/lib/audit-enums";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWalletBalance } from "@/utils/helper";
 
 // Audit context options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
 const CATEGORY_OPTIONS = getCategoryOptions();
-
-const KYC_LEVEL_LABELS: Record<number, string> = {
-    0: "None", 1: "Basic", 2: "Advanced", 3: "Premium", 4: "Ultimate",
-};
 
 // Recipient with optional audit context from contact
 type RecipientData = {
@@ -47,18 +42,6 @@ type RecipientData = {
     jurisdiction?: string;
     category?: string;
     contactName?: string;
-};
-
-const KycCheck = ({ address }: { address: string }) => {
-    const isValid = /^0x[a-fA-F0-9]{40}$/.test(address);
-
-    if (!isValid) return null;
-
-    return (
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium mt-1 ml-1 bg-muted/10 px-1.5 py-0.5 rounded border border-border w-fit">
-            <Info className="h-2.5 w-2.5" /> External KYC required
-        </div>
-    );
 };
 
 // Extracted outside to prevent re-creation on every render (fixes focus loss)
@@ -89,7 +72,6 @@ const RecipientRow = React.memo(({
                     onChange={(e) => onUpdate(type, index, "address", e.target.value)}
                     className="font-mono text-sm"
                 />
-                <KycCheck address={recipient.address} />
             </div>
             <div className="relative w-32 space-y-2">
                 <Label className="text-xs text-muted-foreground">Amount</Label>
@@ -118,7 +100,7 @@ const RecipientRow = React.memo(({
             )}
         </div>
         <div className="pt-3 border-t border-dashed">
-            <h4 className="text-sm font-medium mb-3">Audit Context (Encrypted)</h4>
+            <h4 className="text-sm font-medium mb-3">Audit Record (Encrypted)</h4>
             <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Reference ID</Label>
@@ -310,8 +292,8 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
         }
     };
 
-    // Build compliance metadata from recipients (per-recipient arrays, converted to enum values)
-    const buildCompliance = (recipients: RecipientData[]) => {
+    // Build audit metadata from recipients (per-recipient arrays, converted to enum values)
+    const buildAudit = (recipients: RecipientData[]) => {
         // Collect per-recipient data as string arrays
         const jurisdictionStrings = recipients.map(r => r.jurisdiction);
         const categoryStrings = recipients.map(r => r.category);
@@ -330,8 +312,8 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
         };
     };
 
-    const validateRequiredCompliance = (recipients: RecipientData[]) => {
-        const missingCompliance = recipients.some((recipient) => (
+    const validateRequiredAudit = (recipients: RecipientData[]) => {
+        const missingAudit = recipients.some((recipient) => (
             !recipient.referenceId?.trim()
             || !recipient.jurisdiction
             || recipient.jurisdiction === "none"
@@ -339,7 +321,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
             || recipient.category === "none"
         ));
 
-        if (missingCompliance) {
+        if (missingAudit) {
             toast.error("Reference ID, jurisdiction, and category are required for every recipient");
             setTransactionStatus("");
             return false;
@@ -361,12 +343,12 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
-                if (!validateRequiredCompliance([singleRecipient])) return;
+                if (!validateRequiredAudit([singleRecipient])) return;
                 await singleMutation.mutateAsync({
                     to: singleRecipient.address as `0x${string}`,
                     amount: singleRecipient.amount,
                     tokenAddress,
-                    compliance: buildCompliance([singleRecipient]),
+                    audit: buildAudit([singleRecipient]),
                     onStatusUpdate: setTransactionStatus,
                 });
                 setSingleRecipient({ address: "", amount: "", referenceId: "" });
@@ -384,13 +366,13 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
-                if (!validateRequiredCompliance(validRecipients)) return;
+                if (!validateRequiredAudit(validRecipients)) return;
                 
                 await batchMutation.mutateAsync({
                     recipients: validRecipients.map(r => r.address as `0x${string}`),
                     amounts: validRecipients.map(r => r.amount),
                     tokenAddress,
-                    compliance: buildCompliance(validRecipients),
+                    audit: buildAudit(validRecipients),
                     onStatusUpdate: setTransactionStatus,
                 });
                 setBatchRecipients([{ address: "", amount: "", referenceId: "" }]);
@@ -417,7 +399,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     setTransactionStatus("");
                     return;
                 }
-                if (!validateRequiredCompliance(validRecipients)) return;
+                if (!validateRequiredAudit(validRecipients)) return;
                 await recurringMutation.mutateAsync({
                     name: recurringName,
                     recipients: validRecipients.map(r => r.address as `0x${string}`),
@@ -426,7 +408,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                     interval: parseInt(recurringInterval),
                     duration: parseInt(recurringDuration),
                     transactionStartTime: recurringStartDate ? Math.floor(new Date(recurringStartDate).getTime() / 1000) : 0,
-                    compliance: buildCompliance(validRecipients),
+                    audit: buildAudit(validRecipients),
                     onStatusUpdate: setTransactionStatus,
                 });
                 // Reset
@@ -454,7 +436,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                 <SelectContent>
                     {contacts.length === 0 ? (
                         <SelectItem value="empty" disabled className="text-sm text-foreground py-3 max-w-[250px] whitespace-normal pointer-events-none data-[disabled]:opacity-100">
-                            No contacts found. Use the sidebar to add a contact and automate audit context.
+                            No contacts found. Use the sidebar to add a contact and automate audit records.
                         </SelectItem>
                     ) : (
                         contacts.map((contact) => (
@@ -480,7 +462,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
             <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none py-3">
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                    You can create and manage contacts in the sidebar to automate audit context.
+                    Contacts pre-fill audit records automatically. Manage them in the sidebar.
                 </AlertDescription>
             </Alert>
         </div>
@@ -516,7 +498,6 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                                         onChange={(e) => setSingleRecipient({ ...singleRecipient, address: e.target.value })}
                                                         className="font-mono text-sm"
                                                     />
-                                                    <KycCheck address={singleRecipient.address} />
                                                 </div>
                                                 <div className="space-y-2 relative">
                                                     <Label htmlFor="single-amount" className="text-xs text-muted-foreground">Amount</Label>
@@ -536,7 +517,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                             </div>
                                             
                                             <div className="pt-3 border-t border-dashed">
-                                                <h4 className="text-sm font-medium mb-3">Audit Context (Encrypted)</h4>
+                                                <h4 className="text-sm font-medium mb-3">Audit Record (Encrypted)</h4>
                                                 <div className="grid grid-cols-3 gap-3">
                                                     <div className="space-y-1">
                                                         <Label htmlFor="single-ref" className="text-xs text-muted-foreground">Reference ID</Label>

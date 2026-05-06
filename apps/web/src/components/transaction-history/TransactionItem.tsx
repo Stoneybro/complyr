@@ -1,5 +1,5 @@
 import { TransactionItemProps } from '@/hooks/useWalletHistory';
-import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/compliance-enums";
+import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/audit-enums";
 import { ActivityType } from '@/lib/envio/client';
 import { cn } from '@/lib/utils';
 import { formatUnits } from 'viem';
@@ -107,11 +107,11 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                             
                             if (skipKeys.includes(key)) return null;
 
-                            if (key === 'compliance' && typeof value === 'object' && value !== null) {
+                            if (key === 'audit' && typeof value === 'object' && value !== null) {
                                 const comp = value as any;
                                 return (
                                     <div key={key} className="col-span-2 mt-2 bg-muted/20 p-2 rounded">
-                                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Compliance Data</span>
+                                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-1">Audit Data</span>
                                         <div className="grid grid-cols-2 gap-2 text-xs">
                                             {comp.entityIds?.length > 0 && (
                                                 <div className="col-span-2">

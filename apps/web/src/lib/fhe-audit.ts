@@ -1,6 +1,6 @@
 import { bytesToHex, getAddress } from "viem";
 
-import { ComplianceRegistryAddress } from "@/lib/CA";
+import { AuditRegistryAddress } from "@/lib/CA";
 
 type FhevmInstance = {
     createEncryptedInput: (contractAddress: string, userAddress: string) => {
@@ -31,7 +31,7 @@ type RelayerSdk = {
 let fhevmInstance: FhevmInstance | null = null;
 let sdkInitialized = false;
 
-export type EncryptedComplianceInput = {
+export type EncryptedAuditInput = {
     amountHandles: `0x${string}`[];
     amountProofs: `0x${string}`[];
     categoryHandles: `0x${string}`[];
@@ -68,16 +68,16 @@ async function getFhevmInstance() {
     return fhevmInstance;
 }
 
-export async function encryptComplianceInput(params: {
+export async function encryptAuditInput(params: {
     callerAddress: `0x${string}`;
     amounts: bigint[];
     categories?: number[];
     jurisdictions?: number[];
     referenceIds?: string[];
     registryAddress?: `0x${string}`;
-}): Promise<EncryptedComplianceInput> {
+}): Promise<EncryptedAuditInput> {
     const fhevm = await getFhevmInstance();
-    const registryAddress = getAddress(params.registryAddress ?? ComplianceRegistryAddress);
+    const registryAddress = getAddress(params.registryAddress ?? AuditRegistryAddress);
     const callerAddress = getAddress(params.callerAddress);
     const input = fhevm.createEncryptedInput(registryAddress, callerAddress);
 
@@ -117,7 +117,7 @@ export async function encryptThresholdInput(params: {
     registryAddress?: `0x${string}`;
 }): Promise<EncryptedThresholdInput> {
     const fhevm = await getFhevmInstance();
-    const registryAddress = getAddress(params.registryAddress ?? ComplianceRegistryAddress);
+    const registryAddress = getAddress(params.registryAddress ?? AuditRegistryAddress);
     const callerAddress = getAddress(params.callerAddress);
     const input = fhevm.createEncryptedInput(registryAddress, callerAddress);
 
@@ -131,7 +131,7 @@ export async function encryptThresholdInput(params: {
     };
 }
 
-export async function userDecryptComplianceHandles(params: {
+export async function userDecryptAuditHandles(params: {
     handles: `0x${string}`[];
     contractAddress?: `0x${string}`;
     userAddress: `0x${string}`;
@@ -140,7 +140,7 @@ export async function userDecryptComplianceHandles(params: {
     };
 }) {
     const fhevm = await getFhevmInstance();
-    const contractAddress = getAddress(params.contractAddress ?? ComplianceRegistryAddress);
+    const contractAddress = getAddress(params.contractAddress ?? AuditRegistryAddress);
     const userAddress = getAddress(params.userAddress);
     const keypair = fhevm.generateKeypair();
     const startTimestamp = Math.floor(Date.now() / 1000).toString();

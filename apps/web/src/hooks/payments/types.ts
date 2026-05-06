@@ -1,5 +1,5 @@
-// Compliance metadata for contract calls
-export type ComplianceMetadata = {
+// Audit metadata for contract calls
+export type AuditMetadata = {
     entityIds?: string[];       // Per-recipient identifiers (employee, vendor, customer ID)
     jurisdictions?: number[];   // Per-recipient enum values
     categories?: number[];      // Per-recipient enum values
@@ -7,7 +7,7 @@ export type ComplianceMetadata = {
 };
 
 // UI-friendly version with strings
-export type ComplianceMetadataUI = {
+export type AuditMetadataUI = {
     entityIds?: string[];
     jurisdictions?: string[];   
     categories?: string[];      
@@ -24,7 +24,7 @@ export type SingleTransferParams = {
     to: `0x${string}`;
     amount: string;
     tokenAddress?: `0x${string}`; // undefined for native ETH
-    compliance?: ComplianceMetadata;
+    audit?: AuditMetadata;
     onStatusUpdate?: (status: string) => void;
 };
 
@@ -32,7 +32,7 @@ export type BatchTransferParams = {
     recipients: `0x${string}`[];
     amounts: string[];
     tokenAddress?: `0x${string}`; // undefined for native ETH
-    compliance?: ComplianceMetadata;
+    audit?: AuditMetadata;
     onStatusUpdate?: (status: string) => void;
 };
 
@@ -45,7 +45,7 @@ export type RecurringPaymentParams = {
     interval: number;
     transactionStartTime: number;
     revertOnFailure?: boolean;
-    compliance?: ComplianceMetadata;
+    audit?: AuditMetadata;
     onStatusUpdate?: (status: string) => void;
 };
 

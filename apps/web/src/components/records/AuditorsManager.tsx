@@ -3,27 +3,27 @@
 import { useState, useCallback, useEffect } from "react";
 import { createPublicClient, http, createWalletClient, custom, getAddress } from "viem";
 import { useWallets } from "@privy-io/react-auth";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
+import { AuditRegistryABI } from "@/lib/abi/AuditRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check } from "lucide-react";
-import { ComplianceRegistryAddress } from "@/lib/CA";
+import { AuditRegistryAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
 
-const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
+const REGISTRY_ADDRESS = AuditRegistryAddress as `0x${string}`;
 const MAX_REVIEWERS = 5;
 
 const REVIEWER_ACCESS = {
-    Reviewer: 1,
-    Ledger: 2,
+    Signal: 1,
+    Full: 2,
 } as const;
 
 const ACCESS_LABELS: Record<number, string> = {
-    [REVIEWER_ACCESS.Reviewer]: "Reviewer",
-    [REVIEWER_ACCESS.Ledger]: "Full Ledger",
+    [REVIEWER_ACCESS.Signal]: "Signal Access",
+    [REVIEWER_ACCESS.Full]: "Full Access",
 };
 
 type Reviewer = {
@@ -45,7 +45,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isManaging, setIsManaging] = useState(false);
     const [newAuditorAddress, setNewAuditorAddress] = useState("");
-    const [newAccessLevel, setNewAccessLevel] = useState<number>(REVIEWER_ACCESS.Reviewer);
+    const [newAccessLevel, setNewAccessLevel] = useState<number>(REVIEWER_ACCESS.Signal);
     
     const [isCopying, setIsCopying] = useState(false);
     
@@ -62,7 +62,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             const current = await publicClient.readContract({
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getAuditors",
                 args: [proxyAccount as `0x${string}`],
             }) as string[];
@@ -70,7 +70,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const withAccess = await Promise.all(current.map(async (address) => {
                 const accessLevel = await publicClient.readContract({
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "reviewerAccess",
                     args: [proxyAccount as `0x${string}`, address as `0x${string}`],
                 }) as number;
@@ -145,7 +145,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "addAuditorWithAccess",
                 args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress), newAccessLevel],
             });
@@ -155,13 +155,13 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
 
-            toast.success("External reviewer approved.", { id: loadingId });
+            toast.success("Auditor approved.", { id: loadingId });
             setNewAuditorAddress("");
-            setNewAccessLevel(REVIEWER_ACCESS.Reviewer);
+            setNewAccessLevel(REVIEWER_ACCESS.Signal);
             fetchAuditors();
         } catch (err: unknown) {
             console.error(err);
-            toast.error(getErrorMessage(err, "Failed to approve reviewer"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to approve auditor"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -191,7 +191,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "updateAuditorAccess",
                 args: [proxyAccount as `0x${string}`, auditorAddr as `0x${string}`, accessLevel],
             });
@@ -199,10 +199,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
 
-            toast.success("Reviewer access updated.", { id: loadingId });
+            toast.success("Access level updated.", { id: loadingId });
             fetchAuditors();
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, "Failed to update reviewer access"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to update access level"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -252,7 +252,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const { request } = await publicClient.simulateContract({
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "removeAuditor",
                 args: [proxyAccount as `0x${string}`, auditorAddr as `0x${string}`],
             });
@@ -260,10 +260,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
             const hash = await walletClient.writeContract(request);
             await publicClient.waitForTransactionReceipt({ hash });
 
-            toast.success("External reviewer removed.", { id: loadingId });
+            toast.success("Auditor removed.", { id: loadingId });
             fetchAuditors();
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, "Failed to remove reviewer"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to remove auditor"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -272,10 +272,10 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
     const handleCopyLink = async () => {
         if (!proxyAccount) return;
         setIsCopying(true);
-        const url = `${window.location.origin}/auditor/${proxyAccount}`;
+        const url = `${window.location.origin}/auditors/${proxyAccount}`;
         try {
             await navigator.clipboard.writeText(url);
-            toast.success("Reviewer portal link copied to clipboard.");
+            toast.success("Portal link copied.");
             setTimeout(() => setIsCopying(false), 2000);
         } catch {
             toast.error("Failed to copy link");
@@ -299,16 +299,16 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                         className="gap-2 border-muted-foreground/20 text-xs h-8"
                     >
                         {isCopying ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-                        {isCopying ? "Link Copied" : "Share Access Link"}
+                        {isCopying ? "Link Copied" : "Share Portal Link"}
                     </Button>
                 </div>
                 <CardDescription className="text-sm leading-relaxed max-w-2xl">
-                    Approved reviewers can run private encrypted review tests and decrypt permitted audit context.
+                    Give external auditors a private portal link. They can set their own rules and check whether your payments meet them, without seeing your payment data.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4">
-                    <h3 className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Approved Reviewers</h3>
+                    <h3 className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Approved Auditors</h3>
                     
                     {isLoading ? (
                          <div className="py-4 flex justify-center text-muted-foreground">
@@ -317,7 +317,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     ) : auditors.length === 0 ? (
                         <div className="bg-muted/30 border border-dashed rounded-lg p-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                             <Fingerprint className="h-8 w-8 text-muted-foreground/50" />
-                            No external reviewers have been approved.
+                            No external auditors have been approved.
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -334,8 +334,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                                                 <SelectValue aria-label={ACCESS_LABELS[auditor.accessLevel] ?? "Access"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value={String(REVIEWER_ACCESS.Reviewer)}>Reviewer</SelectItem>
-                                                <SelectItem value={String(REVIEWER_ACCESS.Ledger)}>Full Ledger</SelectItem>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Signal Access</SelectItem>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Access</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <Button
@@ -354,12 +354,12 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-sm font-medium">Add New Reviewer</h3>
+                    <h3 className="text-sm font-medium">Add Auditor</h3>
                     <div className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
                         <Input 
                             value={newAuditorAddress}
                             onChange={(e) => setNewAuditorAddress(e.target.value)}
-                            placeholder="0x... (e.g. 0x123...abc)"
+                            placeholder="0x... Auditor wallet address"
                             className="font-mono"
                             disabled={isManaging || auditors.length >= MAX_REVIEWERS}
                         />
@@ -372,8 +372,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={String(REVIEWER_ACCESS.Reviewer)}>Reviewer</SelectItem>
-                                <SelectItem value={String(REVIEWER_ACCESS.Ledger)}>Full Ledger</SelectItem>
+                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Signal Access</SelectItem>
+                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Access</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button 
@@ -382,16 +382,16 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                             className="shrink-0"
                         >
                             {isManaging ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                            Approve Reviewer
+                            Approve Auditor
                         </Button>
                     </div>
                     {auditors.length >= MAX_REVIEWERS && (
                         <p className="text-sm text-destructive font-medium">
-                            You have reached the maximum limit of {MAX_REVIEWERS} external reviewers. Remove one before adding another.
+                            You have reached the maximum limit of {MAX_REVIEWERS} external auditors. Remove one before adding another.
                         </p>
                     )}
                     <p className="text-xs text-muted-foreground font-mono">
-                        Approving an address grants access to the reviewer portal for this wallet. Removed reviewers lose future review-test access, but historical FHE decrypt grants cannot be cryptographically revoked.
+                        Adding an auditor gives them access to the external portal for this account. Removing an auditor blocks future access, but any decryption rights previously granted by the FHE layer cannot be reversed.
                     </p>
                 </div>
             </CardContent>

@@ -4,7 +4,7 @@
 
 # Complyr
 
-### Business payments with built-in, encrypted compliance tracking.
+### Business payments with built-in, encrypted audit tracking.
 
 <br />
 
@@ -29,23 +29,23 @@
 Blockchains are excellent at recording **who** got paid and **how much**, but they completely miss **why**.
 
 For businesses operating onchain, this creates a critical gap:
-- Payments happen onchain, but compliance records live offline in spreadsheets
+- Payments happen onchain, but audit records live offline in spreadsheets
 - Auditors require full access to payment data, exposing sensitive business information
 - No way to prove payment legitimacy without revealing commercial details
 - Recurring payments (payroll, subscriptions) lack audit trails
 
-Complyr bridges this gap by embedding encrypted compliance metadata directly into every transaction.
+Complyr bridges this gap by embedding encrypted audit metadata directly into every transaction.
 
 ---
 
 ## The solution
 
-Complyr is a smart-account based payment system that attaches encrypted compliance data to every treasury flow.
+Complyr is a smart-account based payment system that attaches encrypted audit data to every treasury flow.
 
 **What it does:**
 - Encrypts payment amounts, categories, and jurisdictions using Zama Fully Homomorphic Encryption (FHE)
 - Stores encrypted data onchain alongside the transaction
-- Allows authorized auditors to decrypt and verify compliance without exposing data publicly
+- Allows authorized auditors to decrypt and verify audit without exposing data publicly
 - Supports single transfers, batch payouts, and automated recurring payments
 - Provides a complete, immutable audit trail for every payment
 
@@ -53,7 +53,7 @@ Complyr is a smart-account based payment system that attaches encrypted complian
 - Companies making onchain B2B payments
 - Businesses needing audit-ready payment records
 - Teams managing payroll or subscriptions onchain
-- Organizations requiring regulatory compliance for crypto transactions
+- Organizations requiring regulatory audit for crypto transactions
 
 ---
 
@@ -62,9 +62,9 @@ Complyr is a smart-account based payment system that attaches encrypted complian
 - **Payroll & Subscriptions** - Automated, stateful recurring payments. Manage employee salaries and subscriptions securely on-chain.
 - **Batch Payouts** - Execute mass vendor payments in a single transaction. Highly scalable infrastructure designed to save gas.
 - **Single Transfers** - Fast, reliable direct B2B transactions. The foundational layer for moving treasury funds efficiently.
-- **Data Privacy** - Sensitive compliance data and payment amounts are secured with Zama FHE on Ethereum Sepolia.
+- **Data Privacy** - Sensitive audit data and payment amounts are secured with Zama FHE on Ethereum Sepolia.
 - **Account Abstraction** - Seamless gasless transactions and simple Web2-style social logins for frictionless enterprise onboarding.
-- **Auditor Portal** - An isolated environment for external regulators to verify compliance proofs without exposing underlying corporate data.
+- **Auditor Portal** - An isolated environment for external regulators to verify audit proofs without exposing underlying corporate data.
 
 ---
 
@@ -75,17 +75,17 @@ Complyr is a smart-account based payment system that attaches encrypted complian
 │  1. Smart Vault │ ───▶ │  2. Encryption  │ ───▶ │  3. Settlement   │ ───▶ │  4. Audit       │
 │                 │      │                 │      │                 │      │                 │
 │ Deploy a        │      │ Attach          │      │ Payment settles │      │ Authorize       │
-│ compliance-aware│      │ compliance data │      │ natively onchain │      │ specific        │
+│ audit-aware│      │ audit data │      │ natively onchain │      │ specific        │
 │ smart account   │      │ Zama FHE keeps  │      │ Encrypted records│      │ auditors to     │
 │ as treasury     │      │ amounts hidden  │      │ anchored in tx  │      │ verify without  │
 └─────────────────┘      └─────────────────┘      └─────────────────┘      └─────────────────┘
 ```
 
-**Step 1: Smart Vault** - Deploy a compliance-aware smart account onchain to act as your business's primary treasury.
+**Step 1: Smart Vault** - Deploy a audit-aware smart account onchain to act as your business's primary treasury.
 
-**Step 2: Encryption** - Attach necessary compliance data to your payment. Zama FHE keeps amounts and metadata hidden on Ethereum Sepolia.
+**Step 2: Encryption** - Attach necessary audit data to your payment. Zama FHE keeps amounts and metadata hidden on Ethereum Sepolia.
 
-**Step 3: Settlement** - The payment settles natively onchain while your encrypted compliance records are permanently anchored in the same transaction.
+**Step 3: Settlement** - The payment settles natively onchain while your encrypted audit records are permanently anchored in the same transaction.
 
 **Step 4: Audit** - Authorize specific auditors. They can decrypt and verify the legality of your transactions without exposing your underlying company data to the public.
 
@@ -94,8 +94,8 @@ Complyr is a smart-account based payment system that attaches encrypted complian
 ## Core capabilities
 
 - ERC-4337 smart-wallet payment flows (single, batch, recurring)
-- Client-side Zama FHE encryption of compliance metadata (amounts, categories, jurisdictions)
-- Onchain compliance ledger (`ComplianceRegistry`) with immutable linkage to transaction hashes
+- Client-side Zama FHE encryption of audit metadata (amounts, categories, jurisdictions)
+- Onchain audit ledger (`AuditRegistry`) with immutable linkage to transaction hashes
 - Selective auditor access using FHE permission system (`FHE.allow()`)
 - Transaction activity indexing via Envio + GraphQL
 - Gas sponsorship through Pimlico bundler/paymaster
@@ -108,14 +108,14 @@ Complyr is a smart-account based payment system that attaches encrypted complian
 Complyr is split into three layers:
 
 1. **Application layer (Next.js + Privy + Zama FHE SDK)**
-   - Captures payment intent and compliance metadata
-   - Encrypts compliance payloads in-browser using Zama FHE before submission
+   - Captures payment intent and audit metadata
+   - Encrypts audit payloads in-browser using Zama FHE before submission
 
 2. **Smart contract layer (Ethereum Sepolia)**
    - `SmartWallet` (ERC-4337 account)
    - `SmartWalletFactory`
    - `IntentRegistry` (implements `checkUpkeep` / `performUpkeep`)
-   - `ComplianceRegistry`
+   - `AuditRegistry`
    - `MockUSDC` for testnet treasury flows
 
 3. **Data layer (Envio HyperIndex)**
@@ -124,9 +124,9 @@ Complyr is split into three layers:
 
 ---
 
-## Compliance model
+## Audit model
 
-Each compliance record contains:
+Each audit record contains:
 
 - `txHash`: deterministic link to the payment transaction or intent execution
 - `recipients[]` and `amounts[]`: encrypted transfer context using Zama FHE (euint128 for amounts, euint8 for categories/jurisdictions)
@@ -181,7 +181,7 @@ NEXT_PUBLIC_PIMLICO_SPONSOR_ID=...
 
 # Ethereum Sepolia deployments
 NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0x...
-NEXT_PUBLIC_COMPLIANCE_REGISTRY_ADDRESS=0x...
+NEXT_PUBLIC_AUDIT_REGISTRY_ADDRESS=0x...
 NEXT_PUBLIC_SMART_WALLET_FACTORY_ADDRESS=0x...
 NEXT_PUBLIC_MOCK_USDC_ADDRESS=0x...
 ```
@@ -207,7 +207,7 @@ PRIVATE_KEY=0xyour_private_key forge script packages/contracts/script/DeployAll.
 This deploys and wires:
 
 - `IntentRegistry`
-- `ComplianceRegistry`
+- `AuditRegistry`
 - `SmartWallet` implementation
 - `SmartWalletFactory`
 - `MockUSDC`
@@ -230,10 +230,10 @@ complyr/
 │       │   ├── hooks/            # Custom React hooks
 │       │   │   ├── payments/     # Payment flow hooks (single, batch, recurring)
 │       │   │   ├── useAuditLogs.ts
-│       │   │   ├── useComplianceData.ts
+│       │   │   ├── useAuditData.ts
 │       │   │   └── useWalletDeployment.ts
 │       │   ├── lib/              # Utilities and configurations
-│       │   │   ├── fhe-compliance.ts    # Zama FHE encryption functions
+│       │   │   ├── fhe-audit.ts    # Zama FHE encryption functions
 │       │   │   ├── SmartAccountProvider.tsx
 │       │   │   └── abi/          # Contract ABIs
 │       │   └── db/               # Database schema (Drizzle ORM)
@@ -243,10 +243,10 @@ complyr/
 │   │   ├── src/
 │   │   │   ├── SmartWallet.sol           # ERC-4337 smart account
 │   │   │   ├── SmartWalletFactory.sol    # Factory for wallet deployment
-│   │   │   ├── ComplianceRegistry.sol    # FHE compliance ledger
+│   │   │   ├── AuditRegistry.sol    # FHE audit ledger
 │   │   │   ├── IntentRegistry.sol        # Recurring payment registry
 │   │   │   ├── MockUSDC.sol              # Testnet stablecoin
-│   │   │   └── IComplianceRegistry.sol   # Interfaces
+│   │   │   └── IAuditRegistry.sol   # Interfaces
 │   │   ├── script/           # Foundry deployment scripts
 │   │   ├── test/             # Foundry test suites
 │   │   └── foundry.toml
@@ -267,7 +267,7 @@ Complyr uses Zama's Fully Homomorphic Encryption (FHE) to encrypt sensitive paym
 
 1. **Initialize Zama SDK**: The frontend initializes the Zama FHE SDK using `@zama-fhe/relayer-sdk/web` with Sepolia configuration.
 
-2. **Create encrypted input**: For each payment, the client creates an encrypted input object targeting the `ComplianceRegistry` contract:
+2. **Create encrypted input**: For each payment, the client creates an encrypted input object targeting the `AuditRegistry` contract:
    ```typescript
    const input = fhevm.createEncryptedInput(registryAddress, callerAddress);
    input.add128(amount);      // Encrypt amount as euint128
@@ -298,7 +298,7 @@ Complyr uses Zama's Fully Homomorphic Encryption (FHE) to encrypt sensitive paym
    amount = FHE.allow(amount, auditor);
    ```
 
-3. **Store encrypted data**: The encrypted values are stored in the `ComplianceRegistry` as `euint128` and `euint8` types.
+3. **Store encrypted data**: The encrypted values are stored in the `AuditRegistry` as `euint128` and `euint8` types.
 
 ### Decryption flow (auditor access)
 
@@ -336,21 +336,21 @@ The ERC-4337 compliant smart account that handles all payment operations.
 
 **Key features:**
 - Validates UserOperations via `validateUserOp()` using ECDSA signature recovery
-- Enforces compliance metadata on all financial transfers (reverts if missing)
+- Enforces audit metadata on all financial transfers (reverts if missing)
 - Manages fund commitments for recurring intents via `increaseCommitment()`/`decreaseCommitment()`
 - Supports single and batch transfers for both native ETH and ERC-20 tokens
-- Integrates with `ComplianceRegistry` to record encrypted compliance data atomically
+- Integrates with `AuditRegistry` to record encrypted audit data atomically
 
 **Important functions:**
-- `transferERC20WithCompliance()` - Single ERC-20 transfer with FHE compliance
-- `batchTransferERC20WithCompliance()` - Batch ERC-20 transfers with FHE compliance
-- `transferNativeWithCompliance()` - Single native ETH transfer with FHE compliance
-- `batchTransferNativeWithCompliance()` - Batch native ETH transfers with FHE compliance
+- `transferERC20WithAudit()` - Single ERC-20 transfer with FHE audit
+- `batchTransferERC20WithAudit()` - Batch ERC-20 transfers with FHE audit
+- `transferNativeWithAudit()` - Single native ETH transfer with FHE audit
+- `batchTransferNativeWithAudit()` - Batch native ETH transfers with FHE audit
 - `executeBatchIntentTransfer()` - Called by IntentRegistry for recurring payments
 - `getAvailableBalance()` - Returns uncommitted balance (total - committed)
 
 **Security notes:**
-- All financial calls require compliance metadata (enforced by `_isFinancialCall()`)
+- All financial calls require audit metadata (enforced by `_isFinancialCall()`)
 - Committed funds cannot be spent outside of intent execution
 - Only EntryPoint, wallet owner, or IntentRegistry can execute transfers
 
@@ -360,7 +360,7 @@ Factory contract that deploys ERC-1167 minimal proxy clones of SmartWallet.
 
 **Key features:**
 - Deploys deterministic wallet addresses using CREATE2
-- Auto-registers each wallet with `ComplianceRegistry`
+- Auto-registers each wallet with `AuditRegistry`
 - Drips native ETH and stablecoin to new wallets for onboarding
 - One wallet per EOA (returns existing if already deployed)
 
@@ -370,9 +370,9 @@ Factory contract that deploys ERC-1167 minimal proxy clones of SmartWallet.
 - `setStablecoinDrip()` - Configures stablecoin drip amount (owner only)
 - `setNativeDrip()` - Configures native ETH drip amount (owner only)
 
-### ComplianceRegistry
+### AuditRegistry
 
-On-chain encrypted compliance ledger using Zama FHE.
+On-chain encrypted audit ledger using Zama FHE.
 
 **Key features:**
 - Stores encrypted amounts (euint128), categories (euint8), and jurisdictions (euint8)
@@ -382,7 +382,7 @@ On-chain encrypted compliance ledger using Zama FHE.
 - Links each record to a transaction hash for auditability
 
 **Important functions:**
-- `recordTransaction()` - Records encrypted compliance data for a transaction
+- `recordTransaction()` - Records encrypted audit data for a transaction
 - `addAuditor()` - Adds an auditor and grants them permissions on all existing records
 - `removeAuditor()` - Removes an auditor (revokes future permissions)
 - `getRecord()` - Returns record metadata and encrypted handles
@@ -402,12 +402,12 @@ Central registry for managing automated recurring payment intents with Chainlink
 - Implements Chainlink Automation interface (`checkUpkeep`/`performUpkeep`)
 - Manages payment schedules with configurable intervals and durations
 - Locks wallet funds via commitment system for scheduled payments
-- Records compliance metadata once at intent creation
+- Records audit metadata once at intent creation
 - Supports up to 10 recipients per intent
 - Handles failed transfers and tracks failed amounts for recovery
 
 **Important functions:**
-- `createIntent()` - Creates a new recurring payment intent with FHE compliance
+- `createIntent()` - Creates a new recurring payment intent with FHE audit
 - `cancelIntent()` - Cancels an intent and unlocks remaining committed funds
 - `checkUpkeep()` - Called by Chainlink to check if intents need execution
 - `performUpkeep()` - Called by Chainlink to execute intents
@@ -420,7 +420,7 @@ Central registry for managing automated recurring payment intents with Chainlink
 - `interval` - Seconds between executions (min 30s)
 - `duration` - Total duration in seconds (max 1 year)
 - `transactionStartTime` - Start time (0 for immediate)
-- Compliance metadata (encrypted amounts, categories, jurisdictions, reference IDs)
+- Audit metadata (encrypted amounts, categories, jurisdictions, reference IDs)
 
 **Execution flow:**
 1. Chainlink calls `checkUpkeep()` periodically
@@ -440,23 +440,23 @@ Testnet ERC-20 stablecoin for testing treasury flows on Sepolia.
 
 ### Single transfer
 
-1. User enters recipient, amount, and compliance metadata (category, jurisdiction, reference ID)
-2. Frontend encrypts compliance data using Zama FHE SDK
-3. Frontend calls `transferERC20WithCompliance()` or `transferNativeWithCompliance()` on SmartWallet
-4. SmartWallet validates compliance data is present
-5. SmartWallet calls `ComplianceRegistry.recordTransaction()` with encrypted handles
+1. User enters recipient, amount, and audit metadata (category, jurisdiction, reference ID)
+2. Frontend encrypts audit data using Zama FHE SDK
+3. Frontend calls `transferERC20WithAudit()` or `transferNativeWithAudit()` on SmartWallet
+4. SmartWallet validates audit data is present
+5. SmartWallet calls `AuditRegistry.recordTransaction()` with encrypted handles
 6. SmartWallet executes the token transfer
-7. Transaction receipt includes both transfer and compliance recording events
+7. Transaction receipt includes both transfer and audit recording events
 
 **Frontend hook:** `useSingleTransfer()` in `apps/web/src/hooks/payments/useSingleTransfer.ts`
 
 ### Batch transfer
 
-1. User enters multiple recipients, amounts, and compliance metadata for each
-2. Frontend encrypts all compliance data in a single FHE operation
-3. Frontend calls `batchTransferERC20WithCompliance()` or `batchTransferNativeWithCompliance()`
+1. User enters multiple recipients, amounts, and audit metadata for each
+2. Frontend encrypts all audit data in a single FHE operation
+3. Frontend calls `batchTransferERC20WithAudit()` or `batchTransferNativeWithAudit()`
 4. SmartWallet validates array lengths match
-5. SmartWallet records all compliance data atomically
+5. SmartWallet records all audit data atomically
 6. SmartWallet executes all transfers in a loop
 7. If any transfer fails, the entire transaction reverts
 
@@ -465,13 +465,13 @@ Testnet ERC-20 stablecoin for testing treasury flows on Sepolia.
 ### Recurring payment (intent)
 
 1. User enters schedule parameters (recipients, amounts, interval, duration, start time)
-2. User provides compliance metadata for the recurring pattern
-3. Frontend encrypts compliance data using Zama FHE SDK
+2. User provides audit metadata for the recurring pattern
+3. Frontend encrypts audit data using Zama FHE SDK
 4. Frontend calls `IntentRegistry.createIntent()` via UserOperation
 5. IntentRegistry validates wallet has sufficient available balance
 6. IntentRegistry calculates total commitment (amount × transaction count)
 7. IntentRegistry calls `SmartWallet.increaseCommitment()` to lock funds
-8. IntentRegistry records compliance data once (applies to all executions)
+8. IntentRegistry records audit data once (applies to all executions)
 9. IntentRegistry stores the intent and marks it active
 10. Chainlink Automation periodically checks `checkUpkeep()`
 11. When due, Chainlink calls `performUpkeep()` which executes the batch transfer
@@ -489,41 +489,41 @@ Testnet ERC-20 stablecoin for testing treasury flows on Sepolia.
 
 ## Auditor access
 
-Auditors are external addresses authorized to decrypt compliance data for verification purposes.
+Auditors are external addresses authorized to decrypt audit data for verification purposes.
 
 ### Adding an auditor
 
-1. Master EOA calls `ComplianceRegistry.addAuditor(proxyAccount, auditorAddress)`
+1. Master EOA calls `AuditRegistry.addAuditor(proxyAccount, auditorAddress)`
 2. Registry validates auditor is not already added and max 3 auditors not reached
-3. Registry grants the auditor FHE permissions on all existing compliance records
+3. Registry grants the auditor FHE permissions on all existing audit records
 4. Auditor can now decrypt historical and future records
 
 ### Removing an auditor
 
-1. Master EOA calls `ComplianceRegistry.removeAuditor(proxyAccount, auditorAddress)`
+1. Master EOA calls `AuditRegistry.removeAuditor(proxyAccount, auditorAddress)`
 2. Registry marks auditor as inactive
 3. Auditor is removed from the active auditors list
 4. Historical permissions remain (cannot revoke past permissions)
 
-### Decrypting compliance data
+### Decrypting audit data
 
 1. Auditor generates an FHE keypair in their browser
 2. Auditor creates an EIP-712 signature for the decryption request
-3. Auditor calls `userDecryptComplianceHandles()` with:
+3. Auditor calls `userDecryptAuditHandles()` with:
    - The encrypted handles to decrypt
    - Their keypair (public and private keys)
    - The EIP-712 signature
 4. Zama network verifies the signature and permissions
 5. If valid, the decrypted values are returned to the auditor
 
-**Frontend function:** `userDecryptComplianceHandles()` in `apps/web/src/lib/fhe-compliance.ts`
+**Frontend function:** `userDecryptAuditHandles()` in `apps/web/src/lib/fhe-audit.ts`
 
 ### Auditor limits
 
 - Maximum 3 auditors per wallet
 - Auditors can only decrypt data for wallets they're authorized for
 - Decryption requires both FHE permissions and a valid signature
-- Permissions are granted per-contract (ComplianceRegistry address)
+- Permissions are granted per-contract (AuditRegistry address)
 
 ---
 
@@ -538,7 +538,7 @@ Auditors are external addresses authorized to decrypt compliance data for verifi
 
 ### Smart contract security
 
-- **Compliance enforcement**: All financial transfers require compliance metadata. Direct transfers without compliance revert.
+- **Audit enforcement**: All financial transfers require audit metadata. Direct transfers without audit revert.
 - **Commitment system**: Funds committed to intents cannot be spent elsewhere, preventing double-spending.
 - **Reentrancy guards**: Critical functions use `nonReentrant` modifier to prevent reentrancy attacks.
 - **Access control**: Strict modifiers ensure only authorized callers can execute sensitive functions.
@@ -582,7 +582,7 @@ forge test --gas-report
 ```
 
 **Test files:**
-- `SmartWallet.t.sol` - Tests for SmartWallet (transfers, compliance, commitments)
+- `SmartWallet.t.sol` - Tests for SmartWallet (transfers, audit, commitments)
 - `SmartWalletFactory.t.sol` - Tests for factory deployment and registration
 - `IntentRegistry.t.sol` - Tests for intent creation, execution, and Chainlink integration
 
@@ -612,7 +612,7 @@ To test the full flow end-to-end:
 3. Start the frontend: `pnpm dev`
 4. Create a wallet via the UI
 5. Test single, batch, and recurring transfers
-6. Verify compliance data is recorded onchain
+6. Verify audit data is recorded onchain
 7. Test auditor access and decryption
 
 ---
@@ -621,7 +621,7 @@ To test the full flow end-to-end:
 
 ### Common issues
 
-**"Failed to encrypt compliance parameters"**
+**"Failed to encrypt audit parameters"**
 - Ensure you're running in a browser environment (FHE SDK requires window object)
 - Check that `@zama-fhe/relayer-sdk` is properly installed
 - Verify the registry address is correct in your environment variables
@@ -629,7 +629,7 @@ To test the full flow end-to-end:
 **"UserOp reverted on-chain"**
 - Check the transaction hash on Etherscan for revert reason
 - Verify the wallet has sufficient balance (including committed funds)
-- Ensure compliance metadata is provided for all financial transfers
+- Ensure audit metadata is provided for all financial transfers
 - Check that the contract addresses in environment variables are correct
 
 **"Insufficient uncommitted funds"**
@@ -643,7 +643,7 @@ To test the full flow end-to-end:
 - Ensure the interval has passed since the last execution
 
 **Chainlink Automation not executing intents**
-- Verify the IntentRegistry has the correct compliance registry address
+- Verify the IntentRegistry has the correct audit registry address
 - Check that the wallet is registered in the IntentRegistry
 - Ensure the intent parameters are valid (interval, duration, recipients)
 - Review Chainlink Automation logs for upkeep check failures
@@ -703,7 +703,7 @@ To test the full flow end-to-end:
 5. **Update frontend logic** (if needed):
    - Edit hooks in `apps/web/src/hooks/`
    - Edit components in `apps/web/src/components/`
-   - Update FHE encryption logic in `apps/web/src/lib/fhe-compliance.ts`
+   - Update FHE encryption logic in `apps/web/src/lib/fhe-audit.ts`
 
 6. **Test the changes**:
    ```bash

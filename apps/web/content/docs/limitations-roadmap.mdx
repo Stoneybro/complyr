@@ -25,7 +25,7 @@ The IntentRegistry enforces a hard limit of 10 recipients per intent. This is su
 
 ### Single jurisdiction + category per recipient
 
-The current schema supports one jurisdiction and one category code per recipient per transaction. Multi-jurisdiction or multi-category payments — where a single payment has mixed compliance implications — are not supported in this version.
+The current schema supports one jurisdiction and one category code per recipient per transaction. Multi-jurisdiction or multi-category payments — where a single payment has mixed audit implications — are not supported in this version.
 
 ---
 
@@ -35,24 +35,24 @@ The following capabilities are planned for development after the current release
 
 ### Near term
 
-**Recurring payments stabilisation.** The recurring payment flow (intent creation → scheduled execution via automation → compliance record linking) is fully designed and implemented but requires additional testing and edge case handling before it can be considered production-ready.
+**Recurring payments stabilisation.** The recurring payment flow (intent creation → scheduled execution via automation → audit record linking) is fully designed and implemented but requires additional testing and edge case handling before it can be considered production-ready.
 
-**Dedicated auditor dashboard.** A purpose-built interface for external auditors and regulators to browse, filter, and export compliance records. The current auditor portal is functional but minimal.
+**Dedicated auditor dashboard.** A purpose-built interface for external auditors and regulators to browse, filter, and export audit records. The current auditor portal is functional but minimal.
 
 ### Medium term
 
-**Tax reporting interface.** Aggregation of encrypted compliance records into jurisdiction-specific report formats (e.g., IRS Schedule C summaries, HMRC categorisation, FIRS-compatible formats for Nigeria). The report generator infrastructure is already in place in the frontend; this extends it with structured export formats.
+**Tax reporting interface.** Aggregation of encrypted audit records into jurisdiction-specific report formats (e.g., IRS Schedule C summaries, HMRC categorisation, FIRS-compatible formats for Nigeria). The report generator infrastructure is already in place in the frontend; this extends it with structured export formats.
 
-**Multi-jurisdiction and multi-category support.** Extending the compliance schema to allow a single recipient to have multiple applicable jurisdictions or categories, necessary for cross-border contractor payments with split reporting obligations.
+**Multi-jurisdiction and multi-category support.** Extending the audit schema to allow a single recipient to have multiple applicable jurisdictions or categories, necessary for cross-border contractor payments with split reporting obligations.
 
-**Compliance health scoring.** A richer scoring model that incorporates completeness of metadata, consistency with prior periods, anomaly detection, and jurisdiction-specific threshold checks.
+**Audit health scoring.** A richer scoring model that incorporates completeness of metadata, consistency with prior periods, anomaly detection, and jurisdiction-specific threshold checks.
 
 ### Long term
 
 **Mainnet deployment.** A security-audited deployment to Base mainnet once the testnet implementation is validated.
 
-**On-chain compliance proofs.** Rather than relying on auditors to manually decrypt and verify records, generate ZK proofs that attest to specific compliance properties (e.g., "all payments in Q3 were categorised" or "no payments were made to sanctioned jurisdictions") without requiring full decryption.
+**On-chain audit proofs.** Rather than relying on auditors to manually decrypt and verify records, generate ZK proofs that attest to specific audit properties (e.g., "all payments in Q3 were categorised" or "no payments were made to sanctioned jurisdictions") without requiring full decryption.
 
-**DAO treasury integration.** Support for multi-sig governance over compliance metadata, allowing DAOs to attach compliance records to grant distributions and contributor payments through their existing governance flows.
+**DAO treasury integration.** Support for multi-sig governance over audit metadata, allowing DAOs to attach audit records to grant distributions and contributor payments through their existing governance flows.
 
-**Programmable compliance rules.** Allow companies to define on-chain compliance policy (minimum metadata completeness, jurisdiction whitelists/blacklists, category budget caps) that the smart wallet enforces at transaction time.
+**Programmable audit rules.** Allow companies to define on-chain audit policy (minimum metadata completeness, jurisdiction whitelists/blacklists, category budget caps) that the smart wallet enforces at transaction time.

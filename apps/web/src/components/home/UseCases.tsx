@@ -12,7 +12,7 @@ const usecases = [
   {
     title: 'Global Payroll',
     num: '02',
-    body: 'Streamline cross-border contractor payments with integrated, encrypted tax document verification.',
+    body: 'Streamline cross-border contractor payments with integrated, encrypted audit records.',
   },
   {
     title: 'Onchain Treasury',

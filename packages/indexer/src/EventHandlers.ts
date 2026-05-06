@@ -1,6 +1,6 @@
 /*
  * Complyr Indexer - Event Handlers
- * Indexes wallet activity, payments, intents, and compliance data
+ * Indexes wallet activity, payments, intents, and audit data
  */
 import {
   SmartWallet,

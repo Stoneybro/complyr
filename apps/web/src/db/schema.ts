@@ -28,7 +28,7 @@ export const contacts = pgTable("contacts", {
 });
 
 // Contact addresses (one-to-many with contacts)
-// Now includes compliance metadata for each address
+// Now includes audit metadata for each address
 export const contactAddresses = pgTable("contact_addresses", {
     id: text("id").primaryKey(),
     contactId: text("contact_id")
@@ -36,7 +36,7 @@ export const contactAddresses = pgTable("contact_addresses", {
         .notNull(),
     address: text("address").notNull(),
     label: text("label"),
-    // Compliance metadata fields
+    // Audit metadata fields
     entityId: text("entity_id"), // e.g., "EMP-001", "CTR-005", "VENDOR-AWS"
     jurisdiction: text("jurisdiction"), // e.g., "US-CA", "UK", "EU-DE", "NG"
     category: text("category"), // e.g., "PAYROLL_W2", "CONTRACTOR", "INVOICE"

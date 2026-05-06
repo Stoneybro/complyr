@@ -1,906 +1,344 @@
-# Complyr Architecture Rebuild Plan
+# Complyr Architecture
 
-## 1. Product Direction
+## 1. Overview
 
-Complyr is a business payment system with a confidential audit infrastructure.
+Complyr is a monorepo for an onchain business payments product with embedded audit infrastructure.
 
-The product should not be framed as a generic "compliance metadata registry". The stronger framing is:
+The system has four runtime parts:
 
-> Complyr turns a business wallet into an audit-controlled payment system. Every payment creates encrypted audit evidence, while approved external reviewers can run private threshold tests without revealing their thresholds to the business.
+1. `apps/web`
+   The user-facing Next.js application. It handles authentication, wallet onboarding, payment creation, audit views, and a small set of server routes.
 
-The core Zama FHE justification is not encrypted storage. It is:
+2. `packages/contracts`
+   Solidity contracts for smart-account deployment, payment execution, recurring payment scheduling, and encrypted audit storage.
 
-> External auditors can evaluate encrypted payment records and encrypted rollups against private encrypted thresholds. The business cannot see or game the auditor's thresholds, and the auditor does not need full continuous access to the business ledger.
+3. `packages/indexer`
+   An Envio indexer that turns contract events into a GraphQL activity feed for the dashboard.
 
-This directly supports structuring prevention: businesses cannot reliably split or shape transactions around unknown audit thresholds.
+4. PostgreSQL
+   A relational store used by the web app for contacts and related app data.
 
-## 2. Important Privacy Boundary
+This document describes the architecture implemented in the current repository.
 
-The app currently uses normal ERC-20 payments. Therefore:
+At the product level, Complyr should be understood as an audit-first payments system rather than a generic audit tracker. Payment execution is the operational surface, but the differentiating capability is the external reviewer flow:
 
-- Payment amount is public in ERC-20 calldata/events.
-- Recipient is public.
-- Token address is public.
-- Transaction timing is public.
+- businesses create payments through smart accounts;
+- the system writes encrypted audit context onchain alongside those payments;
+- approved external reviewers create private threshold tests against that encrypted data;
+- reviewer-specific result queues and encrypted rollups support downstream audit workflows without turning the business ledger into a public reporting surface.
 
-Complyr does not claim to hide normal ERC-20 payment amounts from explorers or indexers.
+## 2. System Context
 
-Complyr does hide and compute over:
+Complyr sits between four external systems:
 
-- business category;
-- jurisdiction;
-- encrypted audit amount copy;
-- encrypted rollups by category, jurisdiction, and recipient;
-- auditor private thresholds;
-- encrypted review results/signals.
+- Ethereum Sepolia for payment settlement and audit records
+- Pimlico for ERC-4337 bundling and paymaster support
+- Privy for authentication and embedded wallets
+- Zama FHE relayer tooling for client-side encryption and authorized decryption
 
-If full amount privacy is required later, the payment token must be replaced with a Zama-compatible confidential token. That is out of scope for this rebuild.
+At a high level:
 
-## 3. Role Model
+- users interact with the Next.js app;
+- the app signs and submits ERC-4337 UserOperations through Pimlico;
+- smart wallets execute payments and write encrypted audit data onchain;
+- the indexer materializes selected events into GraphQL for dashboard history;
+- audit and reviewer views read encrypted records directly from the chain and decrypt them client-side when the connected wallet is authorized.
 
-### Business Owner
+## 3. Repository Structure
 
-The business owner uses Complyr to:
+```text
+complyr/
+├── apps/
+│   └── web/                Next.js application and docs site
+├── packages/
+│   ├── contracts/          Solidity contracts and Foundry tests/scripts
+│   └── indexer/            Envio indexer, schema, and event handlers
+├── architecture.md         Internal architecture document
+└── readme.md               Product and setup overview
+```
 
+## 4. Runtime Components
+
+### 4.1 Web Application
+
+The web application is a Next.js App Router app in `apps/web`.
+
+Primary responsibilities:
+
+- authenticate users with Privy;
+- initialize an ERC-4337 smart account client;
 - create single, batch, and recurring payments;
-- attach required audit context to every payment;
-- view treasury activity;
-- decrypt internal audit records and aggregate reports;
-- manage approved external reviewers/regulators.
+- encrypt audit context in the browser before contract submission;
+- query indexed activity from Envio GraphQL;
+- read encrypted audit records directly from `AuditRegistry`;
+- support the external reviewer portal, including private threshold creation, result retrieval, report decryption, and ledger decryption where access allows;
+- manage contacts through server routes backed by PostgreSQL;
+- serve the public docs site from the same app.
 
-The business owner should not see:
+Important internal modules:
 
-- auditor thresholds;
-- auditor test scopes if we choose full audit-method privacy;
-- auditor signal queues;
-- auditor review logic.
+- `src/app/provider.tsx`
+  Registers `PrivyProvider`, `QueryClientProvider`, and the smart-account provider.
 
-### External Reviewer / Auditor / Regulator
+- `src/lib/SmartAccountProvider.tsx`
+  Creates and caches the ERC-4337 client used by payment flows.
 
-The external reviewer uses Complyr to:
+- `src/lib/customSmartAccount.ts`
+  Adapts the deployed smart wallet to the `permissionless` client stack and defines factory deployment behavior.
 
-- connect with an approved wallet;
-- create encrypted private threshold tests;
-- run tests against encrypted records and rollups;
-- decrypt their own encrypted result queue;
-- inspect relevant evidence if access permits;
-- export findings.
+- `src/hooks/payments/*`
+  Implements single transfer, batch transfer, recurring payment, and intent cancellation flows.
 
-The reviewer should not need:
+- `src/lib/fhe-audit.ts`
+  Uses the Zama relayer SDK in the browser to encrypt audit inputs and request decrypt authorization.
 
-- treasury controls;
-- payment creation;
-- full ledger access by default.
+- `src/hooks/useAuditLogs.ts`
+  Reads `AuditRegistry` records directly and decrypts them client-side for authorized users.
 
-### Public Observer
+- `src/app/auditors/[proxyAccount]/AuditorPortalClient.tsx`
+  Implements the external reviewer workflow: reviewer verification, test creation, result inspection, encrypted rollup access, and optional ledger decryption.
 
-A public observer can see:
+- `src/lib/envio/client.ts`
+  Queries the Envio GraphQL endpoint for wallet activity.
 
-- normal blockchain transfers;
-- public transaction metadata;
-- record ids;
-- recipients;
-- timestamps.
+### 4.2 Smart Contract Layer
 
-A public observer cannot see:
+The contract package in `packages/contracts` is the system of record for settlement and encrypted audit state.
 
-- encrypted audit classifications;
-- private rollups;
-- auditor thresholds;
-- encrypted test results.
-
-## 4. Product Navigation
-
-### Business App
-
-The business-facing app should have these primary sections:
-
-1. `Payments`
-   - Current payment form.
-   - Single, batch, recurring payments.
-   - Audit context is mandatory for every recipient/payment.
-
-2. `Treasury`
-   - Current wallet dashboard.
-   - Capital allocation.
-   - Asset activity.
-   - Payment table.
-   - No audit signals added here.
-
-3. `Audit Hub`
-   - Renamed from `Compliance Dashboard`.
-   - Internal business audit records and reports.
-   - One decrypt action can unlock the section.
-   - No external auditor signal feed.
-
-4. `Review Access`
-   - Renamed/reframed auditor management.
-   - Add/remove approved reviewers.
-   - Share reviewer portal link.
-   - Manage access level.
-
-### Auditor Portal
-
-The auditor portal should be a separate review workflow:
-
-1. `Review Setup`
-   - Auditor creates private encrypted threshold tests.
-
-2. `Result Queue`
-   - Auditor sees encrypted review results and decrypts their own result booleans/details.
-
-3. `Evidence`
-   - Auditor decrypts authorized record details relevant to a result.
-
-4. `Reports`
-   - Auditor decrypts authorized aggregate reports if granted.
-
-5. `Ledger`
-   - Optional. Only available for full-ledger access.
-
-## 5. Business Audit Hub UX
-
-The business `Audit Hub` replaces the old compliance dashboard.
-
-Tabs:
-
-### 5.1 Overview
-
-Purpose: internal audit readiness summary.
-
-Show:
-
-- monitored payment count;
-- encrypted audit record count;
-- categories tracked;
-- jurisdictions tracked;
-- approved reviewers count;
-- last audit record timestamp;
-- decrypt status.
-
-Do not show:
-
-- external reviewer thresholds;
-- external reviewer result queue;
-- exact reviewer test scope.
-
-### 5.2 Private Reports
-
-Purpose: internal decrypted aggregate reports.
-
-Reports:
-
-- category totals;
-- jurisdiction totals;
-- recipient totals;
-- monthly totals if implemented;
-- payment classification distribution.
-
-Default state:
-
-- encrypted handles / locked cards.
-
-After owner decrypts:
-
-- charts/tables render plaintext totals in the browser.
-
-### 5.3 Audit Trail
-
-Purpose: full record-level ledger.
-
-Show:
-
-- record id / source id;
-- public recipient(s);
-- public token/payment reference if available;
-- timestamp;
-- encrypted field handles;
-- decrypt action.
-
-After decrypt:
-
-- amount copy;
-- category;
-- jurisdiction;
-- reference id/hash display.
-
-## 6. Review Access UX
-
-This is business-side reviewer management.
-
-Rename current `Access` / `AuditorsManager` to a dedicated `Review Access` section.
-
-Show:
-
-- approved reviewer addresses;
-- optional reviewer labels;
-- access status;
-- access level;
-- date granted;
-- share portal link.
-
-Do not show:
-
-- reviewer thresholds;
-- reviewer result counts;
-- reviewer test scopes;
-- reviewer private audit logic.
-
-Implemented access levels:
-
-1. `Reviewer`
-   - Can create encrypted private tests.
-   - Can decrypt their own result queue.
-   - Can decrypt authorized aggregate reports.
-
-2. `Ledger Reviewer`
-   - Has reviewer access.
-   - Can decrypt full audit records and evidence.
-
-Contract-side reviewer access is implemented with an explicit `ReviewerAccess` enum:
-
-- `None`
-- `Reviewer`
-- `Ledger`
-
-The legacy `addAuditor(proxyAccount, auditor)` path remains for compatibility and grants `Ledger` access. The business app should use `addAuditorWithAccess` for new reviewers and `updateAuditorAccess` for access changes.
-
-## 7. Auditor Portal UX
-
-### 7.1 Access Gate
-
-Current auditor portal already does this:
-
-- connect wallet;
-- verify address is approved;
-- show access denied if not approved.
-
-Keep this flow, but update language from compliance to review/audit.
-
-### 7.2 Review Setup
-
-Auditor creates encrypted private tests.
-
-Initial test types:
-
-1. `Large Payment Test`
-   - Checks whether a payment amount exceeds the auditor's encrypted threshold.
-
-2. `Recipient Exposure Test`
-   - Checks whether total paid to a recipient exceeds the auditor's encrypted threshold.
-
-3. `Category Exposure Test`
-   - Checks encrypted category totals against encrypted threshold.
-   - MVP uses public category scope and encrypted threshold.
-
-4. `Jurisdiction Exposure Test`
-   - Checks encrypted jurisdiction totals against encrypted threshold.
-   - MVP uses public jurisdiction scope and encrypted threshold.
-
-Threshold UX:
-
-- auditor enters threshold locally;
-- threshold is encrypted in-browser using Zama;
-- plaintext threshold is never sent to the contract or business frontend;
-- contract stores encrypted threshold handle.
-
-### 7.3 Result Queue
-
-The auditor sees tests they created and encrypted result entries.
-
-Rows:
-
-- test id;
-- record id or aggregate id;
-- test type;
-- timestamp;
-- encrypted result status;
-- decrypt button.
-
-After decrypt:
-
-- `Triggered`;
-- `Not triggered`;
-- optional severity if implemented.
-
-Important: results should not be public business-facing signals in the MVP. They are auditor-owned encrypted review outputs.
-
-### 7.4 Evidence View
-
-When a result is triggered, auditor can open the related record/report.
-
-Depending on access:
-
-- decrypt amount copy;
-- decrypt category;
-- decrypt jurisdiction;
-- view public recipient;
-- view record id/source id;
-- export finding.
-
-## 8. Contract Architecture
-
-Current contracts:
+Core contracts:
 
 - `SmartWallet`
+  ERC-4337 account implementation. Executes direct transfers, batch transfers, and registry-triggered recurring transfers.
+
 - `SmartWalletFactory`
+  Deploys deterministic ERC-1167 clones of `SmartWallet`, registers each wallet with `AuditRegistry`, and can optionally drip ETH or a stablecoin on first deployment.
+
 - `IntentRegistry`
-- `ComplianceRegistry`
-- interfaces and test mocks
+  Stores recurring payment intents, locks committed funds, exposes Chainlink Automation-compatible execution hooks, and calls back into wallets to execute scheduled transfers.
 
-The initial rebuild should keep the broad architecture and avoid a per-business registry refactor unless necessary.
+- `AuditRegistry`
+  Despite the legacy contract name, this is the core audit infrastructure contract. It stores encrypted audit records and encrypted reviewer data. It also maintains wallet-to-master ownership, reviewer access, encrypted rollups, reviewer tests, and reviewer result queues.
 
-Reason:
+- `MockUSDC`
+  Test token used by the Sepolia demo flows.
 
-- current smart wallet + registry wiring already exists;
-- indexer already follows payment events;
-- frontend already queries registry by wallet/proxy account;
-- hackathon risk is lower if we add FHE audit engine features to the current registry.
+### 4.3 Indexer
 
-Internal naming can remain `ComplianceRegistry` at first to avoid churn. UI copy should move to `Audit Hub`, `Review Access`, and `Review Portal`.
+The Envio indexer in `packages/indexer` subscribes to selected Sepolia events and builds a GraphQL read model.
 
-## 9. Encrypted State Layers
+Current indexed entities:
 
-The registry should evolve from encrypted storage into an FHE audit engine with three encrypted state layers.
+- `Wallet`
+- `Transaction`
+- `Intent`
 
-### 9.1 Encrypted Payment Records
+Current purpose:
 
-Each payment/batch creates a record.
+- power wallet activity history and dashboard summaries;
+- normalize wallet, intent, and transfer events into frontend-friendly transaction records.
 
-Fields:
+The indexer is not the source of truth for encrypted audit data. Audit records are read from `AuditRegistry` directly.
 
-- `bytes32 recordId`
-- `address token`
-- `address[] recipients`
-- `euint128[] amounts`
-- `euint8[] categories`
-- `euint8[] jurisdictions`
-- `string[]` or `bytes32[] referenceIds`
-- `uint256 timestamp`
+### 4.4 PostgreSQL Data Store
 
-Notes:
+The web app uses Drizzle with PostgreSQL for application-owned data.
 
-- `euint128` is safer than `euint64` for generic ERC-20 amounts.
-- If the app is strictly USDC-only, `euint64` is acceptable.
-- Keep `euint128` unless contract size/gas forces simplification.
+Current schema includes:
 
-### 9.2 Encrypted Rollups
+- contacts
+- contact addresses
+- chats
+- messages
 
-Update on every record creation.
+The active product use in this repository is the contacts subsystem, exposed via `apps/web/src/app/api/contacts`.
 
-Rollups:
+## 5. Data Ownership
 
-- encrypted total by recipient;
-- encrypted total by category;
-- encrypted total by jurisdiction;
-- optional encrypted global total.
+The system uses the standard split below.
 
-Suggested storage:
+### Onchain Data
 
-```solidity
-mapping(address wallet => mapping(address recipient => euint128)) private _recipientTotals;
-mapping(address wallet => mapping(uint8 category => euint128)) private _categoryTotals;
-mapping(address wallet => mapping(uint8 jurisdiction => euint128)) private _jurisdictionTotals;
-mapping(address wallet => euint128) private _globalTotals;
-```
+Owned by contracts and treated as canonical:
 
-Recipient totals are straightforward because recipient is plaintext:
+- smart wallet deployment state;
+- payment execution events;
+- recurring intent state;
+- audit records;
+- company master mappings;
+- reviewer access levels;
+- encrypted rollups, thresholds, and review results.
 
-```solidity
-_recipientTotals[wallet][recipient] = FHE.add(_recipientTotals[wallet][recipient], amount);
-```
+### Indexed Read Model
 
-Category and jurisdiction totals require FHE selection because category/jurisdiction are encrypted:
+Owned by the Envio indexer and treated as derived:
 
-```solidity
-isCategory = FHE.eq(category, categoryId);
-delta = FHE.select(isCategory, amount, FHE.asEuint128(0));
-_categoryTotals[wallet][categoryId] = FHE.add(_categoryTotals[wallet][categoryId], delta);
-```
+- wallet activity feed;
+- normalized transaction history;
+- indexed intent metadata for dashboard queries.
 
-Same for jurisdiction.
+### Application Database
 
-This is a core Zama justification.
+Owned by the web app and treated as offchain convenience data:
 
-### 9.3 Auditor Private Tests
+- contacts;
+- saved recipient metadata;
+- app-only relational records.
 
-Auditors create encrypted threshold tests.
+## 6. Privacy and Trust Boundaries
 
-Initial test types:
+Complyr does not make all payment data private.
 
-```solidity
-enum ReviewTestType {
-    LargePayment,
-    RecipientExposure,
-    CategoryExposure,
-    JurisdictionExposure
-}
-```
+Public onchain data includes:
 
-Suggested struct:
+- wallet addresses;
+- token addresses;
+- recipients;
+- transaction timing;
+- transaction hashes;
+- plaintext `referenceIds` stored in audit records.
 
-```solidity
-struct ReviewTest {
-    uint256 id;
-    address wallet;
-    address auditor;
-    ReviewTestType testType;
-    address recipientScope;
-    uint8 numericScope;
-    euint128 threshold;
-    bool active;
-    uint256 createdAt;
-}
-```
+Encrypted onchain data includes:
 
-For MVP:
+- payment amounts copied into audit records;
+- category values;
+- jurisdiction values;
+- reviewer thresholds;
+- reviewer result signals;
+- encrypted rollups stored for reporting and threshold checks.
 
-- `LargePayment` ignores `recipientScope`.
-- `RecipientExposure` uses plaintext `recipientScope`.
-- `CategoryExposure` uses public `numericScope` as the category id.
-- `JurisdictionExposure` uses public `numericScope` as the jurisdiction id.
+Important trust boundaries:
 
-Later:
+- encryption and decryption authorization happen client-side through the Zama SDK;
+- payment execution authority is enforced by `SmartWallet`, `IntentRegistry`, and ERC-4337 signature validation;
+- contacts and relay funding are offchain web-server concerns and do not change onchain authorization rules.
 
-- category/jurisdiction scope can be encrypted too if we want to hide not only the threshold but also the exact class of business activity being reviewed.
+## 7. Primary Request Flows
 
-## 10. Encrypted Result Queue
+### 7.1 Wallet Onboarding
+
+1. User authenticates in the web app with Privy.
+2. The app predicts or deploys the user smart wallet through `SmartWalletFactory`.
+3. The factory registers the wallet in `AuditRegistry`.
+4. The frontend initializes a `permissionless` smart-account client for subsequent UserOperations.
 
-Instead of emitting public `SignalTriggered` events, store auditor-owned encrypted results.
+### 7.2 Single or Batch Payment
 
-Reason:
+1. User fills payment details and audit context in the web app.
+2. The browser encrypts amounts, categories, and jurisdictions using the Zama relayer SDK.
+3. The frontend submits a wallet call through the ERC-4337 client and Pimlico bundler.
+4. `SmartWallet` executes the transfer.
+5. `SmartWallet` records audit data in `AuditRegistry`.
+6. Envio indexes the emitted payment events for transaction history.
 
-- business should not see auditor signals;
-- public observers should not infer what triggered;
-- auditor decrypts only their own review outputs.
+### 7.3 Recurring Payment
 
-Suggested struct:
+1. User creates a recurring intent from the web app.
+2. The app encrypts the audit payload in the browser.
+3. `IntentRegistry` stores the schedule and increases wallet fund commitments.
+4. A keeper-compatible caller triggers `performUpkeep`.
+5. `IntentRegistry` instructs `SmartWallet` to execute the scheduled batch transfer.
+6. The registry records the encrypted audit entry for that execution.
+7. Envio indexes the resulting intent and payment events.
 
-```solidity
-struct ReviewResult {
-    uint256 testId;
-    bytes32 recordId;
-    ebool triggered;
-    uint256 timestamp;
-}
-```
+### 7.4 Internal Audit View
 
-Storage:
+1. The business user opens the audit page.
+2. The app reads record counts and record payloads from `AuditRegistry`.
+3. Records are displayed with encrypted handles by default.
+4. The connected authorized wallet signs Zama decrypt permissions.
+5. The browser decrypts the encrypted handles locally for display.
 
-```solidity
-mapping(address auditor => ReviewResult[]) private _reviewResults;
-```
+### 7.5 External Reviewer Flow
 
-Permissions:
+The external reviewer flow is the showcase path in the current architecture.
 
-- result `ebool` must be `FHE.allowThis`;
-- result must be `FHE.allow(result, auditor)`;
-- do not allow result to business owner by default.
+It is the clearest expression of what makes Complyr different from a standard treasury dashboard: the system does not stop at recording encrypted audit context. It also lets an approved third party define private review rules, have the contract evaluate new records against those rules, and then decrypt only the signals and evidence that their access level permits.
 
-Read functions:
+The flow works as follows:
 
-- `getReviewResultCount(address auditor)`
-- `getReviewResult(address auditor, uint256 index)`
-- caller should be the auditor or an approved access path.
+1. A business owner adds a reviewer in `AuditRegistry` and assigns an access level.
+2. The reviewer opens the dedicated portal route for the business wallet.
+3. The portal verifies that the connected reviewer address is active for that wallet and loads its access level from `AuditRegistry`.
+4. If the reviewer has signal-creation rights, they create encrypted review tests in the browser. The current codebase supports:
+   - large payment thresholds;
+   - recipient exposure thresholds;
+   - category exposure thresholds;
+   - jurisdiction exposure thresholds.
+5. Threshold values are encrypted client-side with the Zama SDK before submission. The reviewer creates tests without publishing the threshold in plaintext.
+6. `AuditRegistry` stores the test under the reviewer account and attaches it to the target company wallet's active test set.
+7. As new payment records are written, `AuditRegistry` evaluates each record against the active tests for that company wallet.
+8. Triggered or non-triggered outcomes are written into reviewer-owned encrypted result queues, rather than emitted as public business-facing signals.
+9. When the reviewer returns to the portal, the app loads:
+   - the reviewer test inventory;
+   - the encrypted result queue;
+   - encrypted rollup handles for reports when access permits;
+   - ledger records when the reviewer has ledger-level access.
+10. Decryption authorization happens client-side. The reviewer signs the Zama authorization payload and decrypts only the handles they are permitted to read.
+11. Depending on access level, the reviewer can inspect:
+   - signal-only results;
+   - encrypted aggregate reports;
+   - record-level ledger evidence.
 
-## 11. Record Creation Flow
+This design is important because it preserves the product's audit-first posture:
 
-Payment creation should remain mandatory-audit-context.
+- the business can operate through a normal payment workflow;
+- reviewer logic can remain private;
+- evaluation can happen against encrypted amounts and encrypted rollups;
+- the reviewer experience is isolated from treasury controls;
+- the app can support selective disclosure instead of granting blanket ledger access by default.
 
-Single and batch payment flow:
+### 7.6 Why The Reviewer Flow Matters
 
-1. User fills payment details.
-2. User fills audit context for every recipient.
-3. Frontend encrypts amount/category/jurisdiction with Zama.
-4. Smart wallet executes payment and records audit data atomically.
-5. Registry validates encrypted inputs with `FHE.fromExternal`.
-6. Registry stores encrypted record.
-7. Registry updates encrypted rollups.
-8. Registry evaluates active auditor tests for the wallet.
-9. Registry stores encrypted review results for the auditor.
+Most systems can store metadata next to payments. The stronger architectural idea in Complyr is that external oversight is part of the runtime model, not an afterthought built on exported spreadsheets.
 
-No raw financial transfer path should bypass audit recording.
+In this repository, that idea shows up concretely in three places:
 
-Recurring intent flow:
+1. `AuditRegistry` does not only store records; it also stores reviewer access, encrypted tests, encrypted rollups, and encrypted results.
+2. The auditor portal is not a read-only dashboard; it is an active workflow for creating checks and decrypting reviewer-scoped outputs.
+3. The business-facing audit interface and the reviewer-facing interface are intentionally separated, which keeps treasury operations, internal reporting, and external review concerns distinct.
 
-1. User fills intent payment details and audit context for every recipient.
-2. Frontend encrypts amount/category/jurisdiction with Zama.
-3. `IntentRegistry.createIntent` stores the recurring schedule and records the encrypted audit context once, using the intent id as the record id.
-4. Scheduled executions transfer the committed funds according to the stored intent.
+## 8. Integration Points
 
-This is intentional: recurring payments are represented as an audited scheduled intent rather than a new encrypted audit record per execution. Public intent lifecycle and transfer events still expose execution activity.
+### External Services
 
-The `SmartWallet.recordCompliance` method remains available contract-side for controlled/manual registry writes by the owner or EntryPoint, but the product UI/API does not expose it as a standalone payment flow. User-facing payment flows use the atomic `*WithCompliance` transfer methods or intent creation path.
+- Privy for authentication and embedded wallets
+- Pimlico bundler/paymaster for ERC-4337 submission
+- Ethereum Sepolia RPC
+- Zama relayer SDK for FHE input creation and decrypt authorization
+- PostgreSQL for contacts data
 
-## 12. Auditor Test Creation Flow
+### Web API Routes
 
-1. Auditor connects through auditor portal.
-2. Contract verifies auditor is approved for the business wallet.
-3. Auditor selects test type.
-4. Auditor enters threshold locally.
-5. Frontend encrypts threshold for the registry contract.
-6. Auditor submits encrypted threshold handle/proof.
-7. Registry validates threshold with `FHE.fromExternal`.
-8. Registry stores test and allows:
-   - contract itself;
-   - auditor.
-9. Business does not receive plaintext threshold or result queue.
+Current server routes in the web app:
 
-## 13. FHE Permissions
+- `/api/contacts`
+- `/api/contacts/[contactId]`
+- `/api/relay/fund-wallet`
+- `/api/search`
 
-Every stored encrypted record field:
+These routes support the frontend, but they are not the main transaction path. Payment execution, audit storage, and reviewer evaluation remain blockchain-first.
 
-- `FHE.allowThis(value)`
-- `FHE.allow(value, businessOwner)`
-- `FHE.allow(value, activeAuditor)` only if the reviewer has `Ledger` access
+## 9. Deployment Model
 
-Every rollup:
+The repository is designed as a pnpm workspace:
 
-- `FHE.allowThis(total)`
-- `FHE.allow(total, businessOwner)`
-- `FHE.allow(total, auditor)` only if the reviewer has `Reviewer` or `Ledger` access
+- `apps/web` can be deployed as a Next.js application;
+- `packages/contracts` is deployed to Sepolia with Foundry scripts;
+- `packages/indexer` runs as an Envio indexer against Sepolia events;
+- PostgreSQL is provided separately through environment configuration.
 
-Every auditor threshold:
+The frontend can point at either a hosted Envio GraphQL endpoint or a local indexer endpoint through environment variables.
 
-- `FHE.allowThis(threshold)`
-- `FHE.allow(threshold, auditor)`
-- do not allow threshold to business owner
+## 10. Architectural Notes
 
-Every review result:
+This codebase follows a standard split:
 
-- `FHE.allowThis(triggered)`
-- `FHE.allow(triggered, auditor)`
-- do not allow result to business owner by default
+- presentation and orchestration in Next.js;
+- authority and settlement onchain;
+- derived read models in an indexer;
+- convenience records in a relational store.
 
-Known limitation:
+The two important non-standard aspects are intentional product choices:
 
-- Once `FHE.allow` grants access to a ciphertext, removing an auditor cannot revoke already-granted historical decryption rights at the FHE/KMS level.
-- Contract comments and UI copy should state that removal only blocks future grants/results.
-
-## 14. Access Control
-
-Reviewer access is implemented contract-side.
-
-```solidity
-enum ReviewerAccess {
-    None,
-    Reviewer,
-    Ledger
-}
-```
-
-Behavior:
-
-- `Reviewer`: can create encrypted private tests, decrypt their own encrypted result queue, and receives encrypted aggregate rollup decrypt grants.
-- `Ledger`: includes `Reviewer` behavior and receives encrypted record-level decrypt grants.
-
-Access APIs:
-
-- `addAuditor(proxyAccount, auditor)` remains as a compatibility helper and grants `Ledger`.
-- `addAuditorWithAccess(proxyAccount, auditor, accessLevel)` grants an explicit non-`None` access level.
-- `updateAuditorAccess(proxyAccount, auditor, accessLevel)` changes future grants. Upgrading to `Reviewer` or `Ledger` grants existing rollups/records where applicable.
-- `removeAuditor(proxyAccount, auditor)` sets access to `None`, removes the reviewer from the active list, and deactivates their active tests for that wallet.
-
-Known limitation remains: lowering or removing access cannot cryptographically revoke historical FHE/KMS decrypt permissions already granted to prior ciphertexts. It blocks future grants/results and UI access.
-
-## 15. Contract API Sketch
-
-### Existing / Adapted Registry Functions
-
-```solidity
-function recordTransaction(...) external;
-function addAuditor(address proxyAccount, address auditor) external;
-function addAuditorWithAccess(address proxyAccount, address auditor, ReviewerAccess accessLevel) external;
-function updateAuditorAccess(address proxyAccount, address auditor, ReviewerAccess accessLevel) external;
-function removeAuditor(address proxyAccount, address auditor) external;
-function getAuditors(address proxyAccount) external view returns (address[] memory);
-function reviewerAccess(address proxyAccount, address auditor) external view returns (ReviewerAccess);
-function getRecordCount(address proxyAccount) external view returns (uint256);
-function getRecord(address proxyAccount, uint256 index) external view returns (...);
-```
-
-### New Rollup Read Functions
-
-```solidity
-function getEncryptedRecipientTotal(address wallet, address recipient) external view returns (bytes32);
-function getEncryptedCategoryTotal(address wallet, uint8 category) external view returns (bytes32);
-function getEncryptedJurisdictionTotal(address wallet, uint8 jurisdiction) external view returns (bytes32);
-function getEncryptedGlobalTotal(address wallet) external view returns (bytes32);
-```
-
-### New Review Test Functions
-
-```solidity
-function createLargePaymentTest(
-    address wallet,
-    externalEuint128 thresholdHandle,
-    bytes calldata thresholdProof
-) external returns (uint256 testId);
-
-function createRecipientExposureTest(
-    address wallet,
-    address recipient,
-    externalEuint128 thresholdHandle,
-    bytes calldata thresholdProof
-) external returns (uint256 testId);
-
-function deactivateReviewTest(uint256 testId) external;
-function getReviewTest(uint256 testId) external view returns (...);
-function getAuditorTestIds(address auditor) external view returns (uint256[] memory);
-```
-
-### New Review Result Functions
-
-```solidity
-function getReviewResultCount(address auditor) external view returns (uint256);
-function getReviewResult(address auditor, uint256 index) external view returns (...);
-```
-
-## 16. Evaluating Tests During Record Creation
-
-For each recipient/payment item:
-
-Large payment:
-
-```solidity
-triggered = FHE.gt(amount, test.threshold);
-_storeReviewResult(test.id, recordId, triggered, test.auditor);
-```
-
-Recipient exposure:
-
-```solidity
-newTotal = _recipientTotals[wallet][recipient];
-triggered = FHE.gt(newTotal, test.threshold);
-_storeReviewResult(test.id, recordId, triggered, test.auditor);
-```
-
-Important:
-
-- Only evaluate tests relevant to the wallet.
-- Recipient exposure tests only evaluate when `recipient == recipientScope`.
-- Avoid unbounded loops if many tests exist.
-
-Practical cap:
-
-- max active tests per wallet or auditor.
-- example: `MAX_ACTIVE_TESTS_PER_WALLET = 20`.
-
-## 17. Indexer Impact
-
-The indexer likely does not need a rebuild for the MVP.
-
-Keep indexer responsible for:
-
-- normal payment transaction history;
-- wallet activity;
-- intent lifecycle;
-- public payment metadata.
-
-The FHE audit engine is read directly from contracts by the frontend because:
-
-- encrypted handles are contract state;
-- userDecrypt needs contract handles;
-- auditor result queues are privacy-sensitive and not useful as public indexed data.
-
-Optional later indexer additions:
-
-- index public creation of review tests without thresholds;
-- index public record-added events;
-- index counts only.
-
-Do not make indexer a blocker.
-
-## 18. Frontend Implementation Plan
-
-### 18.1 Rename Copy
-
-Replace user-facing `Compliance` terminology with:
-
-- `Audit Hub`
-- `Audit Context`
-- `Review Access`
-- `Reviewer`
-- `Private Reports`
-- `Audit Trail`
-- `Review Portal`
-
-Keep contract names if needed.
-
-### 18.2 Payment Form
-
-Keep current payment UX, but rename:
-
-- `Compliance Records (Encrypted)` -> `Audit Context`
-
-Required fields per recipient:
-
-- reference id;
-- category;
-- jurisdiction;
-- amount is already part of payment.
-
-### 18.3 Treasury
-
-Leave mostly unchanged.
-
-Do not add signals to payment table.
-
-### 18.4 Audit Hub
-
-Tabs:
-
-- `Overview`
-- `Private Reports`
-- `Audit Trail`
-
-Remove business-facing signals tab.
-
-### 18.5 Review Access
-
-Move current auditor management out of Audit Hub into a dedicated section.
-
-Show:
-
-- approved reviewers;
-- add reviewer;
-- remove reviewer;
-- share portal link.
-
-### 18.6 Auditor Portal
-
-Add:
-
-- private threshold creation;
-- encrypted result queue;
-- decrypt results;
-- evidence view.
-
-## 19. MVP Build Order
-
-### Phase 1: Contract Audit Engine
-
-1. Add encrypted rollups:
-   - recipient totals;
-   - category totals;
-   - jurisdiction totals.
-
-2. Add review tests:
-   - large payment threshold;
-   - recipient exposure threshold.
-   - category exposure threshold with public category scope;
-   - jurisdiction exposure threshold with public jurisdiction scope.
-
-3. Add encrypted review result queue.
-
-4. Add read functions for rollups/tests/results.
-
-5. Add tests.
-
-### Phase 2: Frontend Zama Integration
-
-1. Add threshold encryption helper.
-2. Add auditor create-test UI.
-3. Add auditor result queue UI.
-4. Add result decrypt flow.
-5. Add private report decrypt flow for owner rollups.
-
-### Phase 3: UX Rename/Reframe
-
-1. Rename Compliance Dashboard -> Audit Hub.
-2. Rename Access -> Review Access.
-3. Rename auditor portal copy.
-4. Update landing/docs copy.
-
-### Phase 4: Polish Demo Flow
-
-1. Seed test payments.
-2. Auditor creates hidden threshold.
-3. Business performs transaction.
-4. Auditor decrypts result queue.
-5. Owner decrypts internal private reports.
-
-## 20. Demo Script
-
-1. Business opens Complyr.
-2. Business creates a wallet and receives test USDC.
-3. Business sends normal business payments with required audit context.
-4. Business opens `Audit Hub`.
-5. Business decrypts private reports: category/jurisdiction/recipient totals.
-6. Business opens `Review Access` and approves an external reviewer.
-7. Reviewer opens portal.
-8. Reviewer creates an encrypted large-payment threshold.
-9. Reviewer creates an encrypted recipient-exposure threshold.
-10. Business continues making payments.
-11. Registry evaluates encrypted records/rollups against reviewer thresholds.
-12. Reviewer decrypts result queue and sees which tests triggered.
-13. Reviewer opens evidence for triggered result.
-
-Core pitch:
-
-> The business can operate normally and keep internal audit reports. External reviewers can run hidden threshold tests that the business cannot game. Zama enables the contract to compare encrypted business records and rollups against encrypted auditor thresholds.
-
-## 21. Non-Goals
-
-Do not implement these in the MVP:
-
-- confidential ERC-20 payment amounts;
-- per-business registry refactor;
-- public audit signal events;
-- fully private encrypted test scopes;
-- complex time-window logic;
-- arbitrary auditor scripts/rules;
-- indexer rebuild;
-- legal/regulatory certification claims.
-
-## 22. Open Technical Questions
-
-Before implementation, verify exact Zama API support in current installed versions:
-
-- `FHE.add` for `euint128`;
-- `FHE.eq` for `euint8`;
-- `FHE.gt` for `euint128`;
-- `FHE.select` with `ebool`;
-- storing and returning `ebool` handles;
-- converting encrypted values to `bytes32` with `FHE.toBytes32`;
-- frontend `userDecrypt` support for `ebool` handles.
-
-If `ebool` user decryption is awkward, store result as `euint8`:
-
-- `1` = triggered;
-- `0` = not triggered.
-
-This can be produced with:
-
-```solidity
-result = FHE.select(triggeredBool, FHE.asEuint8(1), FHE.asEuint8(0));
-```
-
-Then auditor decrypts the `euint8`.
-
-## 23. Preferred MVP Result Representation
-
-Use encrypted `euint8` result instead of raw `ebool`.
-
-Reason:
-
-- easier frontend display;
-- consistent with existing decrypt patterns;
-- avoids uncertainty around `ebool` handle support.
-
-Result values:
-
-- `0`: not triggered;
-- `1`: triggered.
-
-Suggested struct:
-
-```solidity
-struct ReviewResult {
-    uint256 testId;
-    bytes32 recordId;
-    euint8 result;
-    uint256 timestamp;
-}
-```
-
-## 24. Summary
-
-The rebuild should focus on one strong FHE-native capability:
-
-> private external audit thresholds evaluated against encrypted payment records and encrypted rollups.
-
-Business UX stays simple:
-
-- payments;
-- treasury;
-- internal audit reports;
-- review access.
-
-Auditor UX becomes the showcase:
-
-- create encrypted tests;
-- decrypt private result queue;
-- inspect authorized evidence.
-
-This architecture justifies Zama without claiming normal ERC-20 payment amounts are hidden.
+- audit payloads are encrypted in the browser before they are written onchain;
+- audit and reviewer dashboards read encrypted records from the contract directly instead of relying only on the indexer.

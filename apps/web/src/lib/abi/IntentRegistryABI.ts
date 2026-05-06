@@ -55,6 +55,19 @@ export const IntentRegistryABI = [
   },
   {
     "type": "function",
+    "name": "auditRegistry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "cancelIntent",
     "inputs": [
       {
@@ -86,19 +99,6 @@ export const IntentRegistryABI = [
         "name": "performData",
         "type": "bytes",
         "internalType": "bytes"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "complianceRegistry",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -394,7 +394,7 @@ export const IntentRegistryABI = [
   },
   {
     "type": "function",
-    "name": "setComplianceRegistry",
+    "name": "setAuditRegistry",
     "inputs": [
       {
         "name": "_registry",
@@ -726,7 +726,7 @@ export const IntentRegistryABI = [
   },
   {
     "type": "error",
-    "name": "IntentRegistry__MissingComplianceInfo",
+    "name": "IntentRegistry__MissingAuditInfo",
     "inputs": []
   },
   {

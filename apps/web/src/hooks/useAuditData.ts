@@ -1,10 +1,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { envioClient, ActivityType, GET_ALL_TRANSACTIONS } from "@/lib/envio/client";
-import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/compliance-enums";
+import { JURISDICTION_DISPLAY, CATEGORY_DISPLAY } from "@/lib/audit-enums";
 import { MockUSDCAddress } from "@/lib/CA";
 
-export type ComplianceData = {
+export type AuditData = {
     date: Date;
     txHash: string;
     amount: string; // raw unit string
@@ -19,7 +19,7 @@ export type ComplianceData = {
     recipientAddress: string;
 };
 
-export type ComplianceStats = {
+export type AuditStats = {
     totalCategorized: number;
     totalUncategorized: number;
     byJurisdiction: Record<string, { count: number; amount: number }>;
@@ -27,9 +27,9 @@ export type ComplianceStats = {
     healthScore: number;
 };
 
-export const useComplianceData = (walletAddress?: string) => {
+export const useAuditData = (walletAddress?: string) => {
     return useQuery({
-        queryKey: ["compliance-data", walletAddress],
+        queryKey: ["audit-data", walletAddress],
         queryFn: async () => {
             if (!walletAddress) return { transactions: [], stats: null };
 
@@ -39,8 +39,8 @@ export const useComplianceData = (walletAddress?: string) => {
             });
             const data = (response as any).Transaction || [];
 
-            const transactions: ComplianceData[] = [];
-            const stats: ComplianceStats = {
+            const transactions: AuditData[] = [];
+            const stats: AuditStats = {
                 totalCategorized: 0,
                 totalUncategorized: 0,
                 byJurisdiction: {},
@@ -70,11 +70,11 @@ export const useComplianceData = (walletAddress?: string) => {
 
                 // 1. Single Execution
                 if (tx.transactionType === ActivityType.EXECUTE) {
-                    const compliance = details.compliance || {};
-                    const entityId = compliance.entityIds?.[0] || "";
+                    const audit = details.audit || {};
+                    const entityId = audit.entityIds?.[0] || "";
 
-                    const jurVal = Number(compliance.jurisdiction || 0);
-                    const catVal = Number(compliance.category || 0);
+                    const jurVal = Number(audit.jurisdiction || 0);
+                    const catVal = Number(audit.category || 0);
 
                     const jurisdiction = JURISDICTION_DISPLAY[jurVal] || "None";
                     const category = CATEGORY_DISPLAY[catVal] || "None";
@@ -82,7 +82,7 @@ export const useComplianceData = (walletAddress?: string) => {
                     const rawAmount = details.value || details.amount || "0";
                     const amountVal = Number(rawAmount) / decimals;
 
-                    const item: ComplianceData = {
+                    const item: AuditData = {
                         date: new Date(Number(tx.timestamp) * 1000),
                         txHash: tx.txHash,
                         amount: rawAmount,
@@ -91,7 +91,7 @@ export const useComplianceData = (walletAddress?: string) => {
                         entityId,
                         jurisdiction,
                         category,
-                        periodId: compliance.referenceId || "",
+                        periodId: audit.referenceId || "",
                         reference: details.functionCall || "Transfer",
                         details,
                         recipientAddress: details.target || details.recipient || ""
@@ -122,28 +122,28 @@ export const useComplianceData = (walletAddress?: string) => {
                 // 2. Batch Execution / Intent Execution
                 else if (tx.transactionType === ActivityType.EXECUTE_BATCH || tx.transactionType === ActivityType.INTENT_EXECUTION) {
                     const recipients = details.recipients || details.calls || [];
-                    const compliance = details.compliance || {}; // Global object with arrays
+                    const audit = details.audit || {}; // Global object with arrays
 
-                    const entityIds = compliance.entityIds || [];
+                    const entityIds = audit.entityIds || [];
 
                     // Parsing the stored string arrays (from Intent)
                     let jurisdictions: string[] = [];
                     let categories: string[] = [];
 
-                    if (typeof compliance.jurisdiction === 'string' && compliance.jurisdiction.includes(',')) {
-                        jurisdictions = compliance.jurisdiction.split(',');
-                    } else if (Array.isArray(compliance.jurisdiction)) {
-                        jurisdictions = compliance.jurisdiction;
+                    if (typeof audit.jurisdiction === 'string' && audit.jurisdiction.includes(',')) {
+                        jurisdictions = audit.jurisdiction.split(',');
+                    } else if (Array.isArray(audit.jurisdiction)) {
+                        jurisdictions = audit.jurisdiction;
                     } else {
-                        jurisdictions = [compliance.jurisdiction || ""];
+                        jurisdictions = [audit.jurisdiction || ""];
                     }
 
-                    if (typeof compliance.category === 'string' && compliance.category.includes(',')) {
-                        categories = compliance.category.split(',');
-                    } else if (Array.isArray(compliance.category)) {
-                        categories = compliance.category;
+                    if (typeof audit.category === 'string' && audit.category.includes(',')) {
+                        categories = audit.category.split(',');
+                    } else if (Array.isArray(audit.category)) {
+                        categories = audit.category;
                     } else {
-                        categories = [compliance.category || ""];
+                        categories = [audit.category || ""];
                     }
 
 
@@ -168,7 +168,7 @@ export const useComplianceData = (walletAddress?: string) => {
                         const jur = JURISDICTION_DISPLAY[jurVal] || "None";
                         const cat = CATEGORY_DISPLAY[catVal] || "None";
 
-                        const item: ComplianceData = {
+                        const item: AuditData = {
                             date: new Date(Number(tx.timestamp) * 1000),
                             txHash: tx.txHash,
                             amount: rawAmount,
@@ -177,7 +177,7 @@ export const useComplianceData = (walletAddress?: string) => {
                             entityId: entId,
                             jurisdiction: jur,
                             category: cat,
-                            periodId: compliance.referenceId || "",
+                            periodId: audit.referenceId || "",
                             reference: tx.title || "Batch Payment",
                             details,
                             recipientAddress: r.recipient || r.target || r.address || ""

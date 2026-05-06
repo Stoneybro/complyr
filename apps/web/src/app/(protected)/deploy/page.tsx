@@ -1,11 +1,10 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Label } from "@radix-ui/react-label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useDeployWallet } from "@/hooks/useDeployWallet";
 import useWalletDeployment from "@/hooks/useWalletDeployment";
-import { LZStatusTracker } from "@/components/ui/lz-status-tracker";
 
 function Page() {
   const [checked, setChecked] = useState(false);
@@ -58,8 +57,7 @@ function Page() {
           </Button>
 
           <div className="mt-2 text-xs text-muted-foreground bg-muted p-3 rounded text-left flex flex-col gap-2">
-             <p><strong>Activation Time:</strong> Initializing registration takes ~5-10 seconds. Please do not close the window.</p>
-             <p><strong>Recommended View:</strong> Complyr is highly optimized for desktop and may have UI issues on mobile devices.</p>
+             <p><strong>Recommended View:</strong> Complyr is optimised for desktop. Mobile may have layout issues.</p>
           </div>
 
         </div>

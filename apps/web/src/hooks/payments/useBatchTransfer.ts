@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSmartAccountContext } from "@/lib/SmartAccountProvider";
 import { parseUnits, encodeFunctionData } from "viem";
 import { BatchTransferParams } from "./types";
-import { assertRequiredCompliance, checkSufficientBalance, createComplianceRecordId } from "./utils";
+import { assertRequiredAudit, checkSufficientBalance, createAuditRecordId } from "./utils";
 import { SmartWalletABI } from "@/lib/abi/SmartWalletAbi";
 import { MockUSDCAddress } from "@/lib/CA";
-import { encryptComplianceInput } from "@/lib/fhe-compliance";
+import { encryptAuditInput } from "@/lib/fhe-audit";
 
 export function useBatchTransfer(availableBalance?: string) {
     const { getClient } = useSmartAccountContext();
@@ -51,39 +51,39 @@ export function useBatchTransfer(availableBalance?: string) {
                 const proxyAddress = smartAccountClient.account!.address;
 
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
-                assertRequiredCompliance(params.compliance, params.recipients.length);
+                assertRequiredAudit(params.audit, params.recipients.length);
 
                 // 1. Client-side Zama encryption
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting batch compliance fields...");
-                let encryptedCompliance;
+                const loadingId = toast.loading("Encrypting batch audit fields...");
+                let encryptedAudit;
                 try {
-                    encryptedCompliance = await encryptComplianceInput({
+                    encryptedAudit = await encryptAuditInput({
                         callerAddress: proxyAddress,
                         amounts: amountsInUnits,
-                        categories: params.compliance?.categories,
-                        jurisdictions: params.compliance?.jurisdictions,
-                        referenceIds: params.compliance?.referenceIds,
+                        categories: params.audit?.categories,
+                        jurisdictions: params.audit?.jurisdictions,
+                        referenceIds: params.audit?.referenceIds,
                     });
                     toast.dismiss(loadingId);
                 } catch (e) {
                     console.error(e);
                     toast.dismiss(loadingId);
                     statusUpdate("Error");
-                    throw new Error("Failed to encrypt batch compliance parameters.");
+                    throw new Error("Failed to encrypt batch audit parameters.");
                 }
 
                 // 2. Setup atomic compliant transfer call.
                 const calls: Array<{ to: `0x${string}`; value: bigint; data: `0x${string}` }> = [];
-                const recordId = createComplianceRecordId();
-                const complianceArg = {
-                    amountHandles: encryptedCompliance.amountHandles,
-                    amountProofs: encryptedCompliance.amountProofs,
-                    categoryHandles: encryptedCompliance.categoryHandles,
-                    categoryProofs: encryptedCompliance.categoryProofs,
-                    jurisdictionHandles: encryptedCompliance.jurisdictionHandles,
-                    jurisdictionProofs: encryptedCompliance.jurisdictionProofs,
-                    referenceIds: encryptedCompliance.referenceIds,
+                const recordId = createAuditRecordId();
+                const auditArg = {
+                    amountHandles: encryptedAudit.amountHandles,
+                    amountProofs: encryptedAudit.amountProofs,
+                    categoryHandles: encryptedAudit.categoryHandles,
+                    categoryProofs: encryptedAudit.categoryProofs,
+                    jurisdictionHandles: encryptedAudit.jurisdictionHandles,
+                    jurisdictionProofs: encryptedAudit.jurisdictionProofs,
+                    referenceIds: encryptedAudit.referenceIds,
                 };
 
                 if (params.tokenAddress && params.tokenAddress !== "0x0000000000000000000000000000000000000000") {
@@ -92,13 +92,13 @@ export function useBatchTransfer(availableBalance?: string) {
                         value: 0n,
                         data: encodeFunctionData({
                             abi: SmartWalletABI,
-                            functionName: "batchTransferERC20WithCompliance",
+                            functionName: "batchTransferERC20WithAudit",
                             args: [
                                 recordId,
                                 params.tokenAddress,
                                 params.recipients,
                                 amountsInUnits,
-                                complianceArg,
+                                auditArg,
                             ],
                         })
                     });
@@ -109,12 +109,12 @@ export function useBatchTransfer(availableBalance?: string) {
                         value: totalNativeValue,
                         data: encodeFunctionData({
                             abi: SmartWalletABI,
-                            functionName: "batchTransferNativeWithCompliance",
+                            functionName: "batchTransferNativeWithAudit",
                             args: [
                                 recordId,
                                 params.recipients,
                                 amountsInUnits,
-                                complianceArg,
+                                auditArg,
                             ],
                         }),
                     });

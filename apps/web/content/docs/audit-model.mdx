@@ -1,15 +1,15 @@
 ---
-title: Compliance Model
+title: Audit Model
 description: Deep dive into the metadata schema and client-side AES flow.
 ---
 
-## Compliance Model & Encryption
+## Audit Model & Encryption
 
-![Compliance Dashboard](/complyr-compliance-dashboard.png)
+![Audit Dashboard](/complyr-audit-dashboard.png)
 
-### The compliance metadata schema
+### The audit metadata schema
 
-Complyr captures two dimensions of compliance metadata per recipient per payment:
+Complyr captures two dimensions of audit metadata per recipient per payment:
 
 **Jurisdiction** — the regulatory jurisdiction applicable to the recipient. Mapped to a `uint8` enum on-chain.
 
@@ -52,18 +52,18 @@ Unlike early prototypes that relied on FHE, Complyr utilizes standard Client-Sid
 
 1. **Company Keys**: A symmetric master AES key is generated for the company. Data is encrypted client-side using this key before landing on-chain.
 2. **Metadata Input**: The frontend packages recipient category and jurisdiction values into an encrypted payload. 
-3. **On-chain Validation**: The payload is stored in the `ComplianceRegistry` on Ethereum Sepolia.
+3. **On-chain Validation**: The payload is stored in the `AuditRegistry` on Ethereum Sepolia.
 4. **Auditor Portal & ECIES**: When granting access to an auditor, the company's master AES key is encrypted using the auditor's Ethereum public key (ECIES) and stored in the registry. 
-5. **Decryption**: Authorized auditors fetch the encrypted AES key, use their private key to decrypt it locally, and then locally decrypt the matching batch of records from the ComplianceRegistry.
+5. **Decryption**: Authorized auditors fetch the encrypted AES key, use their private key to decrypt it locally, and then locally decrypt the matching batch of records from the AuditRegistry.
 
 ### The trust model
 
 Complyr does not enforce the accuracy of the metadata a company submits. A company self-reports its categories and jurisdictions, consistent with how traditional accounting works — accountants self-report but bear legal liability for what they commit. Complyr enforces:
 
-- existence of compliance records
+- existence of audit records
 - immutability of records
 - cryptographic linkage to transactions
 
-Once a compliance record is committed, it cannot be altered or deleted. The combination of a deterministic intent identifier and an immutable on-chain record provides the same accountability primitive as a signed accounting entry in traditional finance.
+Once a audit record is committed, it cannot be altered or deleted. The combination of a deterministic intent identifier and an immutable on-chain record provides the same accountability primitive as a signed accounting entry in traditional finance.
 
-The system is designed to give regulators a credible compliance ledger, not to replace the legal obligations of the business.
+The system is designed to give regulators a credible audit ledger, not to replace the legal obligations of the business.

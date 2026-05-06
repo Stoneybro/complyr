@@ -83,7 +83,7 @@ export default function LoginForm() {
             <span className="mr-2 inline-flex items-center" aria-hidden>
               {method.icon}
             </span>
-            {loadingProvider === method.id ? 'Loading…' : method.label}
+            {loadingProvider === method.id ? 'Signing in…' : method.label}
           </Button>
         ))}
       </div>

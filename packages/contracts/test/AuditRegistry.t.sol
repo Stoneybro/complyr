@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../src/ComplianceRegistry.sol";
+import "../src/AuditRegistry.sol";
 import "encrypted-types/EncryptedTypes.sol";
 
-contract ComplianceRegistryTest is Test {
-    ComplianceRegistry registry;
+contract AuditRegistryTest is Test {
+    AuditRegistry registry;
 
     address proxyAccount = makeAddr("proxyAccount");
     address master = makeAddr("master");
@@ -14,7 +14,7 @@ contract ComplianceRegistryTest is Test {
     address other = makeAddr("other");
 
     function setUp() public {
-        registry = new ComplianceRegistry();
+        registry = new AuditRegistry();
         registry.registerAccount(proxyAccount, master);
     }
 
@@ -26,39 +26,39 @@ contract ComplianceRegistryTest is Test {
         assertEq(auditors.length, 1);
         assertEq(auditors[0], auditor);
         assertTrue(registry.isAuditorActive(proxyAccount, auditor));
-        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Ledger));
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(AuditRegistry.ReviewerAccess.Full));
     }
 
     function test_AddAuditorWithExplicitAccessLevel() public {
         vm.prank(master);
-        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+        registry.addAuditorWithAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.Signal);
 
         assertTrue(registry.isAuditorActive(proxyAccount, auditor));
         assertEq(
-            uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Reviewer)
+            uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(AuditRegistry.ReviewerAccess.Signal)
         );
     }
 
     function test_CannotAddAuditorWithNoAccess() public {
         vm.prank(master);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidAccessLevel.selector);
-        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.None);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidAccessLevel.selector);
+        registry.addAuditorWithAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.None);
     }
 
     function test_UpdateAuditorAccess() public {
         vm.prank(master);
-        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+        registry.addAuditorWithAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.Signal);
 
         vm.prank(master);
-        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Ledger);
+        registry.updateAuditorAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.Full);
 
-        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Ledger));
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(AuditRegistry.ReviewerAccess.Full));
     }
 
     function test_UpdateAuditorAccessRequiresActiveAuditor() public {
         vm.prank(master);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
-        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+        vm.expectRevert(AuditRegistry.AuditRegistry__NotAuthorized.selector);
+        registry.updateAuditorAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.Signal);
     }
 
     function test_UpdateAuditorAccessCannotSetNone() public {
@@ -66,13 +66,13 @@ contract ComplianceRegistryTest is Test {
         registry.addAuditor(proxyAccount, auditor);
 
         vm.prank(master);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidAccessLevel.selector);
-        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.None);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidAccessLevel.selector);
+        registry.updateAuditorAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.None);
     }
 
     function test_OnlyMasterCanAddAuditor() public {
         vm.prank(other);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__NotAuthorized.selector);
         registry.addAuditor(proxyAccount, auditor);
     }
 
@@ -83,7 +83,7 @@ contract ComplianceRegistryTest is Test {
         }
 
         vm.prank(master);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__MaxAuditorsReached.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__MaxAuditorsReached.selector);
         registry.addAuditor(proxyAccount, address(0x9999));
     }
 
@@ -95,7 +95,7 @@ contract ComplianceRegistryTest is Test {
         registry.removeAuditor(proxyAccount, auditor);
 
         assertFalse(registry.isAuditorActive(proxyAccount, auditor));
-        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.None));
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(AuditRegistry.ReviewerAccess.None));
         assertEq(registry.getAuditors(proxyAccount).length, 0);
     }
 
@@ -103,7 +103,7 @@ contract ComplianceRegistryTest is Test {
         externalEuint128 thresholdHandle;
 
         vm.prank(other);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__NotAuthorized.selector);
         registry.createLargePaymentReviewTest(proxyAccount, thresholdHandle, "");
     }
 
@@ -111,40 +111,40 @@ contract ComplianceRegistryTest is Test {
         externalEuint128 thresholdHandle;
 
         vm.prank(master);
-        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+        registry.addAuditorWithAccess(proxyAccount, auditor, AuditRegistry.ReviewerAccess.Signal);
 
         vm.prank(auditor);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.createCategoryExposureReviewTest(proxyAccount, 0, thresholdHandle, "");
 
         vm.prank(auditor);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.createCategoryExposureReviewTest(proxyAccount, 11, thresholdHandle, "");
 
         vm.prank(auditor);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.createJurisdictionExposureReviewTest(proxyAccount, 0, thresholdHandle, "");
 
         vm.prank(auditor);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.createJurisdictionExposureReviewTest(proxyAccount, 14, thresholdHandle, "");
     }
 
     function test_PrivateReviewReadsRequireAuditorCaller() public {
         vm.prank(other);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__NotAuthorized.selector);
         registry.getAuditorReviewTestIds(auditor);
 
         vm.prank(other);
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__NotAuthorized.selector);
         registry.getReviewResultCount(auditor);
     }
 
     function test_InvalidRollupScopeReverts() public {
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.getEncryptedCategoryTotal(proxyAccount, 11);
 
-        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);
+        vm.expectRevert(AuditRegistry.AuditRegistry__InvalidScope.selector);
         registry.getEncryptedJurisdictionTotal(proxyAccount, 14);
     }
 

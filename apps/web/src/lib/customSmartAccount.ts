@@ -66,7 +66,7 @@ export default function CustomSmartAccount() {
             });
 
             if (decoded.functionName === "executeBatch") {
-              if (Array.isArray(decoded.args[0]) && typeof decoded.args[0][0] === 'object' && 'target' in decoded.args[0][0]) {
+              if (decoded.args && Array.isArray(decoded.args[0]) && typeof decoded.args[0][0] === 'object' && 'target' in decoded.args[0][0]) {
                 // tuple version: executeBatch((address,uint256,bytes)[])
                 const batchCalls = decoded.args[0] as Array<{
                   target: `0x${string}`;

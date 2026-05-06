@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
 import {IntentRegistry} from "../src/IntentRegistry.sol";
-import {ComplianceRegistry} from "../src/ComplianceRegistry.sol";
+import {AuditRegistry} from "../src/AuditRegistry.sol";
 import {SmartWallet} from "../src/SmartWallet.sol";
 import {SmartWalletFactory} from "../src/SmartWalletFactory.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
@@ -26,8 +26,8 @@ contract DeployAll is Script {
         IntentRegistry intentRegistry = new IntentRegistry(config.owner);
         console.log("1. IntentRegistry:       ", address(intentRegistry));
 
-        ComplianceRegistry complianceRegistry = new ComplianceRegistry();
-        console.log("2. ComplianceRegistry:   ", address(complianceRegistry));
+        AuditRegistry auditRegistry = new AuditRegistry();
+        console.log("2. AuditRegistry:   ", address(auditRegistry));
 
         // ── Phase 2: Mock Stablecoin (for Hackathon Demo) ────────────────────
 
@@ -38,7 +38,7 @@ contract DeployAll is Script {
 
         SmartWallet implementation = new SmartWallet(
             address(intentRegistry), 
-            address(complianceRegistry)
+            address(auditRegistry)
         );
         console.log("4. SmartWallet Impl:     ", address(implementation));
 
@@ -46,20 +46,20 @@ contract DeployAll is Script {
 
         SmartWalletFactory factory = new SmartWalletFactory(
             address(implementation), 
-            address(complianceRegistry)
+            address(auditRegistry)
         );
         console.log("5. SmartWalletFactory:   ", address(factory));
 
         // ── Phase 5: Wire & Fund ─────────────────────────────────────────────
 
-        // Authorize IntentRegistry in ComplianceRegistry
-        complianceRegistry.setAuthorizedCaller(address(intentRegistry), true);
+        // Authorize IntentRegistry in AuditRegistry
+        auditRegistry.setAuthorizedCaller(address(intentRegistry), true);
         
-        // Set ComplianceRegistry in IntentRegistry
-        intentRegistry.setComplianceRegistry(address(complianceRegistry));
+        // Set AuditRegistry in IntentRegistry
+        intentRegistry.setAuditRegistry(address(auditRegistry));
 
-        // Set Factory in ComplianceRegistry
-        complianceRegistry.setFactory(address(factory));
+        // Set Factory in AuditRegistry
+        auditRegistry.setFactory(address(factory));
 
         // Configure Factory Drip: 500 USDC
         uint256 stableDrip = 500 * 10**6; // 6 decimals
@@ -78,7 +78,7 @@ contract DeployAll is Script {
         console.log("\n=== DEPLOYMENT COMPLETE ===");
         console.log("MockUSDCAddress:          ", address(usdc));
         console.log("IntentRegistryAddress:    ", address(intentRegistry));
-        console.log("ComplianceRegistryAddress:", address(complianceRegistry));
+        console.log("AuditRegistryAddress:", address(auditRegistry));
         console.log("SmartWalletImplAddress:   ", address(implementation));
         console.log("SmartWalletFactoryAddress:", address(factory));
         console.log("===========================");

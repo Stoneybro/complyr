@@ -10,7 +10,7 @@ contract HelperConfig is Script {
     struct NetworkConfig {
         address implementation;
         address intentRegistry;
-        address complianceRegistry;
+        address auditRegistry;
         address owner;
         address entryPoint;
     }
@@ -48,7 +48,7 @@ contract HelperConfig is Script {
         return NetworkConfig({
             implementation: vm.envOr("SEPOLIA_SMART_WALLET_IMPLEMENTATION", address(0)),
             intentRegistry: vm.envOr("SEPOLIA_INTENT_REGISTRY", address(0)),
-            complianceRegistry: vm.envOr("SEPOLIA_COMPLIANCE_REGISTRY", address(0)),
+            auditRegistry: vm.envOr("SEPOLIA_AUDIT_REGISTRY", address(0)),
             owner: vm.envOr("SEPOLIA_OWNER", msg.sender),
             entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032
         });
@@ -62,7 +62,7 @@ contract HelperConfig is Script {
         localNetwork = NetworkConfig({
             implementation: address(0), 
             intentRegistry: address(0), 
-            complianceRegistry: address(0),
+            auditRegistry: address(0),
             owner: msg.sender,
             entryPoint: 0x0000000071727De22E5E9d8BAf0edAc6f37da032
         });

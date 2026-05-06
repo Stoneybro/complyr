@@ -37,22 +37,22 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Complyr Overview
 
-Complyr is a compliance intelligence layer for programmable payments on Ethereum Sepolia. It captures encrypted compliance metadata at payment creation time and makes records reviewable in audit workflows.
+Complyr is a audit intelligence layer for programmable payments on Ethereum Sepolia. It captures encrypted audit metadata at payment creation time and makes records reviewable in audit workflows.
 
 ## Ethereum Sepolia Integrations
 
 - **ERC-4337 smart accounts:** Routes payment operations through account abstraction infrastructure.
 - **Pimlico bundler/paymaster:** Sponsors user operations on Ethereum Sepolia.
-- **Envio indexer:** Reads Sepolia contract events for dashboard and compliance activity.
+- **Envio indexer:** Reads Sepolia contract events for dashboard and audit activity.
 
-## Outbound + Inbound Compliance Coverage
+## Outbound + Inbound Audit Coverage
 
 Complyr covers both sides of the payment lifecycle:
 
-- **Outbound payments (onchain transfers):** Compliance metadata is attached when payments are created and submitted.
-- **Inbound payments:** Checkout orchestration can capture compliance fields before settlement, addressing the metadata gap found in direct inbound onchain transfers.
+- **Outbound payments (onchain transfers):** Audit metadata is attached when payments are created and submitted.
+- **Inbound payments:** Checkout orchestration can capture audit fields before settlement, addressing the metadata gap found in direct inbound onchain transfers.
 
-This model improves audit readiness by making compliance evidence available for both funds sent and funds received.
+This model improves audit readiness by making audit evidence available for both funds sent and funds received.
 
 ## Integration Status
 

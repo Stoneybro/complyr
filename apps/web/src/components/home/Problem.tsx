@@ -34,7 +34,7 @@ export default function Problem() {
             className="h-px w-full bg-outline-variant/30 mb-8 origin-left"
           />
           <p className="text-lg text-on-surface-variant max-w-2xl leading-relaxed">
-            While the transfer itself is permanently recorded, the actual business context, like expense categories, jurisdictions, and reviewer checks, remains scattered across emails and spreadsheets. For a business, this missing connection creates a weak audit trail.
+            While the transfer itself is permanently recorded, the actual business context, like expense categories, jurisdictions, and references, remains scattered across emails and spreadsheets. For a business, this missing connection creates a weak audit trail.
           </p>
         </motion.div>
       </div>

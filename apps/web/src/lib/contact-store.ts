@@ -6,8 +6,8 @@ function generateId(): string {
     return crypto.randomUUID();
 }
 
-// Compliance metadata for contacts (optional fields)
-export type ContactCompliance = {
+// Audit metadata for contacts (optional fields)
+export type ContactAudit = {
     entityId?: string;      // e.g., "EMP-001", "CTR-005", "VENDOR-AWS"
     jurisdiction?: string;  // e.g., "US-CA", "UK", "EU-DE", "NG"
     category?: string;      // e.g., "PAYROLL_W2", "CONTRACTOR", "INVOICE"
@@ -40,7 +40,7 @@ export type CreateAddressInput = {
     category?: string;
 };
 
-// Create new contact with addresses (including compliance metadata)
+// Create new contact with addresses (including audit metadata)
 export async function createContact(
     userId: string,
     name: string,
@@ -60,7 +60,7 @@ export async function createContact(
             updatedAt: new Date(),
         });
 
-        // Insert addresses with compliance metadata
+        // Insert addresses with audit metadata
         for (const addr of addresses) {
             await tx.insert(contactAddresses).values({
                 id: generateId(),
@@ -78,7 +78,7 @@ export async function createContact(
     return getContact(contactId) as Promise<Contact>;
 }
 
-// Get all contacts for user (with addresses and compliance metadata)
+// Get all contacts for user (with addresses and audit metadata)
 export async function getContacts(userId: string): Promise<Contact[]> {
     const results = await db
         .select()
@@ -220,7 +220,7 @@ export async function updateContact(
                 .where(eq(contacts.id, contactId));
         }
 
-        // If addresses provided, replace all (including compliance metadata)
+        // If addresses provided, replace all (including audit metadata)
         if (data.addresses) {
             await tx.delete(contactAddresses).where(eq(contactAddresses.contactId, contactId));
 

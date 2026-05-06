@@ -1,14 +1,14 @@
 import { useState, useCallback } from "react";
 import { createPublicClient, http, formatUnits, getAddress } from "viem";
 import { useWallets } from "@privy-io/react-auth";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
+import { AuditRegistryABI } from "@/lib/abi/AuditRegistryABI";
 import { toast } from "sonner";
-import { CATEGORY_DISPLAY, JURISDICTION_DISPLAY } from "@/lib/compliance-enums";
-import { ComplianceRegistryAddress, MockUSDCAddress } from "@/lib/CA";
+import { CATEGORY_DISPLAY, JURISDICTION_DISPLAY } from "@/lib/audit-enums";
+import { AuditRegistryAddress, MockUSDCAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
-import { userDecryptComplianceHandles } from "@/lib/fhe-compliance";
+import { userDecryptAuditHandles } from "@/lib/fhe-audit";
 
-const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
+const REGISTRY_ADDRESS = AuditRegistryAddress as `0x${string}`;
 
 type Eip1193Provider = {
     request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -53,7 +53,7 @@ export function useAuditLogs(proxyAccount?: string, _isExternalAuditor: boolean 
 
             const countStr = await publicClient.readContract({
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getRecordCount",
                 args: [proxyAccount as `0x${string}`],
             });
@@ -67,10 +67,10 @@ export function useAuditLogs(proxyAccount?: string, _isExternalAuditor: boolean 
                 // Fetch record
                 const recordData = await publicClient.readContract({
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getRecord",
                     args: [proxyAccount as `0x${string}`, index],
-                });
+                }) as [`0x${string}`, `0x${string}`, `0x${string}`[], `0x${string}`[], `0x${string}`[], `0x${string}`[], string[], bigint];
 
                 const txHash = recordData[0];
                 const token = recordData[1] as string;
@@ -161,7 +161,7 @@ export function useAuditLogs(proxyAccount?: string, _isExternalAuditor: boolean 
                         ...record.encryptedCategoryHandles,
                         ...record.encryptedJurisdictionHandles,
                     ];
-                    const decrypted = await userDecryptComplianceHandles({
+                    const decrypted = await userDecryptAuditHandles({
                         handles,
                         contractAddress: REGISTRY_ADDRESS,
                         userAddress: getAddress(address as string),

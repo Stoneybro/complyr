@@ -7,20 +7,20 @@ description: Understanding the external auditor access and verification flow.
 
 ![Auditor Portal](/complyr-audit-portal.png)
 
-The Auditor Portal is a dedicated interface that allows external auditors and regulators to verify a company's compliance records without accessing the company's main dashboard.
+The Auditor Portal is a dedicated interface that allows external auditors and regulators to verify a company's audit records without accessing the company's main dashboard.
 
 ### The Simple Flow
 
 1. **Authorization:** A company explicitly authorizes their external auditor's wallet address in the Complyr dashboard.
-2. **Sharing Access:** The company generates a secure **Auditor Access Link** (`/auditor/[proxyAddress]`) and shares it with the auditor.
+2. **Sharing Access:** The company generates a secure **Auditor Access Link** (`/auditors/[proxyAddress]`) and shares it with the auditor.
 3. **Auditor Login:** The auditor navigates to the portal and connects their authorized wallet (MetaMask or any injected provider).
-4. **Visibility:** The auditor clicks **Decrypt Compliance Data**, and successfully views all records and downloads compliance reports without having actual login access to the company's bank account.
+4. **Visibility:** The auditor clicks **Decrypt Audit Data**, and successfully views all records and downloads audit reports without having actual login access to the company's bank account.
 
 ### Under the Hood (ECIES)
 
 This system is powered by cryptography, not traditional software access controls.
 
-**Key Wrapping:** When the business authorizes the auditor, their browser takes the company's master AES compliance key and securely encrypts it using the auditor's *public* Ethereum key (via ECIES). This encrypted key is uploaded on-chain.
+**Key Wrapping:** When the business authorizes the auditor, their browser takes the company's master AES audit key and securely encrypts it using the auditor's *public* Ethereum key (via ECIES). This encrypted key is uploaded on-chain.
 
 **Local Decryption:** When the auditor logs into the portal and clicks to decrypt, their browser uses their wallet's *private* key to decrypt the AES key client-side. The browser then fetches ciphertext payloads from the blockchain and decrypts them locally.
 
@@ -28,14 +28,14 @@ This system is powered by cryptography, not traditional software access controls
 - Plaintext payment metadata (transaction hash, date, recipients, amounts)
 - Decrypted expense category per recipient
 - Decrypted regulatory jurisdiction per recipient
-- Compliance health score and summary statistics
+- Audit health score and summary statistics
 
 Auditors cannot modify records, authorise additional parties, or access company data beyond what they explicitly have the key for.
 
 ### Auditor portal URL format
 
 ```text
-https://usecomplyr.vercel.app/auditor/{proxyAccountAddress}
+https://usecomplyr.vercel.app/auditors/{proxyAccountAddress}
 ```
 
 Where `proxyAccountAddress` is the company's smart wallet address.

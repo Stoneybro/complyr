@@ -1,13 +1,12 @@
 "use client";
 import { AppSidebar } from "@/components/wallet/app-sidebar";
 import { Dashboard } from "@/components/dashboard/dashboard";
-import { ComplianceDashboard } from "@/components/compliance/ComplianceDashboard";
-import { AuditorsManager } from "@/components/compliance/AuditorsManager";
+import { AuditDashboard } from "@/components/records/AuditDashboard";
+import { AuditorsManager } from "@/components/records/AuditorsManager";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import { PaymentForm } from "@/components/payment-form/PaymentForm";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Image from "next/image";
 import {
@@ -18,12 +17,11 @@ import {
 } from "@/components/ui/tabs"
 
 export default function Page() {
-  const [walletAddress, setWalletAddress] = useState<`0x${string}` | undefined>(undefined);
-
-  useEffect(() => {
+  const [walletAddress] = useState<`0x${string}` | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
     const saved = localStorage.getItem("wallet-deployed");
-    if (saved) setWalletAddress(saved as `0x${string}`);
-  }, []);
+    return saved ? (saved as `0x${string}`) : undefined;
+  });
 
   return (
     <SidebarProvider
@@ -48,9 +46,9 @@ export default function Page() {
             <Tabs defaultValue="form" className="h-full w-full">
               <TabsList className="flex justify-center mx-auto">
                 <TabsTrigger value="form">Payments</TabsTrigger>
-                <TabsTrigger value="dashboard">Treasury</TabsTrigger>
-                <TabsTrigger value="compliance">Audit Hub</TabsTrigger>
-                <TabsTrigger value="review-access">Review Access</TabsTrigger>
+                <TabsTrigger value="dashboard">Balance</TabsTrigger>
+                <TabsTrigger value="audit">Records</TabsTrigger>
+                <TabsTrigger value="review-access">Auditors</TabsTrigger>
               </TabsList>
               <TabsContent value="chat">
 
@@ -61,8 +59,8 @@ export default function Page() {
               <TabsContent value="dashboard">
                 <Dashboard walletAddress={walletAddress!} />
               </TabsContent>
-              <TabsContent value="compliance">
-                <ComplianceDashboard walletAddress={walletAddress!} />
+              <TabsContent value="audit">
+                <AuditDashboard walletAddress={walletAddress!} />
               </TabsContent>
               <TabsContent value="review-access">
                 <div className="flex justify-center py-4">

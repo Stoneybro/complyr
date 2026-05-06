@@ -1,4 +1,4 @@
-export const ComplianceRegistryABI = [
+export const AuditRegistryABI = [
   {
     "type": "constructor",
     "inputs": [],
@@ -91,7 +91,7 @@ export const ComplianceRegistryABI = [
       {
         "name": "accessLevel",
         "type": "uint8",
-        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+        "internalType": "enum AuditRegistry.ReviewerAccess"
       }
     ],
     "outputs": [],
@@ -759,7 +759,7 @@ export const ComplianceRegistryABI = [
       {
         "name": "testType",
         "type": "uint8",
-        "internalType": "enum ComplianceRegistry.ReviewTestType"
+        "internalType": "enum AuditRegistry.ReviewTestType"
       },
       {
         "name": "recipientScope",
@@ -957,7 +957,7 @@ export const ComplianceRegistryABI = [
       {
         "name": "accessLevel",
         "type": "uint8",
-        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+        "internalType": "enum AuditRegistry.ReviewerAccess"
       }
     ],
     "stateMutability": "view"
@@ -1023,7 +1023,7 @@ export const ComplianceRegistryABI = [
       {
         "name": "accessLevel",
         "type": "uint8",
-        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+        "internalType": "enum AuditRegistry.ReviewerAccess"
       }
     ],
     "outputs": [],
@@ -1068,7 +1068,7 @@ export const ComplianceRegistryABI = [
         "name": "accessLevel",
         "type": "uint8",
         "indexed": false,
-        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+        "internalType": "enum AuditRegistry.ReviewerAccess"
       }
     ],
     "anonymous": false
@@ -1212,7 +1212,7 @@ export const ComplianceRegistryABI = [
         "name": "testType",
         "type": "uint8",
         "indexed": false,
-        "internalType": "enum ComplianceRegistry.ReviewTestType"
+        "internalType": "enum AuditRegistry.ReviewTestType"
       },
       {
         "name": "recipientScope",
@@ -1262,67 +1262,67 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__AlreadyRegistered",
+    "name": "AuditRegistry__AlreadyRegistered",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__ArrayLengthMismatch",
+    "name": "AuditRegistry__ArrayLengthMismatch",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__AuditorAlreadyExists",
+    "name": "AuditRegistry__AuditorAlreadyExists",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__InvalidAccessLevel",
+    "name": "AuditRegistry__InvalidAccessLevel",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__InvalidRecordIndex",
+    "name": "AuditRegistry__InvalidRecordIndex",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__InvalidScope",
+    "name": "AuditRegistry__InvalidScope",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__MaxAuditorsReached",
+    "name": "AuditRegistry__MaxAuditorsReached",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__MaxReviewTestsReached",
+    "name": "AuditRegistry__MaxReviewTestsReached",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__MissingComplianceInfo",
+    "name": "AuditRegistry__MissingAuditInfo",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__NotAuthorized",
+    "name": "AuditRegistry__NotAuthorized",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__NotRegistered",
+    "name": "AuditRegistry__NotRegistered",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__ReviewTestNotFound",
+    "name": "AuditRegistry__ReviewTestNotFound",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "ComplianceRegistry__ZeroAddress",
+    "name": "AuditRegistry__ZeroAddress",
     "inputs": []
   },
   {

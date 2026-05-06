@@ -5,11 +5,11 @@ import "forge-std/Test.sol";
 import "../src/IntentRegistry.sol";
 import "../src/SmartWallet.sol";
 import "../src/SmartWalletFactory.sol";
-import "../src/IComplianceRegistry.sol";
+import "../src/IAuditRegistry.sol";
 import "../src/MockUSDC.sol";
 import "encrypted-types/EncryptedTypes.sol";
 
-contract MockComplianceRegistry is IComplianceRegistry {
+contract MockAuditRegistry is IAuditRegistry {
     mapping(address => address) public companyMasters;
     mapping(address => uint256) public recordCounts;
     mapping(address => address[]) private _recipients;
@@ -59,7 +59,7 @@ contract IntentRegistryTest is Test {
     IntentRegistry registry;
     SmartWalletFactory factory;
     SmartWallet implementation;
-    MockComplianceRegistry compliance;
+    MockAuditRegistry audit;
     MockUSDC usdc;
 
     address owner = makeAddr("owner");
@@ -68,18 +68,18 @@ contract IntentRegistryTest is Test {
 
     function setUp() public {
         registry = new IntentRegistry(address(this));
-        compliance = new MockComplianceRegistry();
+        audit = new MockAuditRegistry();
         
-        implementation = new SmartWallet(address(registry), address(compliance));
-        factory = new SmartWalletFactory(address(implementation), address(compliance));
+        implementation = new SmartWallet(address(registry), address(audit));
+        factory = new SmartWalletFactory(address(implementation), address(audit));
         usdc = new MockUSDC();
         
-        // Setup ComplianceRegistry
-        compliance.setAuthorizedCaller(address(factory), true);
-        compliance.setAuthorizedCaller(address(registry), true);
-        compliance.setFactory(address(factory));
+        // Setup AuditRegistry
+        audit.setAuthorizedCaller(address(factory), true);
+        audit.setAuthorizedCaller(address(registry), true);
+        audit.setFactory(address(factory));
 
-        registry.setComplianceRegistry(address(compliance));
+        registry.setAuditRegistry(address(audit));
 
         // Configure Factory Drip
         factory.setStablecoinDrip(address(usdc), 500 * 10**6);
@@ -87,7 +87,7 @@ contract IntentRegistryTest is Test {
 
         vm.label(address(registry), "IntentRegistry");
         vm.label(address(factory), "SmartWalletFactory");
-        vm.label(address(compliance), "ComplianceRegistry");
+        vm.label(address(audit), "AuditRegistry");
         vm.label(address(usdc), "MockUSDC");
     }
 
@@ -114,7 +114,7 @@ contract IntentRegistryTest is Test {
             externalEuint8[] memory encryptedJurisdictionHandles,
             bytes[] memory encryptedJurisdictionProofs,
             string[] memory referenceIds
-        ) = _mockComplianceInputs(recipients.length);
+        ) = _mockAuditInputs(recipients.length);
 
         vm.prank(walletAddr);
         bytes32 intentId = registry.createIntent(
@@ -139,12 +139,12 @@ contract IntentRegistryTest is Test {
         // Check commitment (totalCommitment = (1+1) * (24 executions) = 48 ether)
         assertEq(wallet.sCommittedFunds(address(0)), 48 ether);
 
-        // Check compliance record exists
-        assertEq(compliance.getRecordCount(walletAddr), 1);
+        // Check audit record exists
+        assertEq(audit.getRecordCount(walletAddr), 1);
         
         // Verify metadata is stored
         (, address token, address[] memory storedRecipients, string[] memory storedRefs,) =
-            compliance.getRecordMetadata(walletAddr, 0);
+            audit.getRecordMetadata(walletAddr, 0);
         assertEq(token, address(0));
         assertEq(storedRecipients.length, recipients.length);
         assertEq(storedRefs[0], "ref-0");
@@ -169,7 +169,7 @@ contract IntentRegistryTest is Test {
             externalEuint8[] memory encryptedJurisdictionHandles,
             bytes[] memory encryptedJurisdictionProofs,
             string[] memory referenceIds
-        ) = _mockComplianceInputs(recipients.length);
+        ) = _mockAuditInputs(recipients.length);
 
         vm.prank(walletAddr);
         registry.createIntent(
@@ -230,7 +230,7 @@ contract IntentRegistryTest is Test {
             externalEuint8[] memory encryptedJurisdictionHandles,
             bytes[] memory encryptedJurisdictionProofs,
             string[] memory referenceIds
-        ) = _mockComplianceInputs(recipients.length);
+        ) = _mockAuditInputs(recipients.length);
 
         vm.prank(walletAddr);
         bytes32 intentId = registry.createIntent(
@@ -259,7 +259,7 @@ contract IntentRegistryTest is Test {
         assertEq(SmartWallet(payable(walletAddr)).sCommittedFunds(address(0)), 0);
     }
 
-    function _mockComplianceInputs(uint256 length)
+    function _mockAuditInputs(uint256 length)
         internal
         pure
         returns (

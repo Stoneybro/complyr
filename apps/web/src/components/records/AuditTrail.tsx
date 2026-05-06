@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, LockIcon, UnlockIcon, RefreshCw, Loader2, UserX } from "lucide-react";
+import { ShieldCheck, LockIcon, UnlockIcon, RefreshCw, Loader2 } from "lucide-react";
 import { useAuditLogs, AuditRecord } from "@/hooks/useAuditLogs";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,25 +13,6 @@ interface AuditTrailProps {
     isDecrypting?: boolean;
     isLoading?: boolean;
 }
-
-const RecipientKycBadge = () => {
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="flex items-center">
-                        <UserX className="h-3.5 w-3.5 text-muted-foreground/40" />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p className="text-xs">
-                        Identity not available
-                    </p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
-};
 
 export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecrypting = false, isLoading = false }: AuditTrailProps) {
     const {
@@ -161,11 +142,10 @@ export function AuditTrail({ walletAddress, recordsOverride, onDecrypt, isDecryp
                                         <div className="space-y-2 mt-3 pl-2 border-l-2 border-muted">
                                             {record.recipients.map((recipient, i) => (
                                                 <div key={i} className="grid grid-cols-12 gap-2 text-sm items-center py-1">
-                                                    <div className="col-span-1 flex justify-center">
-                                                        <RecipientKycBadge />
+                                                    <div className="col-span-1 flex justify-center invisible">
+                                                        {/* Removed KYC Badge */}
                                                     </div>
-                                                    <div className="col-span-3 font-mono text-muted-foreground">
-                                                        {formatAddress(recipient)}
+                                                    <div className="col-span-3 font-mono text-muted-foreground">                                                        {formatAddress(recipient)}
                                                     </div>
                                                     <div className="col-span-2 font-medium">
                                                         {record.amounts[i]}

@@ -1,4 +1,4 @@
-// Compliance enum mappings - mirrors the Solidity enums
+// Audit enum mappings - mirrors the Solidity enums
 // Used to convert between human-readable strings and contract enum values
 
 // Jurisdiction enum values (must match IntentRegistry.Jurisdiction)

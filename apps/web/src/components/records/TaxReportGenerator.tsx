@@ -3,13 +3,12 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ComplianceData } from "@/hooks/useComplianceData";
-import { Download, FileText, DollarSign, CheckCircle2, AlertTriangle } from "lucide-react";
-import { getJurisdictionOptions, getCategoryOptions } from "@/lib/compliance-enums";
-import { Badge } from "@/components/ui/badge";
+import { AuditData } from "@/hooks/useAuditData";
+import { Download, FileText } from "lucide-react";
+import { getJurisdictionOptions, getCategoryOptions } from "@/lib/audit-enums";
 
 interface TaxReportGeneratorProps {
-    data: ComplianceData[];
+    data: AuditData[];
 }
 
 export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
@@ -69,23 +68,12 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
         return true;
     });
 
-    // Extract unique recipient addresses for KYC batch lookup
-    const recipientAddresses = useMemo(() =>
-        Array.from(new Set(filteredData.map(item => item.recipientAddress))),
-        [filteredData]
-    );
-    const kycLoading = false;
-
-    const totalAmount = filteredData.reduce((sum, item) => sum + item.formattedAmount, 0);
-
     const handleExport = () => {
-        const headers = ["Date", "Recipient", "KYC Status", "KYC Level", "Amount (USDC)", "USD Value (APRO)", "Jurisdiction", "Category", "Transaction Hash", "Reference"];
+        const headers = ["Date", "Recipient", "Amount (USDC)", "USD Value (APRO)", "Jurisdiction", "Category", "Transaction Hash", "Reference"];
         const rows = filteredData.map(item => {
             return [
                 item.date.toISOString().split('T')[0],
                 item.recipientAddress,
-                "Unverified",
-                "0",
                 item.formattedAmount.toString(),
                 price ? (item.formattedAmount * price).toFixed(2) : "N/A",
                 item.jurisdiction,
@@ -185,7 +173,6 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                                 <tr>
                                     <th className="px-3 py-2">Date</th>
                                     <th className="px-3 py-2">Recipient</th>
-                                    <th className="px-3 py-2">KYC</th>
                                     <th className="px-3 py-2 text-right">USDC</th>
                                     <th className="px-3 py-2 text-right">USD (APRO)</th>
                                     <th className="px-3 py-2">Jur.</th>
@@ -198,9 +185,6 @@ export function TaxReportGenerator({ data }: TaxReportGeneratorProps) {
                                         <tr key={i} className="hover:bg-muted/20 text-xs">
                                             <td className="px-3 py-2 font-mono">{row.date.toISOString().split('T')[0]}</td>
                                             <td className="px-3 py-2 font-mono truncate max-w-[100px]">{row.recipientAddress.slice(0, 6)}...{row.recipientAddress.slice(-4)}</td>
-                                            <td className="px-3 py-2">
-                                                <span className="text-muted-foreground">—</span>
-                                            </td>
                                             <td className="px-3 py-2 text-right font-mono font-medium">{row.formattedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="px-3 py-2 text-right font-mono text-primary">
                                                 {price ? `$${(row.formattedAmount * price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "---"}

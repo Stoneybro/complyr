@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {SmartWallet} from "./SmartWallet.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {IComplianceRegistry} from "./IComplianceRegistry.sol";
+import {IAuditRegistry} from "./IAuditRegistry.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,7 +12,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @title Smart Wallet Factory
  * @author zion livingstone
  * @notice Factory for deploying ERC-1167 minimal proxy clones of SmartWallet on Ethereum Sepolia.
- *         Auto-registers each new wallet with the on-chain ComplianceRegistry.
+ *         Auto-registers each new wallet with the on-chain AuditRegistry.
  *         Drips a small amount of native ETH and a configurable amount of stablecoin for onboarding.
  * @custom:security-contact zionlivingstone4@gmail.com
  */
@@ -26,8 +26,8 @@ contract SmartWalletFactory is Ownable {
     /// @notice The SmartWallet implementation address cloned for each user.
     address public immutable IMPLEMENTATION;
 
-    /// @notice The on-chain ComplianceRegistry on Ethereum Sepolia.
-    address public immutable COMPLIANCE_REGISTRY;
+    /// @notice The on-chain AuditRegistry on Ethereum Sepolia.
+    address public immutable AUDIT_REGISTRY;
 
     /// @notice Mapping from user EOA to deployed SmartWallet clone.
     mapping(address user => address clone) public userClones;
@@ -54,18 +54,18 @@ contract SmartWalletFactory is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     error SmartWalletFactory__ImplementationUndeployed();
-    error SmartWalletFactory__ComplianceRegistryUndeployed();
+    error SmartWalletFactory__AuditRegistryUndeployed();
     error SmartWalletFactory__DripFailed();
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _implementation, address _complianceRegistry) Ownable(msg.sender) {
+    constructor(address _implementation, address _auditRegistry) Ownable(msg.sender) {
         if (_implementation.code.length == 0) revert SmartWalletFactory__ImplementationUndeployed();
-        if (_complianceRegistry.code.length == 0) revert SmartWalletFactory__ComplianceRegistryUndeployed();
+        if (_auditRegistry.code.length == 0) revert SmartWalletFactory__AuditRegistryUndeployed();
         IMPLEMENTATION = _implementation;
-        COMPLIANCE_REGISTRY = _complianceRegistry;
+        AUDIT_REGISTRY = _auditRegistry;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ contract SmartWalletFactory is Ownable {
      * @notice Deploys a deterministic SmartWallet for an owner, or returns it if already deployed.
      * @dev Compatible with ERC-4337 initCode deployment.
      *      Drips ETH and stablecoin to new wallet if factory has enough balance.
-     *      Auto-registers the wallet with the ComplianceRegistry on Ethereum Sepolia.
+     *      Auto-registers the wallet with the AuditRegistry on Ethereum Sepolia.
      * @param owner The address that will own the smart account.
      * @return account The deployed (or existing) SmartWallet proxy address.
      */
@@ -124,8 +124,8 @@ contract SmartWalletFactory is Ownable {
 
         userClones[owner] = account;
 
-        // Auto-register with on-chain ComplianceRegistry
-        IComplianceRegistry(COMPLIANCE_REGISTRY).registerAccount(account, owner);
+        // Auto-register with on-chain AuditRegistry
+        IAuditRegistry(AUDIT_REGISTRY).registerAccount(account, owner);
 
         emit AccountCreated(account, owner);
     }

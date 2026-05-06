@@ -52,7 +52,7 @@ export default function Footer() {
           © 2026 COMPLYR INFRASTRUCTURE.
         </p>
         <p className="font-inter text-[10px] uppercase tracking-widest text-gray-300 dark:text-gray-800">
-          MATHEMATICALLY GUARANTEED PRIVACY. ENTERPRISE-GRADE ON-CHAIN SETTLEMENT.
+          ENCRYPTED COMPUTATION. IMMUTABLE AUDIT RECORDS. ONCHAIN SETTLEMENT.
         </p>
       </div>
     </footer>

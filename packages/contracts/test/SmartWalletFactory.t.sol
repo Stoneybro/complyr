@@ -4,25 +4,25 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/SmartWalletFactory.sol";
 import "../src/SmartWallet.sol";
-import "../src/ComplianceRegistry.sol";
+import "../src/AuditRegistry.sol";
 import "../src/MockUSDC.sol";
 
 contract SmartWalletFactoryTest is Test {
     SmartWalletFactory factory;
     SmartWallet implementation;
-    ComplianceRegistry registry;
+    AuditRegistry registry;
     MockUSDC usdc;
     address dummyIntentRegistry = address(0x1111);
 
     function setUp() public {
         vm.etch(dummyIntentRegistry, "1");
 
-        registry = new ComplianceRegistry();
+        registry = new AuditRegistry();
         implementation = new SmartWallet(dummyIntentRegistry, address(registry));
         factory = new SmartWalletFactory(address(implementation), address(registry));
         usdc = new MockUSDC();
 
-        // Set factory in ComplianceRegistry
+        // Set factory in AuditRegistry
         registry.setFactory(address(factory));
         
         // Configure Factory Drip
@@ -46,7 +46,7 @@ contract SmartWalletFactoryTest is Test {
         SmartWallet wallet = SmartWallet(payable(account));
         assertEq(wallet.sOwner(), owner);
         
-        // Verify auto-registration with ComplianceRegistry
+        // Verify auto-registration with AuditRegistry
         assertEq(registry.companyMasters(account), owner);
     }
 

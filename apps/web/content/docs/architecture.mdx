@@ -1,86 +1,208 @@
 ---
 title: Architecture
-description: Technical design of Complyr across computational layers.
+description: Actual system architecture of the Complyr codebase.
 ---
 
-## How Complyr Works
+## Overview
 
-At a high level, every Complyr payment follows a consistent sequence:
+Complyr is a monorepo with four active parts:
 
-![Batch Payment with Compliance Metadata](/comply-wallet-batchpayment.png)
+1. A Next.js web application in `apps/web`
+2. Solidity contracts in `packages/contracts`
+3. An Envio indexer in `packages/indexer`
+4. A PostgreSQL-backed contacts store used by the web app
 
-**1. Intent creation.** A business creates a payment intent through the Complyr interface. Along with recipient addresses and amounts, they attach compliance metadata: an expense category and a jurisdiction code per recipient.
+The codebase follows a standard pattern:
 
-**2. Client-side encryption.** Before anything reaches the blockchain, the compliance metadata is encrypted in the user's browser using AES-256-GCM. The resulting ciphertext encodes the compliance payload without revealing the underlying data.
+- the web app handles UX, orchestration, and client-side encryption;
+- the contracts are the source of truth for payments and audit records;
+- the indexer builds a GraphQL activity feed from contract events;
+- PostgreSQL stores app-owned data that does not belong onchain.
 
-**3. Payment execution on Ethereum Sepolia.** The ERC-4337 smart wallet executes the payment. For single and batch transfers, funds move immediately. For recurring payments, the intent is registered with the on-chain scheduler and funds are locked until each payment cycle executes.
-
-**4. Encrypted record storage.** The compliance payload is submitted to `ComplianceRegistry` and cryptographically linked to the transaction hash.
-
-**5. Selective decryption.** The company owner or an authorised auditor can decrypt their compliance records at any time by connecting their wallet and interacting with the ECIES key management portal.
-
----
-
-## Architecture
-
-Complyr spans three distinct layers. Each layer has a specific responsibility and communicates with the others through well-defined interfaces.
+## System Diagram
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        APPLICATION LAYER                        │
-│                Next.js · Privy · AES-256 · ECIES                │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ UserOperations (ERC-4337)
-┌────────────────────────────▼────────────────────────────────────┐
-│              SMART CONTRACT LAYER — Ethereum Sepolia            │
-│   SmartWallet · SmartWalletFactory · IntentRegistry             │
-│   ComplianceRegistry · MockUSDC                                 │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ Event indexing
-┌────────────────────────────▼────────────────────────────────────┐
-│                    DATA LAYER — Envio Indexer                   │
-│              GraphQL API · Transaction history                  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                            Next.js Web App                          │
+│  Privy auth • ERC-4337 client • payment flows • audit UI • docs    │
+│  contacts API • relay funding API • Zama client-side encryption    │
+└───────────────┬───────────────────────────────┬──────────────────────┘
+                │                               │
+                │ UserOperations                │ GraphQL queries
+                │ and contract reads            │
+                ▼                               ▼
+┌──────────────────────────────────┐   ┌──────────────────────────────┐
+│       Ethereum Sepolia           │   │        Envio Indexer         │
+│ SmartWallet                      │   │ Wallet / Transaction / Intent│
+│ SmartWalletFactory               │   │ derived read model           │
+│ IntentRegistry                   │   └──────────────────────────────┘
+│ AuditRegistry               │
+│ MockUSDC                         │
+└───────────────┬──────────────────┘
+                │
+                │ app-owned data
+                ▼
+┌──────────────────────────────────┐
+│ PostgreSQL via Drizzle ORM       │
+│ contacts, addresses, app records │
+└──────────────────────────────────┘
 ```
 
----
+## Component Responsibilities
 
-## ERC-4337 Bundler
+### Web App
 
-Complyr uses account abstraction (ERC-4337) so that businesses interact through smart wallets rather than EOAs. UserOperations are routed through Pimlico's bundler and paymaster services on Ethereum Sepolia.
+The web app is responsible for:
 
-The bundler receives signed UserOperations from the frontend via `Permissionless.js`, validates them, and submits them to the EntryPoint contract. Pimlico sponsorship handles gas abstraction for supported flows.
+- authenticating users with Privy;
+- creating or connecting a smart account;
+- submitting single, batch, and recurring payment flows;
+- encrypting audit inputs in the browser with the Zama relayer SDK;
+- querying indexed wallet activity from Envio;
+- reading encrypted audit records directly from `AuditRegistry`;
+- managing contacts through server routes backed by PostgreSQL;
+- serving the documentation site.
 
----
+Important modules:
 
-## Data Layer — Envio Indexer
+- `src/app/provider.tsx`
+- `src/lib/SmartAccountProvider.tsx`
+- `src/lib/customSmartAccount.ts`
+- `src/hooks/payments/*`
+- `src/lib/fhe-audit.ts`
+- `src/hooks/useAuditLogs.ts`
+- `src/lib/envio/client.ts`
 
-The Envio indexer provides the real-time transaction history that powers the Complyr dashboard. It runs on Envio's hosted infrastructure and indexes events across contracts on Ethereum Sepolia:
+### Smart Contracts
 
-**SmartWallet events:**
-- `Executed` — single payment transfers
-- `ExecutedBatch` — batch payment transfers
-- `IntentBatchTransferExecuted` — scheduled payment batch executions
-- `IntentTransferSuccess` — individual successful transfers within a scheduled batch
-- `TransferFailed` — failed transfers within a scheduled batch
-- `WalletAction` — all wallet operations with function selector tracking
+The contracts are the canonical backend of the product.
 
-**SmartWalletFactory events:**
-- `AccountCreated` — new business account deployments
+**`SmartWallet`**
 
-**IntentRegistry events:**
-- `IntentCreated` — new recurring payment schedule creation
-- `IntentExecuted` — scheduled payment execution
-- `IntentCancelled` — schedule cancellation with refund
+- ERC-4337 account implementation
+- executes direct and batch payments
+- executes registry-triggered recurring transfers
+- records audit entries on successful payment flows
 
-The indexer exposes a GraphQL API that the frontend queries for transaction history, wallet metadata, and intent state. Three entity types are maintained: `Wallet` (aggregate account data), `Transaction` (individual indexed events), and `Intent` (recurring payment state for cross-referencing executions).
+**`SmartWalletFactory`**
 
----
+- deploys deterministic wallet clones
+- registers each wallet in `AuditRegistry`
+- can seed new wallets with ETH and a configured token drip
 
-## Contact Book
+**`IntentRegistry`**
 
-Complyr includes a built-in recipient address book backed by a **Neon PostgreSQL** database. Companies can save, label, and reuse recipient addresses together with their associated compliance defaults — preferred jurisdiction and expense category — so they do not need to re-enter compliance metadata for repeated payments to the same party.
+- stores recurring payment intents
+- tracks committed wallet funds
+- exposes Chainlink Automation-compatible execution methods
+- triggers scheduled transfers through the wallet
 
-Contacts are scoped per company, keyed by the smart wallet proxy address. When a contact is selected in the payment form, the jurisdiction and category fields are pre-populated automatically, ensuring consistency across compliance records over time.
+**`AuditRegistry`**
 
-The contacts API is served from `apps/web/src/app/api/contacts` and backed by Drizzle ORM on Neon PostgreSQL. The contact schema stores: wallet proxy address, recipient address, label, default jurisdiction, and default category.
+- stores encrypted audit records
+- stores encrypted rollups for reporting
+- manages company master wallets and reviewer access
+- stores reviewer threshold tests and result queues
+
+**`MockUSDC`**
+
+- test token used by demo flows on Sepolia
+
+### Indexer
+
+The Envio indexer listens to selected contract events and materializes a GraphQL read model.
+
+It currently maintains:
+
+- `Wallet`
+- `Transaction`
+- `Intent`
+
+The frontend uses this for dashboard activity and transaction history. It does not replace direct chain reads for encrypted audit data.
+
+### PostgreSQL
+
+The web app uses Drizzle ORM with PostgreSQL for offchain application data.
+
+The active product-facing schema here is the contacts subsystem:
+
+- contacts
+- contact addresses
+
+These records are accessed through the Next.js API routes under `/api/contacts`.
+
+## Data Classification
+
+### Public Onchain Data
+
+The following data is visible onchain:
+
+- wallet addresses;
+- recipients;
+- token addresses;
+- timestamps and transaction hashes;
+- plaintext reference IDs stored in audit records.
+
+### Encrypted Onchain Data
+
+The following values are encrypted before they are written onchain:
+
+- audit copy of payment amounts;
+- category codes;
+- jurisdiction codes;
+- reviewer thresholds;
+- reviewer result signals;
+- encrypted rollups used for reporting and checks.
+
+## Main Flows
+
+### Wallet Deployment
+
+1. The user logs in with Privy.
+2. The app predicts or deploys a wallet through `SmartWalletFactory`.
+3. The factory registers the new wallet with `AuditRegistry`.
+4. The frontend initializes an ERC-4337 client for future operations.
+
+### Single and Batch Payments
+
+1. The user enters recipients, amounts, and audit metadata.
+2. The browser encrypts the audit payload with the Zama SDK.
+3. The frontend submits a UserOperation through Pimlico.
+4. `SmartWallet` executes the payment.
+5. `SmartWallet` writes the encrypted audit record to `AuditRegistry`.
+6. The indexer captures emitted events for the activity feed.
+
+### Recurring Payments
+
+1. The user creates a recurring payment intent.
+2. The app encrypts the audit data in the browser.
+3. `IntentRegistry` stores the schedule and reserves committed funds.
+4. A keeper-compatible caller executes the next due payment.
+5. The wallet performs the transfer and audit data is recorded.
+6. The indexer updates intent and transaction history.
+
+### Audit and Reviewer Access
+
+The audit surfaces read directly from `AuditRegistry`.
+
+- the business audit dashboard loads ledger records and decrypts them client-side when the connected wallet is authorized;
+- the auditor portal verifies reviewer access onchain, creates encrypted threshold tests, reads reviewer results, and decrypts permitted data client-side.
+
+## Integrations
+
+Complyr depends on these external systems:
+
+- Privy for authentication and embedded wallets
+- Pimlico for bundling and paymaster support
+- Ethereum Sepolia RPC endpoints
+- Zama FHE relayer tooling
+- PostgreSQL for app-managed data
+
+## Why The Split Looks This Way
+
+This architecture keeps the responsibilities clean:
+
+- settlement, commitments, and audit records live onchain;
+- dashboard history is optimized through an indexer;
+- contacts and app-only records stay in a relational database;
+- encryption and decryption authorization remain in the client where the user controls the signing wallet.

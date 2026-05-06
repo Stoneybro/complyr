@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPublicClient, createWalletClient, custom, getAddress, http, parseUnits } from "viem";
-import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
+import { AuditRegistryABI } from "@/lib/abi/AuditRegistryABI";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,9 @@ import {
     ShieldCheck,
     XCircle,
 } from "lucide-react";
-import { ComplianceRegistryAddress } from "@/lib/CA";
+import { AuditRegistryAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
-import { encryptThresholdInput, userDecryptComplianceHandles } from "@/lib/fhe-compliance";
+import { encryptThresholdInput, userDecryptAuditHandles } from "@/lib/fhe-audit";
 import {
     CATEGORY_DISPLAY,
     getCategoryOptions,
@@ -34,9 +34,9 @@ import {
     JURISDICTION_DISPLAY,
     stringToCategory,
     stringToJurisdiction,
-} from "@/lib/compliance-enums";
+} from "@/lib/audit-enums";
 
-const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
+const REGISTRY_ADDRESS = AuditRegistryAddress as `0x${string}`;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 type Eip1193Provider = {
@@ -71,7 +71,7 @@ type RollupDecrypted = {
     jurisdictions: Record<number, bigint>;
 };
 
-type LedgerRecord = {
+type AuditRecord = {
     index: number;
     txHash: string;
     token: string;
@@ -117,7 +117,7 @@ function testScopeLabel(test: ReviewTest) {
     return "Any payment";
 }
 
-export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) {
+export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string }) {
     const [activeAddress, setActiveAddress] = useState<string | null>(null);
     const [isConnecting, setIsConnecting] = useState(false);
     const [auditors, setAuditors] = useState<string[]>([]);
@@ -136,13 +136,13 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
     const [rollupHandles, setRollupHandles] = useState<{ global?: `0x${string}`; categories: Record<number, `0x${string}`>; jurisdictions: Record<number, `0x${string}`>; }>({ categories: {}, jurisdictions: {} });
     const [rollupDecrypted, setRollupDecrypted] = useState<RollupDecrypted>({ categories: {}, jurisdictions: {} });
     const [isDecryptingReports, setIsDecryptingReports] = useState(false);
-    const [ledgerRecords, setLedgerRecords] = useState<LedgerRecord[]>([]);
-    const [isLoadingLedger, setIsLoadingLedger] = useState(false);
-    const [isDecryptingLedger, setIsDecryptingLedger] = useState(false);
+    const [records, setRecords] = useState<AuditRecord[]>([]);
+    const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+    const [isDecryptingRecords, setIsDecryptingRecords] = useState(false);
 
     const isAuthorizedAuditor = activeAddress && auditors.includes(activeAddress.toLowerCase());
     const canViewReports = reviewerAccess >= 1;
-    const canViewLedger = reviewerAccess >= 2;
+    const canViewRecords = reviewerAccess >= 2;
 
     const fetchAuditors = useCallback(async () => {
         setIsLoadingAuditors(true);
@@ -154,7 +154,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
 
             const current = await publicClient.readContract({
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getAuditors",
                 args: [proxyAccount as `0x${string}`],
             }) as string[];
@@ -180,7 +180,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             const access = await publicClient.readContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "reviewerAccess",
                 args: [proxyAccount as `0x${string}`, account],
             }) as number;
@@ -189,7 +189,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             const ids = await publicClient.readContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getAuditorReviewTestIds",
                 args: [account],
             }) as bigint[];
@@ -198,16 +198,16 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 const data = await publicClient.readContract({
                     account,
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getReviewTest",
                     args: [id],
-                });
+                }) as [bigint, `0x${string}`, `0x${string}`, number, `0x${string}`, number, `0x${string}`, boolean, bigint];
 
                 return {
                     id: data[0],
-                    testType: Number(data[3]),
+                    testType: data[3],
                     recipientScope: data[4],
-                    numericScope: Number(data[5]),
+                    numericScope: data[5],
                     thresholdHandle: data[6],
                     active: data[7],
                     createdAt: new Date(Number(data[8]) * 1000),
@@ -217,7 +217,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             const resultCount = Number(await publicClient.readContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getReviewResultCount",
                 args: [account],
             }));
@@ -227,10 +227,10 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 const data = await publicClient.readContract({
                     account,
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getReviewResult",
                     args: [account, BigInt(i)],
-                });
+                }) as [bigint, `0x${string}`, `0x${string}`, `0x${string}`, bigint];
 
                 results.push({
                     testId: data[0],
@@ -259,7 +259,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             const global = await publicClient.readContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getEncryptedGlobalTotal",
                 args: [proxyAccount as `0x${string}`],
             }) as `0x${string}`;
@@ -269,7 +269,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 categories[i] = await publicClient.readContract({
                     account,
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getEncryptedCategoryTotal",
                     args: [proxyAccount as `0x${string}`, i],
                 }) as `0x${string}`;
@@ -280,7 +280,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 jurisdictions[i] = await publicClient.readContract({
                     account,
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getEncryptedJurisdictionTotal",
                     args: [proxyAccount as `0x${string}`, i],
                 }) as `0x${string}`;
@@ -308,7 +308,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 signTypedData: async (typedData: unknown) =>
                     provider.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(typedData)] }) as Promise<`0x${string}`>,
             };
-            const decrypted = await userDecryptComplianceHandles({
+            const decrypted = await userDecryptAuditHandles({
                 handles,
                 contractAddress: REGISTRY_ADDRESS,
                 userAddress: account,
@@ -332,28 +332,29 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         }
     };
 
-    const fetchLedger = useCallback(async () => {
-        if (!activeAddress || !isAuthorizedAuditor || !canViewLedger) return;
-        setIsLoadingLedger(true);
+    const fetchRecords = useCallback(async () => {
+        if (!activeAddress || !isAuthorizedAuditor || !canViewRecords) return;
+        setIsLoadingRecords(true);
         try {
             const publicClient = createPublicClient({ chain: complyrChain, transport: http() });
             const account = getAddress(activeAddress);
             const count = Number(await publicClient.readContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName: "getRecordCount",
                 args: [proxyAccount as `0x${string}`],
             }));
-            const items: LedgerRecord[] = [];
+            const items: AuditRecord[] = [];
             for (let i = 0; i < count; i++) {
                 const data = await publicClient.readContract({
                     account,
                     address: REGISTRY_ADDRESS,
-                    abi: ComplianceRegistryABI,
+                    abi: AuditRegistryABI,
                     functionName: "getRecord",
                     args: [proxyAccount as `0x${string}`, BigInt(i)],
-                });
+                }) as [`0x${string}`, `0x${string}`, `0x${string}`[], `0x${string}`[], `0x${string}`[], `0x${string}`[], string[], bigint];
+
                 items.push({
                     index: i,
                     txHash: data[0],
@@ -366,29 +367,29 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                     timestamp: new Date(Number(data[7]) * 1000),
                 });
             }
-            setLedgerRecords(items.reverse());
+            setRecords(items.reverse());
         } catch (err) {
             console.error(err);
         } finally {
-            setIsLoadingLedger(false);
+            setIsLoadingRecords(false);
         }
-    }, [activeAddress, isAuthorizedAuditor, canViewLedger, proxyAccount]);
+    }, [activeAddress, isAuthorizedAuditor, canViewRecords, proxyAccount]);
 
-    const decryptLedgerEvidence = async () => {
-        if (!activeAddress || !canViewLedger || ledgerRecords.length === 0) return;
+    const decryptEvidence = async () => {
+        if (!activeAddress || !canViewRecords || records.length === 0) return;
         const provider = getInjectedProvider();
         if (!provider) return toast.error("No Web3 wallet found.");
-        setIsDecryptingLedger(true);
-        const loadingId = toast.loading("Decrypting ledger evidence...");
+        setIsDecryptingRecords(true);
+        const loadingId = toast.loading("Decrypting evidence...");
         try {
             const account = getAddress(activeAddress);
             const signer = {
                 signTypedData: async (typedData: unknown) =>
                     provider.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(typedData)] }) as Promise<`0x${string}`>,
             };
-            const next = await Promise.all(ledgerRecords.map(async (record) => {
+            const next = await Promise.all(records.map(async (record) => {
                 const handles = [...record.amountHandles, ...record.categoryHandles, ...record.jurisdictionHandles];
-                const decrypted = await userDecryptComplianceHandles({
+                const decrypted = await userDecryptAuditHandles({
                     handles,
                     contractAddress: REGISTRY_ADDRESS,
                     userAddress: account,
@@ -403,13 +404,13 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                     },
                 };
             }));
-            setLedgerRecords(next);
-            toast.success("Ledger evidence decrypted.", { id: loadingId });
+            setRecords(next);
+            toast.success("Evidence decrypted.", { id: loadingId });
         } catch (err) {
             console.error(err);
             toast.error(getErrorMessage(err, "Failed to decrypt ledger"), { id: loadingId });
         } finally {
-            setIsDecryptingLedger(false);
+            setIsDecryptingRecords(false);
         }
     };
 
@@ -446,10 +447,10 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
     }, [isAuthorizedAuditor, canViewReports, fetchReportHandles]);
 
     useEffect(() => {
-        if (isAuthorizedAuditor && canViewLedger) {
-            fetchLedger();
+        if (isAuthorizedAuditor && canViewRecords) {
+            fetchRecords();
         }
-    }, [isAuthorizedAuditor, canViewLedger, fetchLedger]);
+    }, [isAuthorizedAuditor, canViewRecords, fetchRecords]);
 
     const connectWallet = async () => {
         const provider = getInjectedProvider();
@@ -553,7 +554,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             const { request } = await publicClient.simulateContract({
                 account,
                 address: REGISTRY_ADDRESS,
-                abi: ComplianceRegistryABI,
+                abi: AuditRegistryABI,
                 functionName,
                 args: args as never,
             });
@@ -595,7 +596,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                     }) as Promise<`0x${string}`>;
                 },
             };
-            const decrypted = await userDecryptComplianceHandles({
+            const decrypted = await userDecryptAuditHandles({
                 handles: encryptedResults.map((result) => result.resultHandle),
                 contractAddress: REGISTRY_ADDRESS,
                 userAddress: account,
@@ -631,7 +632,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         return (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
                 <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                <p className="font-mono text-xs uppercase tracking-widest">Verifying access ledger...</p>
+                <p className="font-mono text-xs uppercase tracking-widest">Checking access...</p>
             </div>
         );
     }
@@ -645,21 +646,21 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                         <div className="mx-auto w-12 h-12 flex items-center justify-center mb-4">
                             <Image src="/complyrlogo.svg" alt="Complyr" width={40} height={40} className="h-10 w-auto opacity-80" />
                         </div>
-                        <CardTitle className="text-xl font-bold uppercase tracking-tight">Review Invite</CardTitle>
+                        <CardTitle className="text-xl font-bold uppercase tracking-tight">Audit Invite</CardTitle>
                         <CardDescription className="text-sm mt-3">
-                            You have been approved to review encrypted audit signals for:
+                            You have been approved to audit payments made by:
                             <div className="font-mono bg-muted px-2 py-1 rounded text-xs mt-2 select-all text-foreground border border-muted-foreground/10">{proxyAccount}</div>
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-6 items-center pb-8">
                         <div className="bg-muted px-4 py-3 rounded text-[10px] text-center flex flex-col gap-2 w-full font-mono uppercase tracking-widest border border-muted-foreground/10 opacity-70">
                             <div className="flex items-center gap-2 justify-center">
-                                <Lock className="h-3 w-3" /> Private Review Thresholds
+                                <Lock className="h-3 w-3" /> Private Audits
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground text-center px-4">Connect the approved reviewer key to configure thresholds and decrypt result signals.</p>
+                        <p className="text-xs text-muted-foreground text-center px-4">The rules you set here are encrypted before they leave your browser. The business cannot see your audit criteria.</p>
                         <Button size="lg" className="w-full text-sm h-11 rounded-none uppercase font-mono tracking-widest" onClick={connectWallet} disabled={isConnecting}>
-                            {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />} Connect Key
+                            {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />} Connect Wallet
                         </Button>
                     </CardContent>
                 </Card>
@@ -678,13 +679,13 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                         </div>
                         <CardTitle className="text-xl font-bold uppercase tracking-tight text-destructive">Access Denied</CardTitle>
                         <CardDescription className="text-sm mt-3">
-                            This key is not approved to review the entity:
+                            This wallet has not been approved to audit:
                             <div className="font-mono bg-muted px-2 py-1 rounded text-xs mt-2 select-all text-foreground border border-muted-foreground/10">{proxyAccount}</div>
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-6 items-center pb-8">
                         <p className="text-xs text-muted-foreground text-center px-4">
-                            Current key: <span className="font-mono text-foreground font-semibold">{activeAddress.slice(0, 8)}...{activeAddress.slice(-6)}</span>
+                            Connected wallet: <span className="font-mono text-foreground font-semibold">{activeAddress.slice(0, 8)}...{activeAddress.slice(-6)}</span>
                         </p>
                         <Button size="lg" variant="outline" className="w-full text-sm h-11 rounded-none uppercase font-mono tracking-widest border-destructive/50 hover:bg-destructive/10 text-destructive" onClick={logout}>
                             Try Different Account
@@ -705,20 +706,20 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                         </div>
                         <div>
                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                                Reviewer Session Active
+                                Audit Session Active
                                 <Badge variant="outline" className="text-[10px] border-foreground/20 font-mono tracking-widest">[ LIVE ]</Badge>
                             </h3>
                             <p className="text-xs mt-1 text-muted-foreground max-w-2xl leading-relaxed">
-                                You are reviewing encrypted audit signals for <span className="font-mono bg-muted/50 px-1 py-0.5 rounded border border-muted-foreground/10 text-foreground">{proxyAccount}</span>.
-                                Your key (<span className="font-mono text-foreground font-semibold">{activeAddress.slice(0, 8)}...{activeAddress.slice(-6)}</span>) can create private thresholds and decrypt the signal queue.
+                                You are auditing payments made by <span className="font-mono bg-muted/50 px-1 py-0.5 rounded border border-muted-foreground/10 text-foreground">{proxyAccount}</span>.
+                                Your wallet (<span className="font-mono text-foreground font-semibold">{activeAddress.slice(0, 8)}...{activeAddress.slice(-6)}</span>) can set rules and read your result queue.
                             </p>
                             <p className="text-xs mt-1 text-muted-foreground">
-                                Access level: <span className="font-mono text-foreground">{reviewerAccess >= 2 ? "Ledger Reviewer" : "Reviewer"}</span>
+                                Access level: <span className="font-mono text-foreground">{reviewerAccess >= 2 ? "Full Access" : "Signal Access"}</span>
                             </p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={logout} className="shrink-0 border-muted-foreground/30 text-xs h-8">
-                        Close Session
+                        End Session
                     </Button>
                 </CardContent>
             </Card>
@@ -726,19 +727,19 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             <div className="bg-background rounded-none border-x border-b p-4 md:p-8 min-h-[80vh]">
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-1">
-                        <h2 className="text-2xl font-bold tracking-tight">Private Review Portal</h2>
+                        <h2 className="text-2xl font-bold tracking-tight">Auditor Portal</h2>
                         <p className="text-muted-foreground">
-                            Configure encrypted thresholds and decrypt only the review signals generated by new payments.
+                            Set private rules and check whether payments meet them. Your rules stay encrypted. The payment data stays private. You see only the outcome.
                         </p>
                     </div>
 
                     <Tabs defaultValue="setup" className="flex flex-col gap-4">
                         <TabsList className="w-fit">
-                            <TabsTrigger value="setup">Review Setup</TabsTrigger>
-                            <TabsTrigger value="queue">Result Queue</TabsTrigger>
+                            <TabsTrigger value="setup">Rules</TabsTrigger>
+                            <TabsTrigger value="queue">Results</TabsTrigger>
                             <TabsTrigger value="reports" disabled={!canViewReports}>Reports</TabsTrigger>
-                            <TabsTrigger value="evidence" disabled={!canViewLedger}>Evidence</TabsTrigger>
-                            <TabsTrigger value="ledger" disabled={!canViewLedger}>Ledger</TabsTrigger>
+                            <TabsTrigger value="evidence" disabled={!canViewRecords}>Evidence</TabsTrigger>
+                            <TabsTrigger value="ledger" disabled={!canViewRecords}>Records</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="setup" className="m-0">
@@ -747,30 +748,30 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2 text-xl">
                                             <Radar className="h-5 w-5" />
-                                            Encrypted Threshold
+                                            Create a Rule
                                         </CardTitle>
                                         <CardDescription>
-                                            The threshold is encrypted before it reaches the contract. The business cannot see the value being tested.
+                                            Set a threshold. Every new payment is automatically checked against it. Your threshold is encrypted before it leaves your browser — the business never sees the value you set.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-4">
                                         <div className="flex flex-col gap-2">
-                                            <Label>Review Type</Label>
+                                            <Label>Test Type</Label>
                                             <Select value={testType} onValueChange={(value) => setTestType(value as ReviewTestFormType)}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select review type" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="large">Large payment threshold</SelectItem>
-                                                    <SelectItem value="recipient">Recipient exposure threshold</SelectItem>
-                                                    <SelectItem value="category">Category exposure threshold</SelectItem>
-                                                    <SelectItem value="jurisdiction">Jurisdiction exposure threshold</SelectItem>
+                                                    <SelectItem value="large">Large Payment</SelectItem>
+                                                    <SelectItem value="recipient">Recipient Exposure</SelectItem>
+                                                    <SelectItem value="category">Category Exposure</SelectItem>
+                                                    <SelectItem value="jurisdiction">Jurisdiction Exposure</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
 
                                         <div className="flex flex-col gap-2">
-                                            <Label>Private Threshold (USDC)</Label>
+                                            <Label>Threshold</Label>
                                             <Input type="number" step="0.01" placeholder="10000.00" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
                                         </div>
 
@@ -815,15 +816,15 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
 
                                         <Button onClick={createReviewTest} disabled={isCreatingTest}>
                                             {isCreatingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                            Create Private Review Test
+                                            Save Rule
                                         </Button>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="text-xl">Active Tests</CardTitle>
-                                        <CardDescription>Tests run automatically against future encrypted payment records.</CardDescription>
+                                        <CardTitle className="text-xl">Saved Rules</CardTitle>
+                                        <CardDescription>Rules run automatically against future encrypted payment records.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-3">
                                         {isLoadingReviewData ? (
@@ -832,7 +833,7 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                             </div>
                                         ) : reviewTests.length === 0 ? (
                                             <div className="bg-muted/30 border border-dashed rounded-lg p-6 text-sm text-muted-foreground">
-                                                No private review tests created yet.
+                                                No rules created yet.
                                             </div>
                                         ) : (
                                             reviewTests.map((test) => (
@@ -862,10 +863,10 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                     <div>
                                         <CardTitle className="flex items-center gap-2 text-xl">
                                             <Eye className="h-5 w-5" />
-                                            Result Queue
+                                            Results
                                         </CardTitle>
                                         <CardDescription>
-                                            Each result is an encrypted boolean signal. Decrypting shows whether a reviewed payment crossed your private threshold.
+                                            Encrypted outcomes from the contract checking your rules against new payments. Decrypt to see which rules were triggered.
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -875,14 +876,14 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                         </Button>
                                         <Button size="sm" onClick={decryptResults} disabled={isDecryptingResults || reviewResults.length === 0 || reviewResults.every((result) => result.decrypted !== undefined)}>
                                             {isDecryptingResults ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                            Decrypt Signals
+                                            Decrypt Results
                                         </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="flex flex-col gap-3">
                                     {reviewResults.length === 0 ? (
                                         <div className="bg-muted/30 border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
-                                            No review signals yet. Signals are created when new payments are recorded after a matching review test exists.
+                                            No results yet. Results are created when new payments are recorded after a matching rule exists.
                                         </div>
                                     ) : (
                                         reviewResults.map((result, index) => {
@@ -906,11 +907,11 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                                             <Badge variant="secondary" className="font-mono text-[10px] uppercase">Encrypted</Badge>
                                                         ) : triggered ? (
                                                             <Badge variant="outline" className="border-destructive/30 text-destructive gap-1 font-mono text-[10px] uppercase">
-                                                                <AlertTriangle className="h-3 w-3" /> Review
+                                                                <AlertTriangle className="h-3 w-3" /> Triggered
                                                             </Badge>
                                                         ) : (
                                                             <Badge variant="outline" className="gap-1 font-mono text-[10px] uppercase">
-                                                                <CheckCircle2 className="h-3 w-3" /> No Issue
+                                                                <CheckCircle2 className="h-3 w-3" /> Not Triggered
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -927,11 +928,11 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                                     <div>
                                         <CardTitle className="text-xl">Reports</CardTitle>
-                                        <CardDescription>Encrypted aggregate totals by category and jurisdiction.</CardDescription>
+                                        <CardDescription>Aggregate payment summaries. Available to auditors with Signal Access or higher.</CardDescription>
                                     </div>
                                     <Button size="sm" onClick={decryptReports} disabled={!canViewReports || isDecryptingReports}>
                                         {isDecryptingReports ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                        Decrypt Reports
+                                        Decrypt Report
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -963,21 +964,21 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                                     <div>
                                         <CardTitle className="text-xl">Evidence</CardTitle>
-                                        <CardDescription>Record-level evidence for triggered results (ledger access required).</CardDescription>
+                                        <CardDescription>Individual payment records linked to triggered rules. Available to auditors with Full Access.</CardDescription>
                                     </div>
-                                    <Button size="sm" onClick={decryptLedgerEvidence} disabled={!canViewLedger || isDecryptingLedger || ledgerRecords.length === 0}>
-                                        {isDecryptingLedger ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                    <Button size="sm" onClick={decryptEvidence} disabled={!canViewRecords || isDecryptingRecords || records.length === 0}>
+                                        {isDecryptingRecords ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
                                         Decrypt Evidence
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {!canViewLedger ? (
+                                    {!canViewRecords ? (
                                         <div className="text-sm text-muted-foreground">Your access level does not include evidence.</div>
                                     ) : reviewResults.filter((r) => r.decrypted === 1).length === 0 ? (
                                         <div className="text-sm text-muted-foreground">No triggered results to inspect yet.</div>
                                     ) : (
                                         reviewResults.filter((r) => r.decrypted === 1).map((r, i) => {
-                                            const rec = ledgerRecords.find((x) => x.txHash.toLowerCase() === r.recordId.toLowerCase());
+                                            const rec = records.find((x) => x.txHash.toLowerCase() === r.recordId.toLowerCase());
                                             return (
                                                 <div key={`ev-${i}`} className="border rounded p-3 text-sm space-y-1">
                                                     <div>Record: <span className="font-mono">{r.recordId}</span></div>
@@ -995,27 +996,27 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                             <Card>
                                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                                     <div>
-                                        <CardTitle className="text-xl">Ledger</CardTitle>
-                                        <CardDescription>Full audit ledger (ledger reviewer only).</CardDescription>
+                                        <CardTitle className="text-xl">Records</CardTitle>
+                                        <CardDescription>Full payment history for this account. Available to auditors with Full Access only.</CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="sm" onClick={fetchLedger} disabled={!canViewLedger || isLoadingLedger}>
-                                            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingLedger ? "animate-spin" : ""}`} />
+                                        <Button variant="outline" size="sm" onClick={fetchRecords} disabled={!canViewRecords || isLoadingRecords}>
+                                            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingRecords ? "animate-spin" : ""}`} />
                                             Refresh
                                         </Button>
-                                        <Button size="sm" onClick={decryptLedgerEvidence} disabled={!canViewLedger || isDecryptingLedger || ledgerRecords.length === 0}>
-                                            {isDecryptingLedger ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                            Decrypt Ledger
+                                        <Button size="sm" onClick={decryptEvidence} disabled={!canViewRecords || isDecryptingRecords || records.length === 0}>
+                                            {isDecryptingRecords ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                            Decrypt Records
                                         </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {!canViewLedger ? (
-                                        <div className="text-sm text-muted-foreground">Your access level does not include ledger records.</div>
-                                    ) : ledgerRecords.length === 0 ? (
+                                    {!canViewRecords ? (
+                                        <div className="text-sm text-muted-foreground">Your access level does not include records.</div>
+                                    ) : records.length === 0 ? (
                                         <div className="text-sm text-muted-foreground">No records available.</div>
                                     ) : (
-                                        ledgerRecords.slice(0, 25).map((record) => (
+                                        records.slice(0, 25).map((record) => (
                                             <div key={record.txHash} className="border rounded p-3 text-sm space-y-1">
                                                 <div className="font-mono">#{record.index} {record.txHash.slice(0, 10)}...{record.txHash.slice(-8)}</div>
                                                 <div className="text-muted-foreground">{record.timestamp.toLocaleString()}</div>

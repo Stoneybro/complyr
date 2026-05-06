@@ -8,7 +8,7 @@ export const SmartWalletABI = [
         "internalType": "address"
       },
       {
-        "name": "complianceRegistry",
+        "name": "auditRegistry",
         "type": "address",
         "internalType": "address"
       }
@@ -25,7 +25,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "COMPLIANCE_REGISTRY",
+    "name": "AUDIT_REGISTRY",
     "inputs": [],
     "outputs": [
       {
@@ -74,7 +74,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "batchTransferERC20WithCompliance",
+    "name": "batchTransferERC20WithAudit",
     "inputs": [
       {
         "name": "recordId",
@@ -97,9 +97,9 @@ export const SmartWalletABI = [
         "internalType": "uint256[]"
       },
       {
-        "name": "compliance",
+        "name": "audit",
         "type": "tuple",
-        "internalType": "struct SmartWallet.ComplianceData",
+        "internalType": "struct SmartWallet.AuditData",
         "components": [
           {
             "name": "amountHandles",
@@ -144,7 +144,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "batchTransferNativeWithCompliance",
+    "name": "batchTransferNativeWithAudit",
     "inputs": [
       {
         "name": "recordId",
@@ -162,9 +162,9 @@ export const SmartWalletABI = [
         "internalType": "uint256[]"
       },
       {
-        "name": "compliance",
+        "name": "audit",
         "type": "tuple",
-        "internalType": "struct SmartWallet.ComplianceData",
+        "internalType": "struct SmartWallet.AuditData",
         "components": [
           {
             "name": "amountHandles",
@@ -429,7 +429,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "recordCompliance",
+    "name": "recordAudit",
     "inputs": [
       {
         "name": "txHash",
@@ -542,7 +542,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "transferERC20WithCompliance",
+    "name": "transferERC20WithAudit",
     "inputs": [
       {
         "name": "recordId",
@@ -565,9 +565,9 @@ export const SmartWalletABI = [
         "internalType": "uint256"
       },
       {
-        "name": "compliance",
+        "name": "audit",
         "type": "tuple",
-        "internalType": "struct SmartWallet.ComplianceData",
+        "internalType": "struct SmartWallet.AuditData",
         "components": [
           {
             "name": "amountHandles",
@@ -612,7 +612,7 @@ export const SmartWalletABI = [
   },
   {
     "type": "function",
-    "name": "transferNativeWithCompliance",
+    "name": "transferNativeWithAudit",
     "inputs": [
       {
         "name": "recordId",
@@ -630,9 +630,9 @@ export const SmartWalletABI = [
         "internalType": "uint256"
       },
       {
-        "name": "compliance",
+        "name": "audit",
         "type": "tuple",
-        "internalType": "struct SmartWallet.ComplianceData",
+        "internalType": "struct SmartWallet.AuditData",
         "components": [
           {
             "name": "amountHandles",
@@ -753,6 +753,19 @@ export const SmartWalletABI = [
   },
   {
     "type": "event",
+    "name": "AuditRecorded",
+    "inputs": [
+      {
+        "name": "txHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "CommitmentDecreased",
     "inputs": [
       {
@@ -797,19 +810,6 @@ export const SmartWalletABI = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ComplianceRecorded",
-    "inputs": [
-      {
-        "name": "txHash",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -1093,12 +1093,12 @@ export const SmartWalletABI = [
   },
   {
     "type": "error",
-    "name": "SmartWallet__ComplianceRegistryZeroAddress",
+    "name": "SmartWallet__AuditRegistryZeroAddress",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "SmartWallet__ComplianceRequired",
+    "name": "SmartWallet__AuditRequired",
     "inputs": []
   },
   {
@@ -1142,3 +1142,4 @@ export const SmartWalletABI = [
     "inputs": []
   }
 ] as const;
+export const SmartWalletAbi = SmartWalletABI;

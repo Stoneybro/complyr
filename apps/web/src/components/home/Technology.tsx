@@ -19,7 +19,7 @@ export default function Technology() {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-12 text-center">
-          {stack.map((item, i) => (
+          {stack.map((item) => (
             <div 
               key={item.name} 
               className="flex flex-col items-center"
@@ -33,7 +33,7 @@ export default function Technology() {
         <div className="mt-24 p-12 border border-primary bg-surface relative">
           <div className="absolute -top-3 left-8 bg-surface px-4 text-[10px] font-bold uppercase tracking-widest">Protocol Schema</div>
           <div className="flex justify-between border-b border-outline-variant/50 pb-4 mb-8">
-            <span className="font-mono text-[0.6875rem] text-on-surface">COMPLIANCE_PAYLOAD.JSON</span>
+            <span className="font-mono text-[0.6875rem] text-on-surface">AUDIT_PAYLOAD.JSON</span>
             <span className="font-mono text-[0.6875rem] text-outline">v0.2.0-beta</span>
           </div>
           <pre className="font-mono text-[0.75rem] text-on-surface-variant overflow-x-auto leading-relaxed">{`{
@@ -42,10 +42,10 @@ export default function Technology() {
     "value": "5000000000",
     "token": "USDC"
   },
-  "compliance": {
-    "aes_encrypted_metadata": "0x000000002194b8e...",
-    "signature": "0x4b7c...",
-    "verification_status": "SECURED_ONCHAIN"
+  "audit": {
+    "encrypted_context": "0x000000002194b8e...",
+    "reference_id": "emp-001",
+    "verification_status": "RECORDED_ONCHAIN"
   }
 }`}</pre>
         </div>

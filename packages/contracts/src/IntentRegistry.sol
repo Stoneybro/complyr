@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ISmartWallet} from "./ISmartWallet.sol";
-import {IComplianceRegistry} from "./IComplianceRegistry.sol";
+import {IAuditRegistry} from "./IAuditRegistry.sol";
 
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import "encrypted-types/EncryptedTypes.sol";
@@ -57,8 +57,8 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     /// @notice The owner for admin functions
     address public owner;
 
-    /// @notice Address of the ComplianceRegistry for logging
-    address public complianceRegistry;
+    /// @notice Address of the AuditRegistry for logging
+    address public auditRegistry;
 
     /// @notice The list of registered wallets
     address[] public registeredWallets;
@@ -167,8 +167,8 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
     /// @notice Thrown when intent not found for wallet
     error IntentRegistry__IntentNotFound();
 
-    /// @notice Thrown when required compliance metadata is missing
-    error IntentRegistry__MissingComplianceInfo();
+    /// @notice Thrown when required audit metadata is missing
+    error IntentRegistry__MissingAuditInfo();
 
     /*//////////////////////////////////////////////////////////////
                               MODIFIERS
@@ -178,9 +178,9 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         owner = _initialOwner;
     }
 
-    function setComplianceRegistry(address _registry) external {
+    function setAuditRegistry(address _registry) external {
         if (msg.sender != owner) revert IntentRegistry__Unauthorized();
-        complianceRegistry = _registry;
+        auditRegistry = _registry;
     }
 
     /// @notice Receive native funds from proxy accounts.
@@ -252,7 +252,7 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         for (uint256 i = 0; i < recipients.length; i++) {
             if (recipients[i] == address(0)) revert IntentRegistry__InvalidRecipient();
             if (amounts[i] == 0) revert IntentRegistry__InvalidAmount();
-            if (bytes(referenceIds[i]).length == 0) revert IntentRegistry__MissingComplianceInfo();
+            if (bytes(referenceIds[i]).length == 0) revert IntentRegistry__MissingAuditInfo();
             totalAmountPerExecution += amounts[i];
         }
 
@@ -300,9 +300,9 @@ contract IntentRegistry is ReentrancyGuard, AutomationCompatibleInterface {
         ///@notice Add the intent id to the wallet's active intent ids
         walletActiveIntentIds[wallet].push(intentId);
 
-        ///@notice Send compliance data to ComplianceRegistry once at creation
-        if (complianceRegistry != address(0)) {
-            IComplianceRegistry(complianceRegistry).recordTransaction(
+        ///@notice Send audit data to AuditRegistry once at creation
+        if (auditRegistry != address(0)) {
+            IAuditRegistry(auditRegistry).recordTransaction(
                 intentId,
                 wallet,
                 token,

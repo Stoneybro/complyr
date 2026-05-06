@@ -100,10 +100,10 @@ const mapTransactionToItem = (tx: Transaction): TransactionItemProps => {
                 details: details,
             };
             
-        case ActivityType.COMPLIANCE_RECORDED:
+        case ActivityType.AUDIT_RECORDED:
             return {
                 ...base,
-                type: ActivityType.COMPLIANCE_RECORDED,
+                type: ActivityType.AUDIT_RECORDED,
                 description: `Metadata securely anchored`,
                 details: details,
             };

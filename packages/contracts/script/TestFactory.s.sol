@@ -10,7 +10,7 @@ contract TestFactory is Script {
         address deployer = address(0x123);
         vm.startBroadcast(deployer);
 
-        // We can pass a dummy address for the compliance bridge since it's commented out
+        // We can pass a dummy address for the audit bridge since it's commented out
         address dummyBridge = address(0xABC);
 
         SmartWallet implementation = new SmartWallet(0x0000000071727De22E5E9d8BAf0edAc6f37da032, dummyBridge);
