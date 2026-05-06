@@ -7,6 +7,7 @@ import {
   SmartWalletFactory,
   IntentRegistry,
   MockUSDC,
+  AuditRegistry,
   Transaction,
   TransactionType,
   Wallet,
@@ -269,6 +270,85 @@ SmartWallet.TransferFailed.handler(async ({ event, context }) => {
     details: details
   };
 
+  context.Transaction.set(transaction);
+});
+
+SmartWallet.ERC20Transferred.handler(async ({ event, context }) => {
+  const walletId = event.srcAddress.toString().toLowerCase();
+  const wallet = await context.Wallet.get(walletId);
+  if (!wallet) return;
+  if (isAutomatedUpkeep(event.transaction.input)) return;
+
+  const txHash = event.transaction.hash;
+  const transactionId = `${txHash}`;
+
+  let transaction = await context.Transaction.get(transactionId);
+  if (!transaction) {
+    transaction = {
+      id: transactionId,
+      wallet_id: walletId,
+      transactionType: "ERC20_TRANSFER",
+      timestamp: BigInt(event.block.timestamp),
+      blockNumber: BigInt(event.block.number),
+      txHash: txHash,
+      logIndex: event.logIndex,
+      title: "Token Transfer",
+      details: JSON.stringify({
+        recipient: event.params.to.toString(),
+        amount: event.params.amount.toString(),
+        token: "USDC",
+        functionCall: "Token Transfer"
+      })
+    };
+  }
+  context.Transaction.set(transaction);
+});
+
+SmartWallet.AuditRecorded.handler(async ({ event, context }) => {
+  const walletId = event.srcAddress.toString().toLowerCase();
+  const wallet = await context.Wallet.get(walletId);
+  if (!wallet) return;
+
+  const txHash = event.transaction.hash;
+  const transactionId = `${txHash}-audit`;
+
+  const transaction: Transaction = {
+    id: transactionId,
+    wallet_id: walletId,
+    transactionType: "AUDIT_RECORDED",
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: txHash,
+    logIndex: event.logIndex,
+    title: "Audit Anchored",
+    details: JSON.stringify({
+      recordId: event.params.txHash.toString(),
+      status: "Verified"
+    })
+  };
+  context.Transaction.set(transaction);
+});
+
+// ============================================
+// AUDIT REGISTRY EVENTS
+// ============================================
+
+AuditRegistry.AccountRegistered.handler(async ({ event, context }) => {
+  const walletId = event.params.proxyAccount.toString().toLowerCase();
+  
+  const transaction: Transaction = {
+    id: `${event.transaction.hash}-${event.logIndex}`,
+    wallet_id: walletId,
+    transactionType: "ACCOUNT_REGISTERED",
+    timestamp: BigInt(event.block.timestamp),
+    blockNumber: BigInt(event.block.number),
+    txHash: event.transaction.hash,
+    logIndex: event.logIndex,
+    title: "Audit Registry Linked",
+    details: JSON.stringify({
+      masterEOA: event.params.masterEOA.toString()
+    })
+  };
   context.Transaction.set(transaction);
 });
 

@@ -11,9 +11,10 @@ networks:
   - id: 11155111
     rpc_config:
       url: https://ethereum-sepolia-rpc.publicnode.com
-    start_block: 0
+    start_block: 7120000
     contracts:
       - name: SmartWallet
+        address: []
         handler: src/EventHandlers.ts
         events:
           - event: Executed(address indexed target, uint256 value, bytes data)
@@ -22,23 +23,27 @@ networks:
           - event: IntentTransferSuccess(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, uint256 amount)
           - event: TransferFailed(bytes32 indexed intentId, uint256 indexed transactionCount, address indexed recipient, uint256 amount)
           - event: WalletAction(address indexed initiator, address indexed target, uint256 value, bytes4 indexed selector, bool success, bytes32 actionType)
+          - event: AuditRecorded(bytes32 indexed txHash)
+          - event: ERC20Transferred(address indexed token, address indexed to, uint256 amount)
       - name: SmartWalletFactory
-        address:
-          - 0x0000000000000000000000000000000000000000
+        address: "0x40C3fbDE09CCC9E3Ee82B5aAea53Ad75e8Bc70E0"
         handler: src/EventHandlers.ts
         events:
           - event: AccountCreated(address indexed account, address indexed owner)
       - name: IntentRegistry
-        address:
-          - 0x0000000000000000000000000000000000000000
+        address: "0xe33EE9Ce9294Fa7Cb7f31f2995394FfdBC63B473"
         handler: src/EventHandlers.ts
         events:
           - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, address indexed token, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
           - event: IntentExecuted(address indexed wallet, bytes32 indexed intentId, string name, uint256 transactionCount, uint256 totalAmount)
           - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, string name, uint256 amountRefunded, uint256 failedAmountRecovered)
       - name: MockUSDC
-        address:
-          - 0x0000000000000000000000000000000000000000
+        address: "0x7e881e982b8A5A87EF69ee05B4F08d0C6FB006a4"
         handler: src/EventHandlers.ts
         events:
           - event: Transfer(address indexed from, address indexed to, uint256 value)
+      - name: AuditRegistry
+        address: "0x0dA2183cA69Faa137C9BB0b33Ab2a8f53Fe8F163"
+        handler: src/EventHandlers.ts
+        events:
+          - event: AccountRegistered(address indexed proxyAccount, address indexed masterEOA)

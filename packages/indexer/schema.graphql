@@ -22,6 +22,9 @@ enum TransactionType {
   INTENT_EXECUTION
   INTENT_CANCELLED
   TRANSFER_FAILED
+  ERC20_TRANSFER
+  AUDIT_RECORDED
+  ACCOUNT_REGISTERED
 }
 
 # Keep Wallet entity for aggregates
