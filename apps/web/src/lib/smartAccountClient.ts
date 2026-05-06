@@ -13,10 +13,19 @@ export async function getSmartAccountClient(
     paymaster: pimlicoClient,
     userOperation: {
       estimateFeesPerGas: async () => {
+        // Pimlico enforces a minimum UserOp gas price floor.
+        // Use pimlico_getUserOperationGasPrice to avoid "Invalid fields set on User Operation".
+        const pimlicoGasPrice = await pimlicoClient.getUserOperationGasPrice();
         const fees = await publicClient.estimateFeesPerGas();
+
+        const slowMaxFee = pimlicoGasPrice.slow.maxFeePerGas;
+        const slowPriority = pimlicoGasPrice.slow.maxPriorityFeePerGas;
         return {
-          maxFeePerGas: fees.maxFeePerGas ?? 1000000000n,
-          maxPriorityFeePerGas: fees.maxPriorityFeePerGas ?? 1000000000n,
+          maxFeePerGas: fees.maxFeePerGas && fees.maxFeePerGas > slowMaxFee ? fees.maxFeePerGas : slowMaxFee,
+          maxPriorityFeePerGas:
+            fees.maxPriorityFeePerGas && fees.maxPriorityFeePerGas > slowPriority
+              ? fees.maxPriorityFeePerGas
+              : slowPriority,
         };
       },
     },

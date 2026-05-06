@@ -226,19 +226,24 @@ Do not show:
 - reviewer test scopes;
 - reviewer private audit logic.
 
-Suggested access levels:
+Implemented access levels:
 
-1. `Signal Reviewer`
+1. `Reviewer`
    - Can create encrypted private tests.
    - Can decrypt their own result queue.
-
-2. `Report Reviewer`
    - Can decrypt authorized aggregate reports.
 
-3. `Ledger Reviewer`
-   - Can decrypt full audit records.
+2. `Ledger Reviewer`
+   - Has reviewer access.
+   - Can decrypt full audit records and evidence.
 
-For the first implementation, one reviewer role can be used contract-side, but the UI and architecture should leave room for access-level expansion.
+Contract-side reviewer access is implemented with an explicit `ReviewerAccess` enum:
+
+- `None`
+- `Reviewer`
+- `Ledger`
+
+The legacy `addAuditor(proxyAccount, auditor)` path remains for compatibility and grants `Ledger` access. The business app should use `addAuditorWithAccess` for new reviewers and `updateAuditorAccess` for access changes.
 
 ## 7. Auditor Portal UX
 
@@ -482,7 +487,7 @@ Read functions:
 
 Payment creation should remain mandatory-audit-context.
 
-Flow:
+Single and batch payment flow:
 
 1. User fills payment details.
 2. User fills audit context for every recipient.
@@ -495,6 +500,17 @@ Flow:
 9. Registry stores encrypted review results for the auditor.
 
 No raw financial transfer path should bypass audit recording.
+
+Recurring intent flow:
+
+1. User fills intent payment details and audit context for every recipient.
+2. Frontend encrypts amount/category/jurisdiction with Zama.
+3. `IntentRegistry.createIntent` stores the recurring schedule and records the encrypted audit context once, using the intent id as the record id.
+4. Scheduled executions transfer the committed funds according to the stored intent.
+
+This is intentional: recurring payments are represented as an audited scheduled intent rather than a new encrypted audit record per execution. Public intent lifecycle and transfer events still expose execution activity.
+
+The `SmartWallet.recordCompliance` method remains available contract-side for controlled/manual registry writes by the owner or EntryPoint, but the product UI/API does not expose it as a standalone payment flow. User-facing payment flows use the atomic `*WithCompliance` transfer methods or intent creation path.
 
 ## 12. Auditor Test Creation Flow
 
@@ -516,13 +532,13 @@ Every stored encrypted record field:
 
 - `FHE.allowThis(value)`
 - `FHE.allow(value, businessOwner)`
-- `FHE.allow(value, activeAuditor)` if the auditor has ledger/report access
+- `FHE.allow(value, activeAuditor)` only if the reviewer has `Ledger` access
 
 Every rollup:
 
 - `FHE.allowThis(total)`
 - `FHE.allow(total, businessOwner)`
-- `FHE.allow(total, auditor)` only if auditor has report access
+- `FHE.allow(total, auditor)` only if the reviewer has `Reviewer` or `Ledger` access
 
 Every auditor threshold:
 
@@ -543,32 +559,29 @@ Known limitation:
 
 ## 14. Access Control
 
-Current auditor model can be extended.
-
-Suggested access enum:
+Reviewer access is implemented contract-side.
 
 ```solidity
 enum ReviewerAccess {
     None,
-    Signal,
-    Report,
+    Reviewer,
     Ledger
 }
 ```
 
-MVP option:
+Behavior:
 
-- keep a simple approved auditor list;
-- treat all approved auditors as able to create private tests and decrypt records.
+- `Reviewer`: can create encrypted private tests, decrypt their own encrypted result queue, and receives encrypted aggregate rollup decrypt grants.
+- `Ledger`: includes `Reviewer` behavior and receives encrypted record-level decrypt grants.
 
-Better option:
+Access APIs:
 
-- implement access levels now if time allows.
+- `addAuditor(proxyAccount, auditor)` remains as a compatibility helper and grants `Ledger`.
+- `addAuditorWithAccess(proxyAccount, auditor, accessLevel)` grants an explicit non-`None` access level.
+- `updateAuditorAccess(proxyAccount, auditor, accessLevel)` changes future grants. Upgrading to `Reviewer` or `Ledger` grants existing rollups/records where applicable.
+- `removeAuditor(proxyAccount, auditor)` sets access to `None`, removes the reviewer from the active list, and deactivates their active tests for that wallet.
 
-Recommended practical path:
-
-1. First implement simple approved reviewer list.
-2. Add access enum if frontend/contract complexity remains manageable.
+Known limitation remains: lowering or removing access cannot cryptographically revoke historical FHE/KMS decrypt permissions already granted to prior ciphertexts. It blocks future grants/results and UI access.
 
 ## 15. Contract API Sketch
 
@@ -577,8 +590,11 @@ Recommended practical path:
 ```solidity
 function recordTransaction(...) external;
 function addAuditor(address proxyAccount, address auditor) external;
+function addAuditorWithAccess(address proxyAccount, address auditor, ReviewerAccess accessLevel) external;
+function updateAuditorAccess(address proxyAccount, address auditor, ReviewerAccess accessLevel) external;
 function removeAuditor(address proxyAccount, address auditor) external;
 function getAuditors(address proxyAccount) external view returns (address[] memory);
+function reviewerAccess(address proxyAccount, address auditor) external view returns (ReviewerAccess);
 function getRecordCount(address proxyAccount) external view returns (uint256);
 function getRecord(address proxyAccount, uint256 index) external view returns (...);
 ```

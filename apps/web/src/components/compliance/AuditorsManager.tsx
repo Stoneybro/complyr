@@ -7,6 +7,7 @@ import { ComplianceRegistryABI } from "@/lib/abi/ComplianceRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check } from "lucide-react";
 import { ComplianceRegistryAddress } from "@/lib/CA";
@@ -14,6 +15,21 @@ import { complyrChain } from "@/lib/chain";
 
 const REGISTRY_ADDRESS = ComplianceRegistryAddress as `0x${string}`;
 const MAX_REVIEWERS = 5;
+
+const REVIEWER_ACCESS = {
+    Reviewer: 1,
+    Ledger: 2,
+} as const;
+
+const ACCESS_LABELS: Record<number, string> = {
+    [REVIEWER_ACCESS.Reviewer]: "Reviewer",
+    [REVIEWER_ACCESS.Ledger]: "Full Ledger",
+};
+
+type Reviewer = {
+    address: string;
+    accessLevel: number;
+};
 
 function getErrorMessage(error: unknown, fallback: string) {
     if (typeof error === "object" && error !== null) {
@@ -25,10 +41,11 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
-    const [auditors, setAuditors] = useState<string[]>([]);
+    const [auditors, setAuditors] = useState<Reviewer[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isManaging, setIsManaging] = useState(false);
     const [newAuditorAddress, setNewAuditorAddress] = useState("");
+    const [newAccessLevel, setNewAccessLevel] = useState<number>(REVIEWER_ACCESS.Reviewer);
     
     const [isCopying, setIsCopying] = useState(false);
     
@@ -49,8 +66,19 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 functionName: "getAuditors",
                 args: [proxyAccount as `0x${string}`],
             }) as string[];
+
+            const withAccess = await Promise.all(current.map(async (address) => {
+                const accessLevel = await publicClient.readContract({
+                    address: REGISTRY_ADDRESS,
+                    abi: ComplianceRegistryABI,
+                    functionName: "reviewerAccess",
+                    args: [proxyAccount as `0x${string}`, address as `0x${string}`],
+                }) as number;
+
+                return { address, accessLevel };
+            }));
             
-            setAuditors(current);
+            setAuditors(withAccess);
         } catch (err) {
             console.error(err);
         } finally {
@@ -118,8 +146,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 account: ownerWallet.address as `0x${string}`,
                 address: REGISTRY_ADDRESS,
                 abi: ComplianceRegistryABI,
-                functionName: "addAuditor",
-                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress)],
+                functionName: "addAuditorWithAccess",
+                args: [proxyAccount as `0x${string}`, getAddress(newAuditorAddress), newAccessLevel],
             });
 
             toast.loading("Transaction signed. Approving reviewer...", { id: loadingId });
@@ -129,10 +157,52 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
             toast.success("External reviewer approved.", { id: loadingId });
             setNewAuditorAddress("");
+            setNewAccessLevel(REVIEWER_ACCESS.Reviewer);
             fetchAuditors();
         } catch (err: unknown) {
             console.error(err);
             toast.error(getErrorMessage(err, "Failed to approve reviewer"), { id: loadingId });
+        } finally {
+            setIsManaging(false);
+        }
+    };
+
+    const handleUpdateAccess = async (auditorAddr: string, accessLevel: number) => {
+        const ownerWallet = wallets?.find((w) => w.walletClientType === "privy");
+        if (!ownerWallet) return toast.error("Connect wallet");
+
+        setIsManaging(true);
+        const loadingId = toast.loading("Requesting signature to update reviewer access...");
+
+        try {
+            const provider = await ownerWallet.getEthereumProvider();
+            const walletClient = createWalletClient({
+                account: ownerWallet.address as `0x${string}`,
+                chain: complyrChain,
+                transport: custom(provider),
+            });
+            const publicClient = createPublicClient({
+                chain: complyrChain,
+                transport: custom(provider)
+            });
+
+            await ownerWallet.switchChain(complyrChain.id);
+
+            const { request } = await publicClient.simulateContract({
+                account: ownerWallet.address as `0x${string}`,
+                address: REGISTRY_ADDRESS,
+                abi: ComplianceRegistryABI,
+                functionName: "updateAuditorAccess",
+                args: [proxyAccount as `0x${string}`, auditorAddr as `0x${string}`, accessLevel],
+            });
+
+            const hash = await walletClient.writeContract(request);
+            await publicClient.waitForTransactionReceipt({ hash });
+
+            toast.success("Reviewer access updated.", { id: loadingId });
+            fetchAuditors();
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, "Failed to update reviewer access"), { id: loadingId });
         } finally {
             setIsManaging(false);
         }
@@ -253,15 +323,30 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                         <div className="space-y-3">
                             {auditors.map((auditor, i) => (
                                 <div key={i} className="flex items-center justify-between p-3 border rounded-lg bg-card text-sm">
-                                    <span className="font-mono">{auditor}</span>
-                                    <Button 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={() => handleRemove(auditor)}
-                                        disabled={isManaging}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <span className="font-mono">{auditor.address}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Select
+                                            value={String(auditor.accessLevel)}
+                                            onValueChange={(value) => handleUpdateAccess(auditor.address, Number(value))}
+                                            disabled={isManaging}
+                                        >
+                                            <SelectTrigger className="h-8 w-28">
+                                                <SelectValue aria-label={ACCESS_LABELS[auditor.accessLevel] ?? "Access"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Reviewer)}>Reviewer</SelectItem>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Ledger)}>Full Ledger</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => handleRemove(auditor.address)}
+                                            disabled={isManaging}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -270,7 +355,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
                 <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-sm font-medium">Add New Reviewer</h3>
-                    <div className="flex gap-2">
+                    <div className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
                         <Input 
                             value={newAuditorAddress}
                             onChange={(e) => setNewAuditorAddress(e.target.value)}
@@ -278,6 +363,19 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                             className="font-mono"
                             disabled={isManaging || auditors.length >= MAX_REVIEWERS}
                         />
+                        <Select
+                            value={String(newAccessLevel)}
+                            onValueChange={(value) => setNewAccessLevel(Number(value))}
+                            disabled={isManaging || auditors.length >= MAX_REVIEWERS}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={String(REVIEWER_ACCESS.Reviewer)}>Reviewer</SelectItem>
+                                <SelectItem value={String(REVIEWER_ACCESS.Ledger)}>Full Ledger</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button 
                             onClick={handleAdd} 
                             disabled={isManaging || !newAuditorAddress || auditors.length >= MAX_REVIEWERS}

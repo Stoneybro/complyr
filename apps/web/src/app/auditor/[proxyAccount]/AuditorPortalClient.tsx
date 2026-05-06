@@ -44,6 +44,7 @@ type Eip1193Provider = {
 };
 
 type ReviewTestFormType = "large" | "recipient" | "category" | "jurisdiction";
+type ReviewerAccess = 0 | 1 | 2;
 
 type ReviewTest = {
     id: bigint;
@@ -62,6 +63,29 @@ type ReviewResult = {
     resultHandle: `0x${string}`;
     timestamp: Date;
     decrypted?: number;
+};
+
+type RollupDecrypted = {
+    global?: bigint;
+    categories: Record<number, bigint>;
+    jurisdictions: Record<number, bigint>;
+};
+
+type LedgerRecord = {
+    index: number;
+    txHash: string;
+    token: string;
+    recipients: readonly string[];
+    amountHandles: readonly `0x${string}`[];
+    categoryHandles: readonly `0x${string}`[];
+    jurisdictionHandles: readonly `0x${string}`[];
+    referenceIds: readonly string[];
+    timestamp: Date;
+    decrypted?: {
+        amounts: string[];
+        categories: string[];
+        jurisdictions: string[];
+    };
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -108,8 +132,17 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
     const [recipientScope, setRecipientScope] = useState("");
     const [categoryScope, setCategoryScope] = useState("INVOICE");
     const [jurisdictionScope, setJurisdictionScope] = useState("US-CA");
+    const [reviewerAccess, setReviewerAccess] = useState<ReviewerAccess>(0);
+    const [rollupHandles, setRollupHandles] = useState<{ global?: `0x${string}`; categories: Record<number, `0x${string}`>; jurisdictions: Record<number, `0x${string}`>; }>({ categories: {}, jurisdictions: {} });
+    const [rollupDecrypted, setRollupDecrypted] = useState<RollupDecrypted>({ categories: {}, jurisdictions: {} });
+    const [isDecryptingReports, setIsDecryptingReports] = useState(false);
+    const [ledgerRecords, setLedgerRecords] = useState<LedgerRecord[]>([]);
+    const [isLoadingLedger, setIsLoadingLedger] = useState(false);
+    const [isDecryptingLedger, setIsDecryptingLedger] = useState(false);
 
     const isAuthorizedAuditor = activeAddress && auditors.includes(activeAddress.toLowerCase());
+    const canViewReports = reviewerAccess >= 1;
+    const canViewLedger = reviewerAccess >= 2;
 
     const fetchAuditors = useCallback(async () => {
         setIsLoadingAuditors(true);
@@ -144,6 +177,14 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                 transport: http(),
             });
             const account = getAddress(activeAddress);
+            const access = await publicClient.readContract({
+                account,
+                address: REGISTRY_ADDRESS,
+                abi: ComplianceRegistryABI,
+                functionName: "reviewerAccess",
+                args: [proxyAccount as `0x${string}`, account],
+            }) as number;
+            setReviewerAccess(access as ReviewerAccess);
 
             const ids = await publicClient.readContract({
                 account,
@@ -208,7 +249,169 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
         } finally {
             setIsLoadingReviewData(false);
         }
-    }, [activeAddress, isAuthorizedAuditor]);
+    }, [activeAddress, isAuthorizedAuditor, proxyAccount]);
+
+    const fetchReportHandles = useCallback(async () => {
+        if (!activeAddress || !isAuthorizedAuditor || !canViewReports) return;
+        try {
+            const publicClient = createPublicClient({ chain: complyrChain, transport: http() });
+            const account = getAddress(activeAddress);
+            const global = await publicClient.readContract({
+                account,
+                address: REGISTRY_ADDRESS,
+                abi: ComplianceRegistryABI,
+                functionName: "getEncryptedGlobalTotal",
+                args: [proxyAccount as `0x${string}`],
+            }) as `0x${string}`;
+
+            const categories: Record<number, `0x${string}`> = {};
+            for (let i = 1; i <= 10; i++) {
+                categories[i] = await publicClient.readContract({
+                    account,
+                    address: REGISTRY_ADDRESS,
+                    abi: ComplianceRegistryABI,
+                    functionName: "getEncryptedCategoryTotal",
+                    args: [proxyAccount as `0x${string}`, i],
+                }) as `0x${string}`;
+            }
+
+            const jurisdictions: Record<number, `0x${string}`> = {};
+            for (let i = 1; i <= 13; i++) {
+                jurisdictions[i] = await publicClient.readContract({
+                    account,
+                    address: REGISTRY_ADDRESS,
+                    abi: ComplianceRegistryABI,
+                    functionName: "getEncryptedJurisdictionTotal",
+                    args: [proxyAccount as `0x${string}`, i],
+                }) as `0x${string}`;
+            }
+            setRollupHandles({ global, categories, jurisdictions });
+        } catch (err) {
+            console.error(err);
+        }
+    }, [activeAddress, isAuthorizedAuditor, canViewReports, proxyAccount]);
+
+    const decryptReports = async () => {
+        if (!activeAddress || !canViewReports) return;
+        const provider = getInjectedProvider();
+        if (!provider) return toast.error("No Web3 wallet found.");
+        setIsDecryptingReports(true);
+        const loadingId = toast.loading("Decrypting private reports...");
+        try {
+            const account = getAddress(activeAddress);
+            const handles = [
+                ...(rollupHandles.global ? [rollupHandles.global] : []),
+                ...Object.values(rollupHandles.categories),
+                ...Object.values(rollupHandles.jurisdictions),
+            ];
+            const signer = {
+                signTypedData: async (typedData: unknown) =>
+                    provider.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(typedData)] }) as Promise<`0x${string}`>,
+            };
+            const decrypted = await userDecryptComplianceHandles({
+                handles,
+                contractAddress: REGISTRY_ADDRESS,
+                userAddress: account,
+                signer,
+            });
+            const categories: Record<number, bigint> = {};
+            Object.entries(rollupHandles.categories).forEach(([k, h]) => { categories[Number(k)] = BigInt(decrypted[h]); });
+            const jurisdictions: Record<number, bigint> = {};
+            Object.entries(rollupHandles.jurisdictions).forEach(([k, h]) => { jurisdictions[Number(k)] = BigInt(decrypted[h]); });
+            setRollupDecrypted({
+                global: rollupHandles.global ? BigInt(decrypted[rollupHandles.global]) : undefined,
+                categories,
+                jurisdictions,
+            });
+            toast.success("Private reports decrypted.", { id: loadingId });
+        } catch (err) {
+            console.error(err);
+            toast.error(getErrorMessage(err, "Failed to decrypt reports"), { id: loadingId });
+        } finally {
+            setIsDecryptingReports(false);
+        }
+    };
+
+    const fetchLedger = useCallback(async () => {
+        if (!activeAddress || !isAuthorizedAuditor || !canViewLedger) return;
+        setIsLoadingLedger(true);
+        try {
+            const publicClient = createPublicClient({ chain: complyrChain, transport: http() });
+            const account = getAddress(activeAddress);
+            const count = Number(await publicClient.readContract({
+                account,
+                address: REGISTRY_ADDRESS,
+                abi: ComplianceRegistryABI,
+                functionName: "getRecordCount",
+                args: [proxyAccount as `0x${string}`],
+            }));
+            const items: LedgerRecord[] = [];
+            for (let i = 0; i < count; i++) {
+                const data = await publicClient.readContract({
+                    account,
+                    address: REGISTRY_ADDRESS,
+                    abi: ComplianceRegistryABI,
+                    functionName: "getRecord",
+                    args: [proxyAccount as `0x${string}`, BigInt(i)],
+                });
+                items.push({
+                    index: i,
+                    txHash: data[0],
+                    token: data[1],
+                    recipients: data[2],
+                    amountHandles: data[3],
+                    categoryHandles: data[4],
+                    jurisdictionHandles: data[5],
+                    referenceIds: data[6],
+                    timestamp: new Date(Number(data[7]) * 1000),
+                });
+            }
+            setLedgerRecords(items.reverse());
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoadingLedger(false);
+        }
+    }, [activeAddress, isAuthorizedAuditor, canViewLedger, proxyAccount]);
+
+    const decryptLedgerEvidence = async () => {
+        if (!activeAddress || !canViewLedger || ledgerRecords.length === 0) return;
+        const provider = getInjectedProvider();
+        if (!provider) return toast.error("No Web3 wallet found.");
+        setIsDecryptingLedger(true);
+        const loadingId = toast.loading("Decrypting ledger evidence...");
+        try {
+            const account = getAddress(activeAddress);
+            const signer = {
+                signTypedData: async (typedData: unknown) =>
+                    provider.request({ method: "eth_signTypedData_v4", params: [account, JSON.stringify(typedData)] }) as Promise<`0x${string}`>,
+            };
+            const next = await Promise.all(ledgerRecords.map(async (record) => {
+                const handles = [...record.amountHandles, ...record.categoryHandles, ...record.jurisdictionHandles];
+                const decrypted = await userDecryptComplianceHandles({
+                    handles,
+                    contractAddress: REGISTRY_ADDRESS,
+                    userAddress: account,
+                    signer,
+                });
+                return {
+                    ...record,
+                    decrypted: {
+                        amounts: record.amountHandles.map((h) => String(BigInt(decrypted[h]))),
+                        categories: record.categoryHandles.map((h) => CATEGORY_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
+                        jurisdictions: record.jurisdictionHandles.map((h) => JURISDICTION_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
+                    },
+                };
+            }));
+            setLedgerRecords(next);
+            toast.success("Ledger evidence decrypted.", { id: loadingId });
+        } catch (err) {
+            console.error(err);
+            toast.error(getErrorMessage(err, "Failed to decrypt ledger"), { id: loadingId });
+        } finally {
+            setIsDecryptingLedger(false);
+        }
+    };
 
     useEffect(() => {
         fetchAuditors();
@@ -235,6 +438,18 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
             fetchReviewData();
         }
     }, [fetchReviewData, isAuthorizedAuditor]);
+
+    useEffect(() => {
+        if (isAuthorizedAuditor && canViewReports) {
+            fetchReportHandles();
+        }
+    }, [isAuthorizedAuditor, canViewReports, fetchReportHandles]);
+
+    useEffect(() => {
+        if (isAuthorizedAuditor && canViewLedger) {
+            fetchLedger();
+        }
+    }, [isAuthorizedAuditor, canViewLedger, fetchLedger]);
 
     const connectWallet = async () => {
         const provider = getInjectedProvider();
@@ -497,6 +712,9 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                 You are reviewing encrypted audit signals for <span className="font-mono bg-muted/50 px-1 py-0.5 rounded border border-muted-foreground/10 text-foreground">{proxyAccount}</span>.
                                 Your key (<span className="font-mono text-foreground font-semibold">{activeAddress.slice(0, 8)}...{activeAddress.slice(-6)}</span>) can create private thresholds and decrypt the signal queue.
                             </p>
+                            <p className="text-xs mt-1 text-muted-foreground">
+                                Access level: <span className="font-mono text-foreground">{reviewerAccess >= 2 ? "Ledger Reviewer" : "Reviewer"}</span>
+                            </p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={logout} className="shrink-0 border-muted-foreground/30 text-xs h-8">
@@ -518,6 +736,9 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                         <TabsList className="w-fit">
                             <TabsTrigger value="setup">Review Setup</TabsTrigger>
                             <TabsTrigger value="queue">Result Queue</TabsTrigger>
+                            <TabsTrigger value="reports" disabled={!canViewReports}>Reports</TabsTrigger>
+                            <TabsTrigger value="evidence" disabled={!canViewLedger}>Evidence</TabsTrigger>
+                            <TabsTrigger value="ledger" disabled={!canViewLedger}>Ledger</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="setup" className="m-0">
@@ -696,6 +917,112 @@ export function AuditorPortalClient({ proxyAccount }: { proxyAccount: string }) 
                                                 </div>
                                             );
                                         })
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="reports" className="m-0">
+                            <Card>
+                                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="text-xl">Reports</CardTitle>
+                                        <CardDescription>Encrypted aggregate totals by category and jurisdiction.</CardDescription>
+                                    </div>
+                                    <Button size="sm" onClick={decryptReports} disabled={!canViewReports || isDecryptingReports}>
+                                        {isDecryptingReports ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                        Decrypt Reports
+                                    </Button>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {!canViewReports ? (
+                                        <div className="text-sm text-muted-foreground">Your access level does not include reports.</div>
+                                    ) : (
+                                        <>
+                                            <div className="text-sm">Global Total: <span className="font-mono">{rollupDecrypted.global !== undefined ? rollupDecrypted.global.toString() : "Encrypted"}</span></div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {Object.entries(rollupHandles.categories).slice(0, 6).map(([k]) => (
+                                                    <div key={`cat-${k}`} className="border rounded p-3 text-sm">
+                                                        Category {k}: <span className="font-mono">{rollupDecrypted.categories[Number(k)] !== undefined ? rollupDecrypted.categories[Number(k)].toString() : "Encrypted"}</span>
+                                                    </div>
+                                                ))}
+                                                {Object.entries(rollupHandles.jurisdictions).slice(0, 6).map(([k]) => (
+                                                    <div key={`jur-${k}`} className="border rounded p-3 text-sm">
+                                                        Jurisdiction {k}: <span className="font-mono">{rollupDecrypted.jurisdictions[Number(k)] !== undefined ? rollupDecrypted.jurisdictions[Number(k)].toString() : "Encrypted"}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="evidence" className="m-0">
+                            <Card>
+                                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="text-xl">Evidence</CardTitle>
+                                        <CardDescription>Record-level evidence for triggered results (ledger access required).</CardDescription>
+                                    </div>
+                                    <Button size="sm" onClick={decryptLedgerEvidence} disabled={!canViewLedger || isDecryptingLedger || ledgerRecords.length === 0}>
+                                        {isDecryptingLedger ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                        Decrypt Evidence
+                                    </Button>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {!canViewLedger ? (
+                                        <div className="text-sm text-muted-foreground">Your access level does not include evidence.</div>
+                                    ) : reviewResults.filter((r) => r.decrypted === 1).length === 0 ? (
+                                        <div className="text-sm text-muted-foreground">No triggered results to inspect yet.</div>
+                                    ) : (
+                                        reviewResults.filter((r) => r.decrypted === 1).map((r, i) => {
+                                            const rec = ledgerRecords.find((x) => x.txHash.toLowerCase() === r.recordId.toLowerCase());
+                                            return (
+                                                <div key={`ev-${i}`} className="border rounded p-3 text-sm space-y-1">
+                                                    <div>Record: <span className="font-mono">{r.recordId}</span></div>
+                                                    <div>Recipient: <span className="font-mono">{r.recipient}</span></div>
+                                                    <div>Evidence: {rec?.decrypted ? "Decrypted" : "Encrypted"}</div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="ledger" className="m-0">
+                            <Card>
+                                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="text-xl">Ledger</CardTitle>
+                                        <CardDescription>Full audit ledger (ledger reviewer only).</CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="sm" onClick={fetchLedger} disabled={!canViewLedger || isLoadingLedger}>
+                                            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingLedger ? "animate-spin" : ""}`} />
+                                            Refresh
+                                        </Button>
+                                        <Button size="sm" onClick={decryptLedgerEvidence} disabled={!canViewLedger || isDecryptingLedger || ledgerRecords.length === 0}>
+                                            {isDecryptingLedger ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                            Decrypt Ledger
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {!canViewLedger ? (
+                                        <div className="text-sm text-muted-foreground">Your access level does not include ledger records.</div>
+                                    ) : ledgerRecords.length === 0 ? (
+                                        <div className="text-sm text-muted-foreground">No records available.</div>
+                                    ) : (
+                                        ledgerRecords.slice(0, 25).map((record) => (
+                                            <div key={record.txHash} className="border rounded p-3 text-sm space-y-1">
+                                                <div className="font-mono">#{record.index} {record.txHash.slice(0, 10)}...{record.txHash.slice(-8)}</div>
+                                                <div className="text-muted-foreground">{record.timestamp.toLocaleString()}</div>
+                                                <div>Recipients: {record.recipients.length}</div>
+                                                <div>Status: {record.decrypted ? "Decrypted" : "Encrypted"}</div>
+                                            </div>
+                                        ))
                                     )}
                                 </CardContent>
                             </Card>

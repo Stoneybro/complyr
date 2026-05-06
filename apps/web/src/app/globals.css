@@ -95,6 +95,9 @@
 }
 
 :root {
+  --font-sans: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-geist-mono: "Cascadia Code", "SFMono-Regular", "Consolas", monospace;
+  --font-outfit: var(--font-sans);
   --radius: 0.625rem;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);

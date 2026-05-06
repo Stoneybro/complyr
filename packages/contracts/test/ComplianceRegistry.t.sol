@@ -26,6 +26,48 @@ contract ComplianceRegistryTest is Test {
         assertEq(auditors.length, 1);
         assertEq(auditors[0], auditor);
         assertTrue(registry.isAuditorActive(proxyAccount, auditor));
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Ledger));
+    }
+
+    function test_AddAuditorWithExplicitAccessLevel() public {
+        vm.prank(master);
+        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+
+        assertTrue(registry.isAuditorActive(proxyAccount, auditor));
+        assertEq(
+            uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Reviewer)
+        );
+    }
+
+    function test_CannotAddAuditorWithNoAccess() public {
+        vm.prank(master);
+        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidAccessLevel.selector);
+        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.None);
+    }
+
+    function test_UpdateAuditorAccess() public {
+        vm.prank(master);
+        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+
+        vm.prank(master);
+        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Ledger);
+
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.Ledger));
+    }
+
+    function test_UpdateAuditorAccessRequiresActiveAuditor() public {
+        vm.prank(master);
+        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__NotAuthorized.selector);
+        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
+    }
+
+    function test_UpdateAuditorAccessCannotSetNone() public {
+        vm.prank(master);
+        registry.addAuditor(proxyAccount, auditor);
+
+        vm.prank(master);
+        vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidAccessLevel.selector);
+        registry.updateAuditorAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.None);
     }
 
     function test_OnlyMasterCanAddAuditor() public {
@@ -53,6 +95,7 @@ contract ComplianceRegistryTest is Test {
         registry.removeAuditor(proxyAccount, auditor);
 
         assertFalse(registry.isAuditorActive(proxyAccount, auditor));
+        assertEq(uint8(registry.reviewerAccess(proxyAccount, auditor)), uint8(ComplianceRegistry.ReviewerAccess.None));
         assertEq(registry.getAuditors(proxyAccount).length, 0);
     }
 
@@ -68,7 +111,7 @@ contract ComplianceRegistryTest is Test {
         externalEuint128 thresholdHandle;
 
         vm.prank(master);
-        registry.addAuditor(proxyAccount, auditor);
+        registry.addAuditorWithAccess(proxyAccount, auditor, ComplianceRegistry.ReviewerAccess.Reviewer);
 
         vm.prank(auditor);
         vm.expectRevert(ComplianceRegistry.ComplianceRegistry__InvalidScope.selector);

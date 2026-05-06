@@ -76,6 +76,29 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "addAuditorWithAccess",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newAuditor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "accessLevel",
+        "type": "uint8",
+        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "authorizedCallers",
     "inputs": [
       {
@@ -917,6 +940,30 @@ export const ComplianceRegistryABI = [
   },
   {
     "type": "function",
+    "name": "reviewerAccess",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "reviewer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "accessLevel",
+        "type": "uint8",
+        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "setAuthorizedCaller",
     "inputs": [
       {
@@ -960,6 +1007,29 @@ export const ComplianceRegistryABI = [
     "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "updateAuditorAccess",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "accessLevel",
+        "type": "uint8",
+        "internalType": "enum ComplianceRegistry.ReviewerAccess"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "AccountRegistered",
     "inputs": [
@@ -974,6 +1044,31 @@ export const ComplianceRegistryABI = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AuditorAccessUpdated",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "auditor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "accessLevel",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ComplianceRegistry.ReviewerAccess"
       }
     ],
     "anonymous": false
@@ -1178,6 +1273,11 @@ export const ComplianceRegistryABI = [
   {
     "type": "error",
     "name": "ComplianceRegistry__AuditorAlreadyExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ComplianceRegistry__InvalidAccessLevel",
     "inputs": []
   },
   {

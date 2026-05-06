@@ -2,9 +2,33 @@ import { bytesToHex, getAddress } from "viem";
 
 import { ComplianceRegistryAddress } from "@/lib/CA";
 
-type RelayerSdk = typeof import("@zama-fhe/relayer-sdk/web");
+type FhevmInstance = {
+    createEncryptedInput: (contractAddress: string, userAddress: string) => {
+        add128: (value: bigint) => void;
+        add8: (value: number) => void;
+        encrypt: () => Promise<{ handles: Uint8Array[]; inputProof: Uint8Array }>;
+    };
+    generateKeypair: () => { publicKey: string; privateKey: string };
+    createEIP712: (publicKey: string, contractAddresses: string[], startTimestamp: number, durationDays: number) => unknown;
+    userDecrypt: (
+        handles: { handle: `0x${string}`; contractAddress: string }[],
+        privateKey: string,
+        publicKey: string,
+        signature: string,
+        contractAddresses: string[],
+        userAddress: string,
+        startTimestamp: number,
+        durationDays: number,
+    ) => Promise<Record<`0x${string}`, bigint | number | string>>;
+};
 
-let fhevmInstance: Awaited<ReturnType<RelayerSdk["createInstance"]>> | null = null;
+type RelayerSdk = {
+    initSDK: () => Promise<void>;
+    createInstance: (config: Record<string, unknown>) => Promise<FhevmInstance>;
+    SepoliaConfig: Record<string, unknown>;
+};
+
+let fhevmInstance: FhevmInstance | null = null;
 let sdkInitialized = false;
 
 export type EncryptedComplianceInput = {
@@ -28,7 +52,8 @@ async function getFhevmInstance() {
         throw new Error("Zama encryption is only available in the browser.");
     }
 
-    const { initSDK, createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/web");
+    const loadRelayerSdk = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<RelayerSdk>;
+    const { initSDK, createInstance, SepoliaConfig } = await loadRelayerSdk("@zama-fhe/relayer-sdk/web");
     if (!sdkInitialized) {
         await initSDK();
         sdkInitialized = true;
