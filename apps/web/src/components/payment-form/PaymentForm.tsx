@@ -29,7 +29,6 @@ import {
 } from "@/lib/audit-enums";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWalletBalance } from "@/utils/helper";
-import { Progress } from "@/components/ui/progress";
 
 // Audit context options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
@@ -486,17 +485,9 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                             <TabsList className="grid w-full grid-cols-3">
                                         <TabsTrigger value="single">Single</TabsTrigger>
                                         <TabsTrigger value="batch">Batch</TabsTrigger>
-                                        <TabsTrigger value="recurring" disabled={RECURRING_DEMO_DISABLED}>Recurring</TabsTrigger>
+                                        <TabsTrigger value="recurring">Recurring</TabsTrigger>
                                     </TabsList>
 
-                                    {RECURRING_DEMO_DISABLED && (
-                                        <Alert variant="default" className="mt-4 bg-muted/50 text-muted-foreground border-none">
-                                            <Info className="h-4 w-4" />
-                                            <AlertDescription className="text-xs">
-                                                Recurring payments are hidden for this demo because the confidential audit flow is being showcased on single and batch payments only.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
                                     
                                     <TabsContent value="single" className="space-y-6 mt-6">
                                         <p className="text-sm text-muted-foreground mb-4">
@@ -636,6 +627,14 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                     </TabsContent>
                                     
                                     <TabsContent value="recurring" className="space-y-6 mt-6">
+                                        {RECURRING_DEMO_DISABLED && (
+                                            <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none">
+                                                <Info className="h-4 w-4" />
+                                                <AlertDescription className="text-xs">
+                                                    Recurring payments are disabled for this demo because the confidential audit flow is being showcased on single and batch payments only.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
                                         <p className="text-sm text-muted-foreground mb-4">
                                             Set up automated scheduled payments.
                                         </p>
@@ -752,19 +751,14 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
 
                         <div className="space-y-4 mt-4">
                             {transactionStatus === "Encrypting..." && (
-                                <div className="space-y-2 animate-in fade-in duration-500">
-                                    <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
-                                        <span>Encryption Progress</span>
-                                        <span className="animate-pulse">Active</span>
-                                    </div>
-                                    <Progress value={66} className="h-1.5" />
+                                <div className="animate-in fade-in duration-500">
                                     <p className="text-[10px] text-muted-foreground italic">
                                         Tip: Zama FHE encryption runs locally in your browser. This takes a few seconds to secure your records.
                                     </p>
                                 </div>
                             )}
 
-                            <Button type="submit" className="w-full" disabled={isProcessing}>
+                            <Button type="submit" className="w-full" disabled={isProcessing || (currentPaymentType === "recurring" && RECURRING_DEMO_DISABLED)}>
                                 {isProcessing ? (
                                     <>
                                         {transactionStatus !== "Encrypting..." && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

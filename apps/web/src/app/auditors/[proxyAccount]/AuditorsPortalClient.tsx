@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-    Eye,
     Loader2,
     Lock,
     LogIn,
@@ -134,7 +133,7 @@ function testScopeLabel(test: ReviewTest) {
 
 function getFindingReason(test?: ReviewTest) {
     if (!test) return "Unknown";
-    if (test.testType === 0) return "Large Payment Threshold";
+    if (test.testType === 0) return "Large Payment Limit";
     if (test.testType === 1) return `Recipient ${test.recipientScope.slice(0, 6)}... Exposure`;
     if (test.testType === 2) return `Category: ${CATEGORY_DISPLAY[test.numericScope] ?? `ID ${test.numericScope}`}`;
     if (test.testType === 3) return `Jurisdiction: ${JURISDICTION_DISPLAY[test.numericScope] ?? `ID ${test.numericScope}`}`;
@@ -526,7 +525,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
         }
 
         if (!threshold || Number(threshold) <= 0) {
-            toast.error("Enter a positive threshold amount.");
+            toast.error("Enter a positive limit amount.");
             return;
         }
 
@@ -536,7 +535,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
         }
 
         setIsCreatingTest(true);
-        const loadingId = toast.loading("Encrypting private threshold with Zama...");
+        const loadingId = toast.loading("Encrypting private limit with Zama...");
 
         try {
             await provider.request({
@@ -693,7 +692,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
         }
 
         setIsDecryptingThresholds(true);
-        const loadingId = toast.loading("Decrypting audit thresholds...");
+        const loadingId = toast.loading("Decrypting audit limits...");
 
         try {
             const account = getAddress(activeAddress);
@@ -724,10 +723,10 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                 )
             );
 
-            toast.success("Audit thresholds decrypted.", { id: loadingId });
+            toast.success("Audit limits decrypted.", { id: loadingId });
         } catch (err) {
             console.error(err);
-            toast.error(getErrorMessage(err, "Failed to decrypt audit thresholds"), { id: loadingId });
+            toast.error(getErrorMessage(err, "Failed to decrypt audit limits"), { id: loadingId });
         } finally {
             setIsDecryptingThresholds(false);
         }
@@ -749,11 +748,11 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
             const test = testsById.get(result.testId.toString());
             const reason = getFindingReason(test);
             const status = result.decrypted === undefined ? "Encrypted" : result.decrypted === 1 ? "Flagged" : "Clear";
-            const hasEvidence = result.decrypted === 1 && result.decryptedEvidence;
+            const evidence = result.decrypted === 1 ? result.decryptedEvidence : undefined;
 
-            const amount = hasEvidence ? `${formatUnits(BigInt(result.decryptedEvidence.amount), 6)} USDC` : "Not disclosed";
-            const category = hasEvidence ? result.decryptedEvidence.category : "Not disclosed";
-            const jurisdiction = hasEvidence ? result.decryptedEvidence.jurisdiction : "Not disclosed";
+            const amount = evidence ? `${formatUnits(BigInt(evidence.amount), 6)} USDC` : "Not disclosed";
+            const category = evidence ? evidence.category : "Not disclosed";
+            const jurisdiction = evidence ? evidence.jurisdiction : "Not disclosed";
 
             return [
                 result.recordId,
@@ -779,7 +778,6 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     };
 
     const testsById = useMemo(() => new Map(reviewTests.map((test) => [test.id.toString(), test])), [reviewTests]);
-
     if (isLoadingAuditors) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
@@ -885,12 +883,20 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                         </p>
                     </div>
 
-                    <Tabs defaultValue="setup" className="flex flex-col gap-4">
-                        <TabsList className="w-fit">
-                            <TabsTrigger value="setup">Tests</TabsTrigger>
-                            <TabsTrigger value="queue">Findings</TabsTrigger>
-                            <TabsTrigger value="analytics" disabled={!canViewReports}>Analytics</TabsTrigger>
-                            <TabsTrigger value="ledger">Records</TabsTrigger>
+                    <Tabs defaultValue="setup" className="flex flex-col gap-5">
+                        <TabsList className="grid h-auto w-full grid-cols-2 rounded-none border border-border bg-muted/20 p-1 md:grid-cols-4">
+                            <TabsTrigger value="setup" className="rounded-none border border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.24em] data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-none">
+                                Tests
+                            </TabsTrigger>
+                            <TabsTrigger value="queue" className="rounded-none border border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.24em] data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-none">
+                                Findings
+                            </TabsTrigger>
+                            <TabsTrigger value="analytics" disabled={!canViewReports} className="rounded-none border border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.24em] data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-none">
+                                Analytics
+                            </TabsTrigger>
+                            <TabsTrigger value="ledger" className="rounded-none border border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.24em] data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:shadow-none">
+                                Records
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="setup" className="m-0">
@@ -902,7 +908,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                             Create Audit Test
                                         </CardTitle>
                                         <CardDescription>
-                                            Set a threshold. Every new payment is automatically checked against it. Your threshold is encrypted before it leaves your browser — the business never sees the value you set.
+                                            Create a test. Every new payment is automatically checked against it. Your test is encrypted before it leaves your browser. The business never sees the limits you set.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-4">
@@ -922,8 +928,8 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                         </div>
 
                                         <div className="flex flex-col gap-2">
-                                            <Label>Threshold</Label>
-                                            <Input type="number" step="0.01" placeholder="10000.00" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
+                                            <Label>Limit</Label>
+                                            <Input type="number" step="0.01" placeholder="0.00 USDC" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
                                         </div>
 
                                         {testType === "recipient" && (
@@ -976,7 +982,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                     <CardHeader className="flex flex-row items-start justify-between gap-4">
                                         <div>
                                             <CardTitle className="text-xl">Saved Tests</CardTitle>
-                                            <CardDescription>Tests run automatically against future encrypted payment records.</CardDescription>
+                                            <CardDescription>Tests run automatically against encrypted payment records.</CardDescription>
                                         </div>
                                         <Button
                                             variant="outline"
@@ -993,7 +999,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                             ) : (
                                                 <Lock className="h-4 w-4 mr-2" />
                                             )}
-                                            Decrypt Thresholds
+                                            Decrypt Limits
                                         </Button>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-3">
@@ -1016,11 +1022,8 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                                             </Badge>
                                                         </div>
                                                         <span className="text-xs text-muted-foreground">Scope: {testScopeLabel(test)}</span>
-                                                        <span className="text-[10px] font-mono text-muted-foreground">
-                                                            Threshold handle: {test.thresholdHandle.slice(0, 18)}...
-                                                        </span>
                                                         <span className="text-xs text-muted-foreground">
-                                                            Threshold: {test.decryptedThreshold ? `${test.decryptedThreshold} USDC` : "Encrypted"}
+                                                            Limit: {test.decryptedThreshold ? `${test.decryptedThreshold} USDC` : "Encrypted"}
                                                         </span>
                                                     </div>
                                                     <span className="text-[10px] font-mono text-muted-foreground">#{test.id.toString()}</span>
@@ -1034,39 +1037,32 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
 
                         <TabsContent value="queue" className="m-0">
                             <Card>
-                                <CardHeader className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <CardHeader className="gap-3">
                                     <div>
-                                        <CardTitle className="flex items-center gap-2 text-xl">
-                                            <Eye className="h-5 w-5" />
-                                            Findings
-                                        </CardTitle>
+                                        <CardTitle className="text-xl">Flagged Transactions</CardTitle>
                                         <CardDescription>
-                                            Encrypted outcomes from the contract checking your tests against new payments. Flagged findings include scoped transaction evidence without exposing the full ledger.
+                                            Encrypted outcomes from the contract checking your tests against payments. Flagged findings include scoped transaction evidence without exposing the full  business payment data.
                                         </CardDescription>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Button variant="outline" size="sm" onClick={fetchReviewData} disabled={isLoadingReviewData}>
-                                            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingReviewData ? "animate-spin" : ""}`} />
-                                            Refresh
+                                </CardHeader>
+                                <CardContent className="space-y-5">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                        <Button variant="outline" size="sm" onClick={exportFindingsCSV} disabled={reviewResults.length === 0} className="sm:min-w-[180px] justify-center">
+                                                <Download className="h-4 w-4 mr-2" />
+                                                Export CSV
                                         </Button>
-                                        <Button variant="outline" size="sm" onClick={exportFindingsCSV} disabled={reviewResults.length === 0}>
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Export CSV
-                                        </Button>
-                                        <Button size="sm" onClick={decryptResults} disabled={isDecryptingResults || reviewResults.length === 0 || reviewResults.every((result) => result.decrypted !== undefined)}>
-                                            {isDecryptingResults ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                            Decrypt Findings
+                                        <Button size="sm" onClick={decryptResults} disabled={isDecryptingResults || reviewResults.length === 0 || reviewResults.every((result) => result.decrypted !== undefined)} className="sm:min-w-[180px] justify-center">
+                                                {isDecryptingResults ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                                Decrypt Findings
                                         </Button>
                                     </div>
-                                </CardHeader>
-                                <CardContent>
                                     {reviewResults.length === 0 ? (
                                         <div className="bg-muted/30 border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
                                             No findings yet. Findings are created when new payments are recorded after a matching test exists.
                                         </div>
                                     ) : (
                                         <div className="overflow-x-auto w-full">
-                                                <div className="min-w-[800px]">
+                                            <div className="min-w-[800px]">
                                                 <div className="grid grid-cols-12 gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b pb-3 mb-3 px-2">
                                                     <div className="col-span-2">Record ID</div>
                                                     <div className="col-span-2">Recipient</div>
@@ -1079,19 +1075,19 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                                 <div className="flex flex-col gap-2">
                                                     {reviewResults.map((result, index) => {
                                                         const test = testsById.get(result.testId.toString());
-                                                        const hasFindingEvidence = result.decryptedEvidence !== undefined;
-                                                        const amountDisplay = hasFindingEvidence
-                                                            ? `${formatUnits(BigInt(result.decryptedEvidence.amount), 6)} USDC`
+                                                        const evidence = result.decryptedEvidence;
+                                                        const amountDisplay = evidence
+                                                            ? `${formatUnits(BigInt(evidence.amount), 6)} USDC`
                                                             : result.decrypted === undefined
                                                                 ? "Encrypted"
                                                                 : "Not disclosed";
-                                                        const categoryDisplay = hasFindingEvidence
-                                                            ? result.decryptedEvidence.category
+                                                        const categoryDisplay = evidence
+                                                            ? evidence.category
                                                             : result.decrypted === undefined
                                                                 ? "Encrypted"
                                                                 : "Not disclosed";
-                                                        const jurisdictionDisplay = hasFindingEvidence
-                                                            ? result.decryptedEvidence.jurisdiction
+                                                        const jurisdictionDisplay = evidence
+                                                            ? evidence.jurisdiction
                                                             : result.decrypted === undefined
                                                                 ? "Encrypted"
                                                                 : "Not disclosed";
@@ -1135,7 +1131,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                                     <div>
                                         <CardTitle className="text-xl">Analytics</CardTitle>
-                                        <CardDescription>Aggregate payment summaries. Available to auditors with Signal Access or higher.</CardDescription>
+                                        <CardDescription>Aggregate payment summaries. Available to auditors with Findings Access or higher.</CardDescription>
                                     </div>
                                     <Button size="sm" onClick={decryptReports} disabled={!canViewReports || isDecryptingReports || rollupDecrypted.global !== undefined}>
                                         {isDecryptingReports ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}

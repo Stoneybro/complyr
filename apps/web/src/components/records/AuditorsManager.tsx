@@ -7,9 +7,11 @@ import { AuditRegistryABI } from "@/lib/abi/AuditRegistryABI";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check } from "lucide-react";
+import { Loader2, Trash2, ShieldCheck, UserPlus, Fingerprint, Share2, Check, Info } from "lucide-react";
 import { AuditRegistryAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
 
@@ -303,7 +305,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     </Button>
                 </div>
                 <CardDescription className="text-sm leading-relaxed max-w-2xl">
-                    Give external auditors a private portal link. They can set audit rules and limits and check whether your payments meet them, without seeing your payment information.
+                    Give external auditors a private portal link. They can set audit rules and check whether your payments meet them based on their access level, without seeing your full payment information unless granted.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -355,31 +357,37 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
 
                 <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-sm font-medium">Add Auditor</h3>
-                    <div className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
-                        <Input 
-                            value={newAuditorAddress}
-                            onChange={(e) => setNewAuditorAddress(e.target.value)}
-                            placeholder="0x... Auditor wallet address"
-                            className="font-mono"
-                            disabled={isManaging || auditors.length >= MAX_REVIEWERS}
-                        />
-                        <Select
-                            value={String(newAccessLevel)}
-                            onValueChange={(value) => setNewAccessLevel(Number(value))}
-                            disabled={isManaging || auditors.length >= MAX_REVIEWERS}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Findings</SelectItem>
-                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Records</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="grid gap-4 sm:grid-cols-[1fr_150px_auto] items-end">
+                        <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Auditor Address</Label>
+                            <Input 
+                                value={newAuditorAddress}
+                                onChange={(e) => setNewAuditorAddress(e.target.value)}
+                                placeholder="0x... Auditor wallet address"
+                                className="font-mono"
+                                disabled={isManaging || auditors.length >= MAX_REVIEWERS}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Access Level</Label>
+                            <Select
+                                value={String(newAccessLevel)}
+                                onValueChange={(value) => setNewAccessLevel(Number(value))}
+                                disabled={isManaging || auditors.length >= MAX_REVIEWERS}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Findings</SelectItem>
+                                    <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Records</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <Button 
                             onClick={handleAdd} 
                             disabled={isManaging || !newAuditorAddress || auditors.length >= MAX_REVIEWERS}
-                            className="shrink-0"
+                            className="shrink-0 h-10"
                         >
                             {isManaging ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
                             Approve Auditor
@@ -390,19 +398,19 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                             You have reached the maximum limit of {MAX_REVIEWERS} external auditors. Remove one before adding another.
                         </p>
                     )}
-                    <div className="text-xs text-muted-foreground font-mono leading-relaxed">
-                        <div className="space-y-2">
-                            <p>
-                                <span className="text-foreground font-semibold">Findings:</span> Auditor can create threshold tests and see flagged alerts. Underlying payment data remains encrypted.
-                            </p>
-                            <p>
-                                <span className="text-foreground font-semibold">Full Records:</span> Auditor can decrypt individual transaction records and view full payment context.
-                            </p>
-                            <p className="pt-2 italic text-[10px] opacity-70">
-                                Removing an auditor blocks future portal access, but historical FHE decryption grants cannot be cryptographically revoked.
-                            </p>
-                        </div>
-                    </div>
+                    <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs leading-relaxed">
+                            <div className="space-y-2">
+                                <p>
+                                    <span className="text-foreground font-semibold">Findings:</span> Auditor can create Audit tests and see flagged transactions. All other payment records remains encrypted.
+                                </p>
+                                <p>
+                                    <span className="text-foreground font-semibold">Full Records:</span> Auditors can decrypt and view all payment records.
+                                </p>
+                            </div>
+                        </AlertDescription>
+                    </Alert>
                 </div>
             </CardContent>
         </Card>

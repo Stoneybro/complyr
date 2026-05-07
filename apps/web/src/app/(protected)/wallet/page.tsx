@@ -47,8 +47,8 @@ export default function Page() {
               <TabsList className="flex justify-center mx-auto">
                 <TabsTrigger value="form">Payments</TabsTrigger>
                 <TabsTrigger value="dashboard">Balance</TabsTrigger>
-                <TabsTrigger value="audit">Internal Records</TabsTrigger>
-                <TabsTrigger value="review-access">Auditor Access</TabsTrigger>
+                <TabsTrigger value="audit">Records</TabsTrigger>
+                <TabsTrigger value="review-access">Auditors</TabsTrigger>
               </TabsList>
               <TabsContent value="chat">
 
