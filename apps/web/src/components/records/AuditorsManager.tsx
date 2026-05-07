@@ -22,8 +22,8 @@ const REVIEWER_ACCESS = {
 } as const;
 
 const ACCESS_LABELS: Record<number, string> = {
-    [REVIEWER_ACCESS.Signal]: "Signal Access",
-    [REVIEWER_ACCESS.Full]: "Full Access",
+    [REVIEWER_ACCESS.Signal]: "Findings",
+    [REVIEWER_ACCESS.Full]: "Full Records",
 };
 
 type Reviewer = {
@@ -289,7 +289,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-xl flex items-center gap-2 font-semibold">
                         <ShieldCheck className="h-5 w-5" />
-                        Review Access
+                        External Auditor Access
                     </CardTitle>
                     <Button 
                         variant="outline" 
@@ -303,7 +303,7 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     </Button>
                 </div>
                 <CardDescription className="text-sm leading-relaxed max-w-2xl">
-                    Give external auditors a private portal link. They can set their own rules and check whether your payments meet them, without seeing your payment data.
+                    Give external auditors a private portal link. They can set audit rules and limits and check whether your payments meet them, without seeing your payment information.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -330,12 +330,12 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                                             onValueChange={(value) => handleUpdateAccess(auditor.address, Number(value))}
                                             disabled={isManaging}
                                         >
-                                            <SelectTrigger className="h-8 w-28">
+                                            <SelectTrigger className="h-8 w-36">
                                                 <SelectValue aria-label={ACCESS_LABELS[auditor.accessLevel] ?? "Access"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Signal Access</SelectItem>
-                                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Access</SelectItem>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Findings</SelectItem>
+                                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Records</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <Button
@@ -372,8 +372,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Signal Access</SelectItem>
-                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Access</SelectItem>
+                                <SelectItem value={String(REVIEWER_ACCESS.Signal)}>Findings</SelectItem>
+                                <SelectItem value={String(REVIEWER_ACCESS.Full)}>Full Records</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button 
@@ -390,9 +390,19 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                             You have reached the maximum limit of {MAX_REVIEWERS} external auditors. Remove one before adding another.
                         </p>
                     )}
-                    <p className="text-xs text-muted-foreground font-mono">
-                        Adding an auditor gives them access to the external portal for this account. Removing an auditor blocks future access, but any decryption rights previously granted by the FHE layer cannot be reversed.
-                    </p>
+                    <div className="text-xs text-muted-foreground font-mono leading-relaxed">
+                        <div className="space-y-2">
+                            <p>
+                                <span className="text-foreground font-semibold">Findings:</span> Auditor can create threshold tests and see flagged alerts. Underlying payment data remains encrypted.
+                            </p>
+                            <p>
+                                <span className="text-foreground font-semibold">Full Records:</span> Auditor can decrypt individual transaction records and view full payment context.
+                            </p>
+                            <p className="pt-2 italic text-[10px] opacity-70">
+                                Removing an auditor blocks future portal access, but historical FHE decryption grants cannot be cryptographically revoked.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>

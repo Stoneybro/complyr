@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { envioClient, GET_WALLET_ACTIVITY, Transaction, ActivityType } from '@/lib/envio/client';
+import { envioClient, GET_ALL_TRANSACTIONS, Transaction, ActivityType } from '@/lib/envio/client';
 import { useMemo } from 'react';
 
 export interface TransactionItemProps {
@@ -162,11 +162,11 @@ export const useWalletHistory = (walletAddress?: string) => {
     const query = useQuery({
         queryKey: ['walletHistory', walletAddress],
         queryFn: async () => {
-            if (!walletAddress) return null;
+            if (!walletAddress) return [];
             const variables = { walletId: walletAddress.toLowerCase() };
-            const data: any = await envioClient.request(GET_WALLET_ACTIVITY, variables);
+            const data: any = await envioClient.request(GET_ALL_TRANSACTIONS, variables);
 
-            return data.Wallet?.[0] || null;
+            return data.Transaction || [];
         },
         enabled: !!walletAddress,
         refetchInterval: 10000,
@@ -175,29 +175,19 @@ export const useWalletHistory = (walletAddress?: string) => {
     const transactions = useMemo(() => {
         let onChainTxs: TransactionItemProps[] = [];
 
-        if (query.data?.transactions) {
-            onChainTxs = query.data.transactions
+        if (Array.isArray(query.data)) {
+            onChainTxs = query.data
                 .map(mapTransactionToItem)
                 .filter((tx: TransactionItemProps) => {
+                    // Filter out non-payment related technical events
+                    if (tx.type === ActivityType.AUDIT_RECORDED || tx.type === ActivityType.ACCOUNT_REGISTERED) {
+                        return false;
+                    }
+
                     // Filter out contract calls (non-transfer EXECUTE transactions)
                     if (tx.type === ActivityType.EXECUTE) {
                         const isTransfer = tx.details.functionCall === 'Token Transfer' || tx.details.functionCall === 'Native ETH Transfer';
                         if (!isTransfer) return false;
-                    }
-
-                    // Filter out any internal transfers that happen in the SAME transaction as deployment
-                    // (e.g., initialization calls or ghost transactions)
-                    const deployedTx = query.data?.deployedTx;
-                    if (deployedTx && tx.txHash?.toLowerCase() === deployedTx.toLowerCase() && tx.type !== ActivityType.WALLET_CREATED) {
-                        return false;
-                    }
-
-                    // Filter out ghost transactions before deployment
-                    const deployedAt = query.data?.deployedAt ? new Date(Number(query.data.deployedAt) * 1000) : null;
-                    if (deployedAt) {
-                        const txDate = new Date(tx.timestamp);
-                        if (tx.type === ActivityType.WALLET_CREATED) return true;
-                        return txDate >= deployedAt;
                     }
 
                     return true;

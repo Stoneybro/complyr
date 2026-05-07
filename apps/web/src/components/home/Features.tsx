@@ -32,7 +32,7 @@ const features = [
   {
     icon: 'policy',
     title: 'External Audit Portal',
-    body: 'Give specific auditors a private portal. They set their own rules, the contract checks payments against those rules, and they decrypt only the outcome.',
+    body: 'Give specific auditors a private portal. They set their own audit tests, the contract checks payments against those tests, and they decrypt only the outcome.',
   },
 ];
 

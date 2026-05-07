@@ -51,7 +51,7 @@ export function useSingleTransfer(availableBalance?: string) {
 
                 // 1. Client-side Zama encryption
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting audit fields...");
+                const loadingId = toast.loading("Encrypting audit records...");
                 let encryptedAudit;
                 try {
                     encryptedAudit = await encryptAuditInput({
@@ -101,7 +101,7 @@ export function useSingleTransfer(availableBalance?: string) {
                 } else {
                     calls.push({
                         to: proxyAddress,
-                        value: amountInUnits,
+                        value: 0n,
                         data: encodeFunctionData({
                             abi: SmartWalletABI,
                             functionName: "transferNativeWithAudit",

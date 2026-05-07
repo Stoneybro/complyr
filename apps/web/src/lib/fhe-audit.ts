@@ -23,13 +23,15 @@ type FhevmInstance = {
 };
 
 type RelayerSdk = {
-    initSDK: () => Promise<void>;
+    initSDK: (baseUrl?: string) => Promise<void>;
     createInstance: (config: Record<string, unknown>) => Promise<FhevmInstance>;
     SepoliaConfig: Record<string, unknown>;
 };
 
 let fhevmInstance: FhevmInstance | null = null;
 let sdkInitialized = false;
+const MAX_CATEGORY_ID = 10;
+const MAX_JURISDICTION_ID = 13;
 
 export type EncryptedAuditInput = {
     amountHandles: `0x${string}`[];
@@ -46,26 +48,69 @@ export type EncryptedThresholdInput = {
     thresholdProof: `0x${string}`;
 };
 
+declare global {
+    interface Window {
+        relayerSDK: RelayerSdk;
+    }
+}
+
 async function getFhevmInstance() {
     if (fhevmInstance) return fhevmInstance;
-    if (typeof window === "undefined") {
-        throw new Error("Zama encryption is only available in the browser.");
+    if (typeof window === "undefined" || !window.relayerSDK) {
+        throw new Error("Zama relayer-sdk-js bundle not loaded. Check the <Script> tag in your layout.");
     }
 
-    const loadRelayerSdk = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<RelayerSdk>;
-    const { initSDK, createInstance, SepoliaConfig } = await loadRelayerSdk("@zama-fhe/relayer-sdk/web");
+    const { initSDK, createInstance, SepoliaConfig } = window.relayerSDK;
     if (!sdkInitialized) {
-        await initSDK();
+        await initSDK(window.location.origin);
         sdkInitialized = true;
     }
 
-    const network = (window as typeof window & { ethereum?: unknown }).ethereum ?? "https://ethereum-sepolia-rpc.publicnode.com";
+    const network = (window as typeof window & { ethereum?: unknown }).ethereum ?? "https://1rpc.io/sepolia";
     fhevmInstance = await createInstance({
         ...SepoliaConfig,
         network,
     });
 
     return fhevmInstance;
+}
+
+function validateAuditInput(params: {
+    amounts: bigint[];
+    categories?: number[];
+    jurisdictions?: number[];
+    referenceIds?: string[];
+}) {
+    const { amounts, categories, jurisdictions, referenceIds } = params;
+
+    if (amounts.length === 0) {
+        throw new Error("At least one encrypted payment amount is required.");
+    }
+    if (categories && categories.length !== amounts.length) {
+        throw new Error("Encrypted category count must match the recipient count.");
+    }
+    if (jurisdictions && jurisdictions.length !== amounts.length) {
+        throw new Error("Encrypted jurisdiction count must match the recipient count.");
+    }
+    if (referenceIds && referenceIds.length !== amounts.length) {
+        throw new Error("Encrypted reference id count must match the recipient count.");
+    }
+
+    categories?.forEach((category) => {
+        if (!Number.isInteger(category) || category < 1 || category > MAX_CATEGORY_ID) {
+            throw new Error(`Category ids must be integers between 1 and ${MAX_CATEGORY_ID}.`);
+        }
+    });
+    jurisdictions?.forEach((jurisdiction) => {
+        if (!Number.isInteger(jurisdiction) || jurisdiction < 1 || jurisdiction > MAX_JURISDICTION_ID) {
+            throw new Error(`Jurisdiction ids must be integers between 1 and ${MAX_JURISDICTION_ID}.`);
+        }
+    });
+    referenceIds?.forEach((referenceId) => {
+        if (referenceId.trim().length === 0) {
+            throw new Error("Reference ids must not be empty.");
+        }
+    });
 }
 
 export async function encryptAuditInput(params: {
@@ -76,6 +121,7 @@ export async function encryptAuditInput(params: {
     referenceIds?: string[];
     registryAddress?: `0x${string}`;
 }): Promise<EncryptedAuditInput> {
+    validateAuditInput(params);
     const fhevm = await getFhevmInstance();
     const registryAddress = getAddress(params.registryAddress ?? AuditRegistryAddress);
     const callerAddress = getAddress(params.callerAddress);
@@ -148,14 +194,23 @@ export async function userDecryptAuditHandles(params: {
     const typedData = fhevm.createEIP712(keypair.publicKey, [contractAddress], Number(startTimestamp), Number(durationDays));
     const signature = await params.signer.signTypedData(typedData);
 
-    return fhevm.userDecrypt(
-        params.handles.map((handle) => ({ handle, contractAddress })),
-        keypair.privateKey,
-        keypair.publicKey,
-        signature.replace(/^0x/, ""),
-        [contractAddress],
-        userAddress,
-        Number(startTimestamp),
-        Number(durationDays),
-    );
+    const CHUNK_SIZE = 8; // Conservative chunk size (8 * 128 bits = 1024 bits, safe under 2048)
+    const results: Record<`0x${string}`, bigint | number | string> = {};
+
+    for (let i = 0; i < params.handles.length; i += CHUNK_SIZE) {
+        const chunk = params.handles.slice(i, i + CHUNK_SIZE);
+        const decryptedChunk = await fhevm.userDecrypt(
+            chunk.map((handle) => ({ handle, contractAddress })),
+            keypair.privateKey,
+            keypair.publicKey,
+            signature.replace(/^0x/, ""),
+            [contractAddress],
+            userAddress,
+            Number(startTimestamp),
+            Number(durationDays),
+        );
+        Object.assign(results, decryptedChunk);
+    }
+
+    return results;
 }

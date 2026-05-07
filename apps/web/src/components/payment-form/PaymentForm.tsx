@@ -29,6 +29,7 @@ import {
 } from "@/lib/audit-enums";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWalletBalance } from "@/utils/helper";
+import { Progress } from "@/components/ui/progress";
 
 // Audit context options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
@@ -100,7 +101,7 @@ const RecipientRow = React.memo(({
             )}
         </div>
         <div className="pt-3 border-t border-dashed">
-            <h4 className="text-sm font-medium mb-3">Audit Record (Encrypted)</h4>
+            <h4 className="text-sm font-medium mb-3">Audit Records (Encrypted)</h4>
             <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Reference ID</Label>
@@ -517,7 +518,7 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                             </div>
                                             
                                             <div className="pt-3 border-t border-dashed">
-                                                <h4 className="text-sm font-medium mb-3">Audit Record (Encrypted)</h4>
+                                                <h4 className="text-sm font-medium mb-3">Audit Records (Encrypted)</h4>
                                                 <div className="grid grid-cols-3 gap-3">
                                                     <div className="space-y-1">
                                                         <Label htmlFor="single-ref" className="text-xs text-muted-foreground">Reference ID</Label>
@@ -724,26 +725,41 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                                         </div>
                                     </TabsContent>
                                 </Tabs>
-                        <div className="pt-4 mt-6">
+                        <div className="pt-2">
                             <Alert variant="default" className="bg-muted/50 text-muted-foreground border-none">
                                 <Info className="h-4 w-4" />
                                 <AlertDescription className="text-xs">
-                                    Audit context is encrypted end-to-end and stored on-chain.
+                                    Audit records are encrypted end-to-end and stored on-chain.
                                 </AlertDescription>
                             </Alert>
                         </div>
 
-                        <Button type="submit" className="w-full mt-6" disabled={isProcessing}>
-                            {isProcessing ? (
-                                <>
-                                    {transactionStatus !== "Encrypting..." && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {transactionStatus === "Encrypting..." ? "Encrypting metadata..." : (transactionStatus || "Processing...")}
-                                </>
-                            ) : (
-                                transactionStatus === "Complete" ? "Payment Successful" :
-                                (currentPaymentType === "recurring" ? "Create Schedule" : "Confirm Payment")
+                        <div className="space-y-4 mt-4">
+                            {transactionStatus === "Encrypting..." && (
+                                <div className="space-y-2 animate-in fade-in duration-500">
+                                    <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
+                                        <span>Encryption Progress</span>
+                                        <span className="animate-pulse">Active</span>
+                                    </div>
+                                    <Progress value={66} className="h-1.5" />
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        Tip: Zama FHE encryption runs locally in your browser. This takes a few seconds to secure your records.
+                                    </p>
+                                </div>
                             )}
-                        </Button>
+
+                            <Button type="submit" className="w-full" disabled={isProcessing}>
+                                {isProcessing ? (
+                                    <>
+                                        {transactionStatus !== "Encrypting..." && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {transactionStatus === "Encrypting..." ? "Securing Records..." : (transactionStatus || "Processing...")}
+                                    </>
+                                ) : (
+                                    transactionStatus === "Complete" ? "Payment Successful" :
+                                    (currentPaymentType === "recurring" ? "Create Schedule" : "Confirm Payment")
+                                )}
+                            </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>

@@ -63,3 +63,7 @@ export async function fetchWalletBalance(smartAccountAddress: `0x${string}`) {
     totalUsdcBalance: formatUnits(usdcBalance, 6),
   };
 }
+
+export function safeJsonStringify(obj: unknown): string {
+  return JSON.stringify(obj, (_, v) => typeof v === 'bigint' ? v.toString() : v);
+}

@@ -11,7 +11,7 @@ networks:
   - id: 11155111
     rpc_config:
       url: https://ethereum-sepolia-rpc.publicnode.com
-    start_block: 7120000
+    start_block: 10803351
     contracts:
       - name: SmartWallet
         address: []

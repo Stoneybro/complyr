@@ -42,8 +42,8 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4  *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs  @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Total Assets</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardDescription className="font-sans">Total Assets</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl font-sans">
             {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(safeTotal)} USDC`}
           </CardTitle>
           <CardAction>
@@ -54,7 +54,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
             )}
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 text-sm font-sans">
           <div className="text-muted-foreground text-[10px] font-mono flex items-center gap-1">
              APRO Oracle Feed <Badge variant="outline" className="text-[8px] h-3 px-1 uppercase leading-none">Live</Badge>
           </div>
@@ -62,8 +62,8 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Scheduled</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardDescription className="font-sans">Scheduled</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl font-sans">
             {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(committedToken)} USDC`}
           </CardTitle>
           <CardAction>
@@ -74,7 +74,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
             )}
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 text-sm font-sans">
           <div className="text-muted-foreground text-[10px] font-mono flex items-center gap-1">
              USDC/USD Stable Price
           </div>
@@ -82,8 +82,8 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Spendable</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          <CardDescription className="font-sans">Spendable</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl font-sans">
             {isLoading ? <Skeleton className="h-8 w-24" /> : `${formatBalance(availableToken)} USDC`}
           </CardTitle>
           <CardAction>
@@ -94,7 +94,7 @@ export function BalanceCards({ availableToken = "0", committedToken = "0", isLoa
             )}
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <CardFooter className="flex-col items-start gap-1.5 text-sm font-sans">
           <div className="text-muted-foreground text-[10px] font-mono flex items-center gap-1">
              Verified On-Chain
           </div>

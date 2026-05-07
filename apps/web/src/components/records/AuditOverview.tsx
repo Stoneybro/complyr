@@ -20,12 +20,20 @@ export function AuditOverview({ stats }: { stats: AuditStats | null }) {
                 <CardHeader>
                     <CardDescription className="text-sm font-bold text-foreground">Audit Coverage</CardDescription>
                     <CardTitle className="text-3xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {stats.healthScore}%
+                        {stats.totalCategorized + stats.totalUncategorized === 0 ? "0" : stats.healthScore}%
                     </CardTitle>
                     <CardAction>
-                        {stats.healthScore > 80 ? (
+                        {stats.totalCategorized + stats.totalUncategorized === 0 ? (
+                            <Badge variant="outline" className="border-foreground/20 text-foreground gap-1 text-[10px] uppercase font-mono tracking-widest">
+                                 No Activity
+                            </Badge>
+                        ) : stats.healthScore === 100 ? (
                             <Badge variant="outline" className="border-foreground/20 text-foreground gap-1 text-[10px] uppercase font-mono tracking-widest">
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Healthy
+                            </Badge>
+                        ) : stats.totalUncategorized > 0 ? (
+                            <Badge variant="outline" className="border-destructive/30 text-destructive gap-1 text-[10px] uppercase font-mono tracking-widest animate-pulse">
+                                <AlertCircle className="h-3.5 w-3.5" /> Decryption Required
                             </Badge>
                         ) : (
                             <Badge variant="outline" className="border-destructive/30 text-destructive gap-1 text-[10px] uppercase font-mono tracking-widest">

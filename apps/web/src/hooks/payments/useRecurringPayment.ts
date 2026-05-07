@@ -35,9 +35,9 @@ export function useRecurringPayment() {
                 const statusUpdate = (s: string) => params.onStatusUpdate?.(s);
                 assertRequiredAudit(params.audit, params.recipients.length);
 
-                // 1. Client-side Zama encryption of recurring audit fields.
+                // 1. Client-side Zama encryption of recurring audit records.
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting recurring audit fields...");
+                const loadingId = toast.loading("Encrypting recurring audit records...");
                 const encryptedAudit = await (async () => {
                     try {
                         return await encryptAuditInput({

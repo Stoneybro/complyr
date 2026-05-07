@@ -87,9 +87,8 @@ export function AuditDashboard({ walletAddress }: AuditDashboardProps) {
             });
         });
 
-        const isAnyRecord = records.length > 0;
         const totalTx = stats.totalCategorized + stats.totalUncategorized;
-        stats.healthScore = totalTx > 0 ? Math.round((stats.totalCategorized / totalTx) * 100) : (isAnyRecord ? 0 : 100);
+        stats.healthScore = totalTx > 0 ? Math.round((stats.totalCategorized / totalTx) * 100) : 0;
 
         return { flat, stats };
     }, [records]);
@@ -102,7 +101,7 @@ export function AuditDashboard({ walletAddress }: AuditDashboardProps) {
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div className="flex flex-col gap-1">
                     <h2 className="text-2xl font-bold tracking-tight">
-                        Records
+                        Internal Records
                     </h2>
                     <p className="text-muted-foreground">
                         Internal view of every payment your account has made, with all encrypted audit records. Decrypt to see the details.
@@ -135,7 +134,7 @@ export function AuditDashboard({ walletAddress }: AuditDashboardProps) {
             <div className="flex items-start gap-3 px-4 py-3 bg-muted/30 border text-muted-foreground rounded-lg text-xs leading-relaxed">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <p>
-                    Payment context is cryptographically secured and linked to executed transfers. Private fields remain encrypted by default and can only be decrypted by authorized addresses.
+                    Payment context is cryptographically secured and linked to executed transfers. Private records remain encrypted by default and can only be decrypted by authorized addresses.
                 </p>
             </div>
 

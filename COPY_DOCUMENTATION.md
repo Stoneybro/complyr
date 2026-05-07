@@ -8,7 +8,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 2. [Login Page (/login)](#login-page-login)
 3. [Deploy Page (/deploy)](#deploy-page-deploy)
 4. [Wallet Page (/wallet)](#wallet-page-wallet)
-5. [Records Page (/records)](#records-page-records)
+5. [Internal Records Page (/records)](#internal-records-page-records)
 6. [Auditor Portal (/auditors/[proxyAccount])](#auditor-portal-auditorsproxyaccount)
 7. [Documentation Pages (/docs)](#documentation-pages-docs)
 
@@ -27,7 +27,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 ### Hero Section
 - **Location**: Main hero section, full viewport height
 - **Headline**: "Private audit infrastructure for onchain business payments."
-- **Subheadline**: "Complyr is a payments system that attaches encrypted audit records to every payment. Auditors can verify payments against defined rules without decrypting the data."
+- **Subheadline**: "Complyr is a payments system that attaches encrypted audit records to every payment. Auditors can verify payments against private audit tests without decrypting the data."
 - **CTA Buttons**:
   - Primary: "Try the demo" (links to /login)
   - Secondary: "Read the docs" (links to /docs)
@@ -49,7 +49,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
   3. **Single Transfers**: "Fast, reliable direct B2B transactions. The foundational layer for moving treasury funds efficiently."
   4. **Encrypted Audit Layer**: "Zama FHE lets the contract run checks on private data without decrypting it. Auditors get answers, not access."
   5. **Account Abstraction**: "Seamless gasless transactions and simple Web2-style social logins for frictionless enterprise onboarding."
-  6. **External Audit Portal**: "Give specific auditors a private portal. They set their own rules, the contract checks payments against those rules, and they decrypt only the outcome."
+  6. **External Audit Portal**: "Give specific auditors a private portal. They set their own audit tests, the contract checks payments against those tests, and they decrypt only the outcome."
 
 ### How It Works Section
 - **Location**: 4-step process section
@@ -60,7 +60,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
   1. **Smart Vaults** (Label: "01 / SYSTEM TREASURY"): "Deploy an audit-aware smart account onchain to act as your business's primary treasury."
   2. **Encryption** (Label: "02 / SECURE METADATA"): "Attach required audit context to your payments. Zama FHE keeps private context and review thresholds encrypted on Ethereum Sepolia."
   3. **Settlement** (Label: "03 / NATIVE EXECUTION"): "The payment settles natively onchain while encrypted audit records are permanently anchored in the same transaction."
-  4. **Audit** (Label: "04 / VERIFIABLE PROOFS"): "Approve specific reviewers. They can create private threshold tests and decrypt only the resulting audit signals."
+  4. **Audit** (Label: "04 / VERIFIABLE PROOFS"): "Approve specific auditors. They can create private threshold tests and decrypt only the resulting audit findings."
 
 ### Why Fully Homomorphic Encryption Section
 - **Location**: Columnar comparison section
@@ -74,7 +74,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
   - "An auditor cannot verify limits without seeing payment amounts."
   - "This forces businesses to expose sensitive financial data just to prove audit."
 - **Column 3 — What FHE Changes**:
-  - "The system evaluates audit rules directly on encrypted data."
+  - "The system evaluates audit tests directly on encrypted data."
   - "Only the result is revealed: pass or fail."
   - "The underlying payment data is never exposed."
 
@@ -175,7 +175,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 - **Tab Labels**:
   - "Payments"
   - "Balance"
-  - "Records"
+  - "Internal Records"
   - "Auditors"
 
 ### Sidebar (Left Panel)
@@ -245,12 +245,12 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 - **Contact Selector**:
   - Placeholder: "Load from Contacts"
   - Alert: "Contacts pre-fill audit records automatically. Manage them in the sidebar."
-  - Empty state: "No contacts found. Use the sidebar to add a contact and automate audit context."
+  - Empty state: "No contacts found. Use the sidebar to add a contact and automate audit records."
 - **Form Fields**:
   - "Recipient Address" label with placeholder "0x..."
   - "Amount" label with placeholder "0.00" and "USDC" suffix
-- **Audit Context Section**:
-  - Header: "Audit Record (Encrypted)"
+- **Audit Records Section**:
+  - Header: "Audit Records (Encrypted)"
   - "Reference ID" label with placeholder "Max 7 char"
   - "Recipient Jurisdiction" label with dropdown placeholder "Select..."
   - "Expense Category" label with dropdown placeholder "Select..."
@@ -264,7 +264,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 - **Recipient Rows**:
   - "Recipient Address" label with placeholder "0x..."
   - "Amount" label with placeholder "0.00" and token symbol
-  - "Audit Context (Encrypted)" header
+  - "Audit Records (Encrypted)" header
   - "Reference ID" label with placeholder "Max 7 char"
   - "Recipient Jurisdiction" label with dropdown
   - "Expense Category" label with dropdown
@@ -292,6 +292,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 #### Submit Button
 - **Text**: Varies by payment type
 - **Loading State**: Shows spinner during transaction
+- **Encryption Step**: "Securing Records..." with progress bar.
 
 ### Treasury Tab (Main Content)
 
@@ -317,12 +318,11 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 
 #### Activity Cards Section
 - **Section Label**: "Asset Activity"
-- **Activity Cards** (5 cards):
+- **Activity Cards** (4 cards):
   1. **Single Payments**: "One-off corporate payments"
   2. **Batch Payments**: "Multi-destination payouts"
   3. **Subscriptions**: "Recurring disbursements"
   4. **Payroll**: "Automated distributions"
-  5. **HSP Checkouts**: "Hosted protocol payments"
 
 #### Payment Table
 - **Tabs**:
@@ -332,10 +332,10 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 - **Empty State**: "No active [tab] instances."
 - **Status Labels**: "active", "cancelled", "completed", "partial", "failed"
 
-### Records Tab (Main Content)
+### Internal Records Tab (Main Content)
 
 #### Header Section
-- **Headline**: "Records"
+- **Headline**: "Internal Records"
 - **Description**: "Internal view of every payment your account has made, with all encrypted audit records. Decrypt to see the details."
 - **Buttons**: "Refresh", "Decrypt Records" or "Records Decrypted"
 - **Alert Box**: "Audit records are encrypted at the source and linked permanently to their payment. Only addresses you have authorised can decrypt them."
@@ -348,7 +348,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 
 #### Overview Tab
 - **Cards** (3 cards):
-  1. **Record Coverage**: "[percentage]%", "Healthy" or "Review Required", "[classified] classified / [pending] pending context"
+  1. **Audit Coverage**: "[percentage]%", "Healthy" or "Decryption Required", "[classified] classified / [pending] pending context"
   2. **Jurisdiction Distribution**: "Breakdown of payments by recipient jurisdiction"
   3. **Payment Classification**: "Distribution of payments by declared transaction category."
 
@@ -366,17 +366,17 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 ### Auditors Tab (Main Content)
 
 #### Card Header
-- **Title**: "Auditors"
+- **Title**: "External Auditor Access"
 - **Button**: "Share Portal Link"
-- **Description**: "Give external auditors a private portal link. They can set their own rules and check whether your payments meet them, without seeing your payment data."
+- **Description**: "Give external auditors a private portal link. They can set audit rules and limits and check whether your payments meet them, without seeing your payment information."
 
 #### Approved Auditors Section
 - **Section Header**: "Approved Auditors"
 - **Empty State**: "No external auditors have been approved."
 
 #### Access Levels
-- **Signal Access**: Can create rules and see whether payments triggered them. Cannot see payment amounts or individual records.
-- **Full Access**: Can see the full decrypted payment record in addition to audit signals.
+- **Findings**: Can create tests and see whether payments flagged them. Cannot see payment amounts or individual records.
+- **Full Records**: Can see the full decrypted payment record in addition to audit findings.
 
 #### Add New Auditor Section
 - **Section Header**: "Add Auditor"
@@ -396,7 +396,7 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 - **Title**: "Audit Invite"
 - **Description**: "You have been approved to audit payments made by: [wallet]"
 - **Info Box**: "Private Audits"
-- **Helper Text**: "The rules you set here are encrypted before they leave your browser. The business cannot see your audit criteria."
+- **Helper Text**: "The audit test criteria you set here are encrypted before they leave your browser. The business cannot see your audit parameters."
 - **CTA Button**: "Connect wallet"
 
 ### Access Denied State
@@ -406,38 +406,38 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 
 ### Active Session State
 - **Title**: "Audit Session Active" with "[ LIVE ]" badge
-- **Description**: "You are auditing payments made by [wallet]. Your wallet ([address]) can set rules and read your result queue."
-- **Access Level Display**: "Access level: [Signal Access / Full Access]"
+- **Description**: "You are auditing payments made by [wallet]. Your wallet ([address]) can create audit tests and read the findings."
+- **Access Level Display**: "Access level: [Findings / Full Records]"
 - **Button**: "End Session"
 
 ### Main Content Area
 - **Headline**: "Auditor Portal"
-- **Description**: "Set private rules and check whether payments meet them. Your rules stay encrypted. The payment data stays private. You see only the outcome."
+- **Description**: "Set private audit test criteria and check whether payments meet them. Your criteria stay encrypted. The payment data stays private. You see only the outcome."
 
 #### Tabs
-- **Tab Labels**: "Rules", "Results", "Reports", "Evidence", "Records"
+- **Tab Labels**: "Tests", "Findings", "Reports", "Evidence", "Records"
 
-#### Rules Setup Tab
-- **Card**: Create a Rule
+#### Tests Setup Tab
+- **Card**: Create Audit Test
 - **Description**: "Set a threshold. Every new payment is automatically checked against it. Your threshold is encrypted before it leaves your browser — the business never sees the value you set."
 - **Test Types**: "Large Payment", "Recipient Exposure", "Category Exposure", "Jurisdiction Exposure"
-- **Submit Button**: "Save Rule"
+- **Submit Button**: "Save Test"
 
-#### Result Tab
-- **Description**: "Encrypted outcomes from the contract checking your rules against new payments. Decrypt to see which rules were triggered."
-- **Button**: "Decrypt Results"
-- **Result states**: "Triggered", "Not Triggered"
+#### Findings Tab
+- **Description**: "Encrypted outcomes from the contract checking your tests against new payments. Decrypt to see which tests were flagged."
+- **Button**: "Decrypt Findings"
+- **Result states**: "Flagged", "Clear"
 
 #### Reports Tab
-- **Description**: "Aggregate payment summaries. Available to auditors with Signal Access or higher."
+- **Description**: "Aggregate payment summaries. Available to auditors with Findings Access or higher."
 - **Button**: "Decrypt Report"
 
 #### Evidence Tab
-- **Description**: "Individual payment records linked to triggered rules. Available to auditors with Full Access."
+- **Description**: "Individual payment records linked to flagged tests. Available to auditors with Full Records Access."
 - **Button**: "Decrypt Evidence"
 
 #### Records Tab
-- **Description**: "Full payment history for this account. Available to auditors with Full Access only."
+- **Description**: "Full payment history for this account. Available to auditors with Full Records Access only."
 
 ---
 
@@ -452,11 +452,11 @@ This document provides the canonical copy and UI strings for the Complyr platfor
 ## Common UI Elements
 
 ### Toast Messages
-- **Success**: "Contact saved.", "Contact updated.", "Contact deleted.", "Auditor approved.", "Access level updated.", "Auditor removed.", "Portal link copied.", "Rule saved.", "Results decrypted.", "Report decrypted.", "Evidence decrypted.", "Records decrypted."
-- **Error**: "Failed to delete contact", "Failed to update contact", "Invalid checksummed address", "Please connect your wallet", "Failed to approve auditor", "Failed to update access level", "Failed to remove auditor", "Failed to copy link", "No wallet found.", "Failed to connect wallet.", "Enter a positive threshold amount.", "Enter a valid recipient scope address.", "Failed to create rule", "Failed to decrypt results", "Failed to decrypt reports", "Failed to decrypt evidence"
+- **Success**: "Contact saved.", "Contact updated.", "Contact deleted.", "Auditor approved.", "Access level updated.", "Auditor removed.", "Portal link copied.", "Test saved.", "Findings decrypted.", "Report decrypted.", "Evidence decrypted.", "Records decrypted."
+- **Error**: "Failed to delete contact", "Failed to update contact", "Invalid checksummed address", "Please connect your wallet", "Failed to approve auditor", "Failed to update access level", "Failed to remove auditor", "Failed to copy link", "No wallet found.", "Failed to connect wallet.", "Enter a positive threshold amount.", "Enter a valid recipient scope address.", "Failed to create audit test", "Failed to decrypt findings", "Failed to decrypt reports", "Failed to decrypt evidence"
 
 ### Loading States
-- "Loading...", "Loading activity...", "Loading your encrypted records...", "Checking access...", "Activating...", "Saving..."
+- "Loading...", "Loading activity...", "Loading your encrypted records...", "Checking access...", "Activating...", "Saving...", "Securing Records..."
 
 ### Status Labels
 - "[ DECRYPTED ]", "[ ENCRYPTED ]", "Records Decrypted"

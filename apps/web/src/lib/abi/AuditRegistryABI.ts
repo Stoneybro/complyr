@@ -704,6 +704,21 @@ export const AuditRegistryABI = [
         "internalType": "bytes32"
       },
       {
+        "name": "amountHandle",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "categoryHandle",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "jurisdictionHandle",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
         "name": "timestamp",
         "type": "uint256",
         "internalType": "uint256"

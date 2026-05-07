@@ -50,7 +50,7 @@ Complyr is a audit intelligence layer for programmable payments on Ethereum Sepo
 Complyr covers both sides of the payment lifecycle:
 
 - **Outbound payments (onchain transfers):** Audit metadata is attached when payments are created and submitted.
-- **Inbound payments:** Checkout orchestration can capture audit fields before settlement, addressing the metadata gap found in direct inbound onchain transfers.
+- **Inbound payments:** Checkout orchestration can capture audit records before settlement, addressing the metadata gap found in direct inbound onchain transfers.
 
 This model improves audit readiness by making audit evidence available for both funds sent and funds received.
 

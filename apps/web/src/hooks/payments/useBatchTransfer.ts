@@ -55,7 +55,7 @@ export function useBatchTransfer(availableBalance?: string) {
 
                 // 1. Client-side Zama encryption
                 statusUpdate("Encrypting...");
-                const loadingId = toast.loading("Encrypting batch audit fields...");
+                const loadingId = toast.loading("Encrypting batch audit records...");
                 let encryptedAudit;
                 try {
                     encryptedAudit = await encryptAuditInput({

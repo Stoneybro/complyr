@@ -100,6 +100,10 @@ export default function CustomSmartAccount() {
         async encodeCalls(calls) {
           if (calls.length === 1) {
             const call = calls[0];
+            // If the target is the account itself, it's a direct function call (like transferWithAudit)
+            if (call.to.toLowerCase() === (await this.getAddress()).toLowerCase()) {
+              return call.data as `0x${string}`;
+            }
             return encodeFunctionData({
               abi: SmartWalletABI,
               functionName: "execute",
@@ -107,6 +111,7 @@ export default function CustomSmartAccount() {
             });
           }
 
+          // For batch, we still wrap. Note: batching multiple *WithAudit calls directly is not supported by standard executeBatch yet.
           const batchCalls = calls.map((call) => ({
             target: call.to,
             value: call.value || 0n,

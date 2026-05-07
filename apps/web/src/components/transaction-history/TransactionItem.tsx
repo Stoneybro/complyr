@@ -93,7 +93,7 @@ export const TransactionItem = ({ item }: { item: TransactionItemProps }) => {
                         {Object.entries(item.details).map(([key, value]) => {
                             if (key === 'txHash') return null;
 
-                            const skipKeys = ['selector', 'data', 'functionCall', 'scheduleName', 'target', 'value', 'Target', 'Value', 'token', 'Token', 'recipients'];
+                            const skipKeys = ['selector', 'data', 'functionCall', 'scheduleName', 'target', 'value', 'Target', 'Value', 'token', 'Token', 'recipients', 'deployedBy', 'owner', 'walletAddress'];
                             
                             // For single payments, hide batch-specific aggregated arrays
                             if (item.type === ActivityType.EXECUTE) {

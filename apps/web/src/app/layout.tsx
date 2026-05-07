@@ -4,10 +4,11 @@ import { Provider } from "./provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/next"
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Complyr | Confidential Onchain Finance",
-  description: "Confidential audit infrastructure for onchain business finance built on Base.",
+  description: "Confidential audit infrastructure for onchain business finance built on Ethereum Sepolia.",
   icons: {
     icon: "/complyrlogo.ico",
     shortcut: "/complyrlogo.ico",
@@ -39,6 +40,10 @@ export default function RootLayout({
         className="antialiased font-sans"
         suppressHydrationWarning
       >
+        <Script 
+          src="/relayer-sdk-js.umd.cjs" 
+          strategy="beforeInteractive" 
+        />
         <Provider>{children}</Provider>
         <Analytics />
       </body>

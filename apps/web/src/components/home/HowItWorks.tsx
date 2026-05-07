@@ -26,7 +26,7 @@ const steps = [
     num: '04',
     title: 'Audit',
     label: '04 / VERIFIABLE PROOFS',
-    body: 'Approve specific reviewers. They can create private threshold tests and decrypt only the resulting audit signals.',
+    body: 'Approve specific auditors. They can create private threshold tests and decrypt only the resulting audit findings.',
   },
 ];
 

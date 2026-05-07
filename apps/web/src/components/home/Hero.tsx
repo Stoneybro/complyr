@@ -19,7 +19,7 @@ export default function Hero() {
           Private audit infrastructure for onchain business payments.
         </h1>
         <p className="text-lg md:text-xl text-on-surface-variant max-w-3xl font-light mb-12 leading-relaxed mx-auto">
-          Complyr is a payments system that attaches encrypted audit records to every payment. Auditors can verify payments against defined rules without decrypting the data.
+          Complyr is a payments system that attaches encrypted audit records to every payment. Auditors can verify payments against private audit tests without decrypting the data.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
