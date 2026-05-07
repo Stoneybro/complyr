@@ -34,6 +34,7 @@ import { Progress } from "@/components/ui/progress";
 // Audit context options
 const JURISDICTION_OPTIONS = getJurisdictionOptions();
 const CATEGORY_OPTIONS = getCategoryOptions();
+const RECURRING_DEMO_DISABLED = true;
 
 // Recipient with optional audit context from contact
 type RecipientData = {
@@ -338,6 +339,12 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
         const tokenAddress = MockUSDCAddress as `0x${string}`;
 
         try {
+            if (currentPaymentType === "recurring" && RECURRING_DEMO_DISABLED) {
+                toast.error("Recurring payments are disabled in the confidential audit demo.");
+                setTransactionStatus("");
+                return;
+            }
+
             if (currentPaymentType === "single") {
                 if (!singleRecipient.address || !singleRecipient.amount) {
                     toast.error("Please fill in recipient and amount");
@@ -479,8 +486,17 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                             <TabsList className="grid w-full grid-cols-3">
                                         <TabsTrigger value="single">Single</TabsTrigger>
                                         <TabsTrigger value="batch">Batch</TabsTrigger>
-                                        <TabsTrigger value="recurring">Recurring</TabsTrigger>
+                                        <TabsTrigger value="recurring" disabled={RECURRING_DEMO_DISABLED}>Recurring</TabsTrigger>
                                     </TabsList>
+
+                                    {RECURRING_DEMO_DISABLED && (
+                                        <Alert variant="default" className="mt-4 bg-muted/50 text-muted-foreground border-none">
+                                            <Info className="h-4 w-4" />
+                                            <AlertDescription className="text-xs">
+                                                Recurring payments are hidden for this demo because the confidential audit flow is being showcased on single and batch payments only.
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
                                     
                                     <TabsContent value="single" className="space-y-6 mt-6">
                                         <p className="text-sm text-muted-foreground mb-4">
