@@ -13,8 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-    AlertTriangle,
-    CheckCircle2,
     Eye,
     Loader2,
     Lock,
@@ -40,6 +38,7 @@ import {
 
 const REGISTRY_ADDRESS = AuditRegistryAddress as `0x${string}`;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 type Eip1193Provider = {
     request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -112,6 +111,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 function getInjectedProvider(): Eip1193Provider | null {
     if (typeof window === "undefined") return null;
     return ((window as typeof window & { ethereum?: Eip1193Provider }).ethereum) ?? null;
+}
+
+function isZeroHandle(handle?: `0x${string}`) {
+    return !handle || handle.toLowerCase() === ZERO_HANDLE;
 }
 
 function testTypeLabel(testType: number) {
@@ -333,26 +336,34 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
         try {
             const account = getAddress(activeAddress);
             const handles = [
-                ...(rollupHandles.global ? [rollupHandles.global] : []),
+                ...(rollupHandles.global && !isZeroHandle(rollupHandles.global) ? [rollupHandles.global] : []),
                 ...Object.values(rollupHandles.categories),
                 ...Object.values(rollupHandles.jurisdictions),
-            ];
+            ].filter((handle) => !isZeroHandle(handle));
             const signer = {
                 signTypedData: async (typedData: unknown) =>
                     provider.request({ method: "eth_signTypedData_v4", params: [account, safeJsonStringify(typedData)] }) as Promise<`0x${string}`>,
             };
-            const decrypted = await userDecryptAuditHandles({
-                handles,
-                contractAddress: REGISTRY_ADDRESS,
-                userAddress: account,
-                signer,
-            });
+            const decrypted = handles.length > 0
+                ? await userDecryptAuditHandles({
+                    handles,
+                    contractAddress: REGISTRY_ADDRESS,
+                    userAddress: account,
+                    signer,
+                })
+                : {};
             const categories: Record<number, bigint> = {};
-            Object.entries(rollupHandles.categories).forEach(([k, h]) => { categories[Number(k)] = BigInt(decrypted[h]); });
+            Object.entries(rollupHandles.categories).forEach(([k, h]) => {
+                categories[Number(k)] = isZeroHandle(h) ? 0n : BigInt(decrypted[h]);
+            });
             const jurisdictions: Record<number, bigint> = {};
-            Object.entries(rollupHandles.jurisdictions).forEach(([k, h]) => { jurisdictions[Number(k)] = BigInt(decrypted[h]); });
+            Object.entries(rollupHandles.jurisdictions).forEach(([k, h]) => {
+                jurisdictions[Number(k)] = isZeroHandle(h) ? 0n : BigInt(decrypted[h]);
+            });
             setRollupDecrypted({
-                global: rollupHandles.global ? BigInt(decrypted[rollupHandles.global]) : undefined,
+                global: rollupHandles.global && !isZeroHandle(rollupHandles.global)
+                    ? BigInt(decrypted[rollupHandles.global])
+                    : 0n,
                 categories,
                 jurisdictions,
             });
@@ -1055,20 +1066,20 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                         </div>
                                     ) : (
                                         <div className="overflow-x-auto w-full">
-                                            <div className="min-w-[800px]">
+                                                <div className="min-w-[800px]">
                                                 <div className="grid grid-cols-12 gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b pb-3 mb-3 px-2">
+                                                    <div className="col-span-2">Record ID</div>
                                                     <div className="col-span-2">Recipient</div>
                                                     <div className="col-span-2">Amount</div>
-                                                    <div className="col-span-3">Reason</div>
+                                                    <div className="col-span-2">Reason</div>
                                                     <div className="col-span-2">Jurisdiction</div>
-                                                    <div className="col-span-2">Category</div>
+                                                    <div className="col-span-1">Category</div>
                                                     <div className="col-span-1 text-right">Time</div>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
                                                     {reviewResults.map((result, index) => {
                                                         const test = testsById.get(result.testId.toString());
-                                                        const triggered = result.decrypted === 1;
-                                                        const hasFindingEvidence = triggered && result.decryptedEvidence !== undefined;
+                                                        const hasFindingEvidence = result.decryptedEvidence !== undefined;
                                                         const amountDisplay = hasFindingEvidence
                                                             ? `${formatUnits(BigInt(result.decryptedEvidence.amount), 6)} USDC`
                                                             : result.decrypted === undefined
@@ -1086,31 +1097,23 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                                                 : "Not disclosed";
 
                                                         return (
-                                                            <div key={`${result.resultHandle}-${index}`} className={`grid grid-cols-12 gap-4 items-center border rounded-lg p-3 text-sm ${triggered ? "bg-destructive/5 border-destructive/20" : ""}`}>
+                                                            <div key={`${result.resultHandle}-${index}`} className="grid grid-cols-12 gap-4 items-center border rounded-lg p-3 text-sm">
+                                                                <div className="col-span-2 font-mono text-xs truncate">
+                                                                    {result.recordId.slice(0, 10)}...{result.recordId.slice(-8)}
+                                                                </div>
                                                                 <div className="col-span-2 font-mono text-xs truncate">
                                                                     {result.recipient === ZERO_ADDRESS ? "Any" : `${result.recipient.slice(0, 8)}...${result.recipient.slice(-6)}`}
                                                                 </div>
                                                                 <div className="col-span-2 font-mono text-xs">
                                                                     {amountDisplay}
                                                                 </div>
-                                                                <div className="col-span-3 text-xs">
+                                                                <div className="col-span-2 text-xs">
                                                                     <div className="font-semibold text-foreground">{getFindingReason(test)}</div>
-                                                                    {result.decrypted === undefined ? (
-                                                                        <Badge variant="secondary" className="font-mono text-[10px] uppercase mt-1">Encrypted</Badge>
-                                                                    ) : triggered ? (
-                                                                        <Badge variant="outline" className="border-destructive/30 text-destructive gap-1 font-mono text-[10px] uppercase mt-1">
-                                                                            <AlertTriangle className="h-3 w-3" /> Flagged
-                                                                        </Badge>
-                                                                    ) : (
-                                                                        <Badge variant="outline" className="gap-1 font-mono text-[10px] uppercase mt-1">
-                                                                            <CheckCircle2 className="h-3 w-3" /> Clear
-                                                                        </Badge>
-                                                                    )}
                                                                 </div>
                                                                 <div className="col-span-2 text-xs">
                                                                     {jurisdictionDisplay}
                                                                 </div>
-                                                                <div className="col-span-2 text-xs">
+                                                                <div className="col-span-1 text-xs">
                                                                     {categoryDisplay}
                                                                 </div>
                                                                 <div className="col-span-1 text-xs text-right text-muted-foreground truncate">
