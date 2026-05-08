@@ -2,10 +2,15 @@
   "title": "Complyr Docs",
   "pages": [
     "index",
+    "getting-started",
     "architecture",
     "smart-contracts",
     "audit-model",
-    "getting-started",
+    "zama-fhe-implementation",
+    "payment-lifecycle",
+    "reviewer-access-model",
+    "indexer-activity-model",
+    "deployment-integrations",
     "auditor-portal",
     "limitations-roadmap"
   ]

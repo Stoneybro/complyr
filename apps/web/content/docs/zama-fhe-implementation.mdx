@@ -1,0 +1,107 @@
+---
+title: Zama FHE Implementation
+description: How Complyr uses Zama FHE in the browser, contracts, and auditor flows.
+---
+
+## Zama FHE Implementation
+
+This page is the technical center of the Complyr documentation.
+
+Complyr uses Zama's FHE stack to:
+
+- encrypt payment amounts, categories, and jurisdictions in the browser;
+- submit encrypted inputs and proofs onchain;
+- store FHE ciphertext handles in `AuditRegistry`;
+- compute reviewer tests over encrypted values in Solidity;
+- expose only authorized decryptable handles back to the business or external auditor.
+
+## What Is Encrypted
+
+For each payment recipient, Complyr encrypts:
+
+- amount as `euint128`
+- category as `euint8`
+- jurisdiction as `euint8`
+
+The frontend implementation lives in `apps/web/src/lib/fhe-audit.ts`.
+
+The browser builds a Zama encrypted input with:
+
+- `add128()` for amounts
+- `add8()` for categories
+- `add8()` for jurisdictions
+
+The result is converted into:
+
+- ciphertext handles
+- input proofs
+
+## Browser Encryption Pipeline
+
+The client-side flow is:
+
+1. The app loads the `relayer-sdk-js` bundle.
+2. `initSDK()` is called in the browser.
+3. A Sepolia FHEVM instance is created.
+4. `createEncryptedInput(contractAddress, userAddress)` builds the encrypted payload.
+5. The payload is packed and encrypted locally.
+6. The app receives ciphertext handles and a proof.
+7. The handles and proofs are submitted to the contract.
+
+This means the sensitive audit values are encrypted before they leave the user's browser.
+
+## Contract-Side FHE Usage
+
+`packages/contracts/src/AuditRegistry.sol` is where the FHE-specific contract logic lives.
+
+The contract:
+
+- reconstructs encrypted values from external handles with `FHE.fromExternal(...)`;
+- stores them as `euint128` and `euint8` values;
+- grants decryption permissions with `FHE.allowThis(...)` and `FHE.allow(...)`;
+- maintains encrypted rollups for totals by recipient, category, and jurisdiction;
+- evaluates encrypted reviewer tests with operations like `FHE.gt`, `FHE.eq`, and `FHE.and`.
+
+## Reviewer Tests Powered by FHE
+
+The external auditor flow is built around private reviewer tests:
+
+- large payment limit
+- recipient exposure limit
+- category exposure limit
+- jurisdiction exposure limit
+
+An auditor encrypts a private limit in the browser and submits it to `AuditRegistry`.
+
+The contract stores that limit as an encrypted `euint128`. Later, when new records are appended, the contract evaluates encrypted logic such as:
+
+- `FHE.gt(amount, test.threshold)`
+- encrypted running-total comparisons
+- encrypted category and jurisdiction matching
+
+The business cannot read the auditor's limit. The auditor only decrypts the result handles they are allowed to read.
+
+## User Decryption Flow
+
+Decryption is also wired through the Zama stack in the browser.
+
+Complyr:
+
+- generates a temporary keypair through the SDK;
+- creates an EIP-712 authorization payload;
+- asks the connected wallet to sign it;
+- sends the authorization to the Zama user decryption flow;
+- receives decrypted clear values for only the permitted handles.
+
+This flow is implemented in `userDecryptAuditHandles()` in `apps/web/src/lib/fhe-audit.ts`.
+
+## Why This Matters
+
+The Zama integration is not ornamental. It changes the product model:
+
+- businesses keep payment context private by default;
+- auditors can define their own private limits;
+- contracts can evaluate those limits without seeing the raw numbers;
+- only explicit, permitted outputs are decrypted.
+
+That is the core demonstration Complyr should emphasize in hackathon judging.

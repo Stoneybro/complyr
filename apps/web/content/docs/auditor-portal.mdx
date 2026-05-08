@@ -16,19 +16,21 @@ The Auditor Portal is a dedicated interface that allows external auditors and re
 3. **Auditor Login:** The auditor navigates to the portal and connects their authorized wallet (MetaMask or any injected provider).
 4. **Visibility:** The auditor clicks **Decrypt Audit Data**, and successfully views all records and downloads audit reports without having actual login access to the company's bank account.
 
-### Under the Hood (ECIES)
+### Under the Hood (Zama FHE)
 
-This system is powered by cryptography, not traditional software access controls.
+This system is powered by encrypted computation, not ordinary role-based access to plaintext records.
 
-**Key Wrapping:** When the business authorizes the auditor, their browser takes the company's master AES audit key and securely encrypts it using the auditor's *public* Ethereum key (via ECIES). This encrypted key is uploaded on-chain.
+**Private reviewer limits:** The auditor creates a private limit in the browser. That limit is encrypted with Zama tooling before submission to `AuditRegistry`.
 
-**Local Decryption:** When the auditor logs into the portal and clicks to decrypt, their browser uses their wallet's *private* key to decrypt the AES key client-side. The browser then fetches ciphertext payloads from the blockchain and decrypts them locally.
+**Encrypted evaluation:** When new records are appended, the contract checks those encrypted records against the encrypted reviewer test. The contract can compute whether a payment exceeds the auditor's limit without seeing the plaintext value.
 
-**What auditors can see.** Auditors only have access to records if they have the keys for them. When granted access, they can view:
+**User-authorized decryption:** When the auditor chooses to decrypt findings or records, the browser requests a Zama decryption authorization flow and only decrypts the handles the auditor is allowed to access.
+
+**What auditors can see.** Auditors only have access to the encrypted outputs they are permitted to decrypt. When granted access, they can view:
 - Plaintext payment metadata (transaction hash, date, recipients, amounts)
 - Decrypted expense category per recipient
 - Decrypted regulatory jurisdiction per recipient
-- Audit health score and summary statistics
+- Reviewer findings and encrypted report outputs based on access level
 
 Auditors cannot modify records, authorise additional parties, or access company data beyond what they explicitly have the key for.
 

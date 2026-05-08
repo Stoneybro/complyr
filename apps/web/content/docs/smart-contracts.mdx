@@ -46,15 +46,23 @@ The registry validates fund availability, calculates total commitment (`amountPe
 
 ### AuditRegistry
 
-The AuditRegistry is the core privacy-preserving storage contract. It maintains an isolated ledger per company, keyed by the wallet proxy address.
+The AuditRegistry is the core privacy-preserving storage and computation contract. It maintains an isolated ledger per company, keyed by the wallet proxy address.
 
 Each audit record stores:
-- `txHash` — the deterministic link to the transaction or intent execution
-- `recipients[]` and `amounts[]` — plaintext payment data. Payment amounts and recipient addresses remain public on the audit ledger because they already exist on the public payment ledger. Only the audit context is encrypted.
-- `encryptedPayload` — AES-256-GCM ciphertext encapsulating categories and jurisdictions
+- `txHash` — the deterministic link to the payment or intent execution
+- `recipients[]` — plaintext recipient addresses
+- encrypted amount values as `euint128`
+- encrypted category values as `euint8`
+- encrypted jurisdiction values as `euint8`
+- `referenceIds[]` — plaintext business identifiers
 - `timestamp` — block timestamp at record creation
 
-Auditors and company owners maintain the encryption keys required to read from this contract. 
+The contract also:
+
+- maintains encrypted global, recipient, category, and jurisdiction totals;
+- stores encrypted reviewer limits;
+- evaluates reviewer tests directly on encrypted values with FHE operations;
+- exposes ciphertext handles for authorized client-side decryption flows.
 
 ### Sponsorship Model
 

@@ -1,0 +1,65 @@
+---
+title: Payment Lifecycle
+description: End-to-end flow for single, batch, and recurring payments with encrypted audit records.
+---
+
+## Payment Lifecycle
+
+Complyr has three payment modes in the codebase:
+
+- single transfer
+- batch transfer
+- recurring payment intent
+
+All three attach encrypted audit records to the payout flow.
+
+## Single Transfer
+
+The single-transfer flow is implemented in `apps/web/src/hooks/payments/useSingleTransfer.ts`.
+
+High-level sequence:
+
+1. The user enters recipient, amount, reference ID, jurisdiction, and category.
+2. The browser encrypts the audit payload with Zama.
+3. The app prepares a smart-account transaction.
+4. `SmartWallet` executes the payout.
+5. `AuditRegistry.recordTransaction()` stores the encrypted audit record.
+6. Envio indexes the activity feed from emitted events.
+
+## Batch Transfer
+
+The batch flow is implemented in `apps/web/src/hooks/payments/useBatchTransfer.ts`.
+
+Each recipient receives:
+
+- its own plaintext recipient address
+- its own encrypted amount handle
+- its own encrypted category handle
+- its own encrypted jurisdiction handle
+- its own reference ID
+
+This makes batch payouts especially relevant to the hackathon narrative: Complyr demonstrates multi-recipient encrypted metadata packing and storage within one business action.
+
+## Recurring Payments
+
+Recurring payments are managed by `IntentRegistry` and the frontend hook `useRecurringPayment.ts`.
+
+The sequence is:
+
+1. The user creates an intent with recipients, amounts, cadence, and audit metadata.
+2. The browser encrypts the audit metadata up front.
+3. `IntentRegistry` stores the schedule and reserves committed funds.
+4. Chainlink-compatible upkeep execution triggers transfers over time.
+5. The wallet executes the due payouts.
+6. Audit data is recorded onchain for the recurring flow as well.
+
+## Why This Page Matters
+
+Industry-standard protocol documentation usually explains not only contract responsibilities but also lifecycle boundaries:
+
+- what happens in the browser
+- what is sent onchain
+- what the indexer sees
+- what an auditor can read later
+
+That is especially important here because Complyr spans UX, cryptography, contracts, indexing, and review workflows.

@@ -11,9 +11,9 @@ Complyr is a audit infrastructure layer for onchain business payments.
 
 When a company sends money from a blockchain wallet, the public record shows *who* was paid and *how much*. It says nothing about *why*. That gap — between raw transaction data and structured financial records — is the problem Complyr solves. Complyr solves the missing "why" in blockchain payments by attaching encrypted audit metadata to every transaction.
 
-Complyr attaches an encrypted, immutable audit record to every payment. Each record captures the business context of a transaction: its regulatory jurisdiction, expense category, and entity identifiers. This metadata is protected by AES-256-GCM encryption.
+Complyr attaches an encrypted, immutable audit record to every payment. Each record captures the business context of a transaction: its regulatory jurisdiction, expense category, and entity identifiers. Sensitive audit values are encrypted with Zama FHE tooling before they are submitted onchain.
 
-The result is an ERC-4337 smart-treasury system on Ethereum Sepolia for outbound corporate payouts, with every payment flow routed through an AES-256 audit layer.
+The result is an ERC-4337 smart-treasury system on Ethereum Sepolia for outbound corporate payouts, with every payment flow routed through a privacy-preserving audit layer that supports encrypted storage, encrypted checks, and scoped decryption.
 
 ![Complyr Wallet Dashboard](/complyr-wallet-dashboard.png)
 

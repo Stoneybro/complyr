@@ -11,9 +11,9 @@ This section documents the honest edges of the current implementation. We are no
 
 Complyr currently runs on Ethereum Sepolia. The infrastructure is not deployed to any mainnet. Contract security has not been audited. Do not use this for real financial transactions.
 
-### Key Retrieval
+### Decryption authorization dependency
 
-If a company loses all access to the local browser state or instances where their symmetric AES key is maintained in sync with the privy wallet, they may lose decryption capability for their historical records.
+Historical record reading depends on the FHE decryption authorization flow working correctly for the permitted wallet. If the decryption flow, signer path, or granted handle permissions fail, the records remain stored onchain but unreadable in practice until the authorization issue is resolved.
 
 ### Recurring payment execution reliability
 

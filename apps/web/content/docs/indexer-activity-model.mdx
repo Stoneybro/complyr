@@ -1,0 +1,56 @@
+---
+title: Indexer & Activity Model
+description: How Envio builds the activity feed and where it fits in the architecture.
+---
+
+## Indexer & Activity Model
+
+Complyr uses Envio as a read-optimized activity layer.
+
+The indexer lives in `packages/indexer` and materializes three entities:
+
+- `Wallet`
+- `Transaction`
+- `Intent`
+
+## What The Indexer Is For
+
+The frontend uses Envio for:
+
+- sidebar transaction history
+- dashboard activity summaries
+- payment table rendering
+
+The indexer is not the source of truth for encrypted audit data. That data is read directly from `AuditRegistry`.
+
+## Event Sources
+
+The indexer listens to events from:
+
+- `SmartWalletFactory`
+- `SmartWallet`
+- `IntentRegistry`
+- `MockUSDC`
+- `AuditRegistry`
+
+Its handlers live in `packages/indexer/src/EventHandlers.ts`.
+
+## Why This Split Is Important
+
+An industry-standard documentation set should clearly separate:
+
+- settlement truth
+- privacy-preserving ledger truth
+- indexed UI read models
+
+In Complyr:
+
+- contracts are the canonical state layer;
+- `AuditRegistry` is the privacy-preserving audit ledger;
+- Envio is the UX read model for activity feeds.
+
+## Known Operational Note
+
+The indexer depends on the wallet-registration flow from `SmartWalletFactory.AccountCreated` to seed certain wallet-level state. If a deployment or resync misses the wallet bootstrap event, the activity feed can be incomplete until the indexer is re-synced.
+
+This kind of operational note is worth documenting because it reflects real protocol operations, not just idealized architecture.

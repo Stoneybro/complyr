@@ -1,6 +1,6 @@
 ---
 title: Audit Model
-description: Deep dive into the metadata schema and client-side AES flow.
+description: Deep dive into the metadata schema and Zama FHE encryption flow.
 ---
 
 ## Audit Model & Encryption
@@ -46,15 +46,30 @@ Complyr captures two dimensions of audit metadata per recipient per payment:
 | 9 | REIMBURSEMENT | Reimbursement |
 | 10 | OTHER | Other |
 
-### How Encryption works in Complyr
+### How encryption works in Complyr
 
-Unlike early prototypes that relied on FHE, Complyr utilizes standard Client-Side Encryption with **AES-256-GCM** and **ECIES (Elliptic Curve Integrated Encryption Scheme)** for practical performance and strict control over data readability.
+Complyr uses Zama FHE tooling, not a simple client-side AES wrapper.
 
-1. **Company Keys**: A symmetric master AES key is generated for the company. Data is encrypted client-side using this key before landing on-chain.
-2. **Metadata Input**: The frontend packages recipient category and jurisdiction values into an encrypted payload. 
-3. **On-chain Validation**: The payload is stored in the `AuditRegistry` on Ethereum Sepolia.
-4. **Auditor Portal & ECIES**: When granting access to an auditor, the company's master AES key is encrypted using the auditor's Ethereum public key (ECIES) and stored in the registry. 
-5. **Decryption**: Authorized auditors fetch the encrypted AES key, use their private key to decrypt it locally, and then locally decrypt the matching batch of records from the AuditRegistry.
+The frontend encrypts audit values in the browser and submits:
+
+- encrypted amount handles
+- encrypted category handles
+- encrypted jurisdiction handles
+- the accompanying input proofs
+
+These encrypted values are then reconstructed onchain inside `AuditRegistry` with `FHE.fromExternal(...)` and stored as encrypted integer types.
+
+This design allows the contracts to:
+
+- store audit metadata without exposing it publicly;
+- maintain encrypted rollups;
+- compare encrypted payment values against encrypted reviewer limits;
+- release only authorized decrypted outputs later through the Zama decryption flow.
+
+The core implementation lives in:
+
+- `apps/web/src/lib/fhe-audit.ts`
+- `packages/contracts/src/AuditRegistry.sol`
 
 ### The trust model
 
@@ -63,6 +78,7 @@ Complyr does not enforce the accuracy of the metadata a company submits. A compa
 - existence of audit records
 - immutability of records
 - cryptographic linkage to transactions
+- encrypted computation over selected audit fields
 
 Once a audit record is committed, it cannot be altered or deleted. The combination of a deterministic intent identifier and an immutable on-chain record provides the same accountability primitive as a signed accounting entry in traditional finance.
 
