@@ -1,6 +1,6 @@
 import { GraphQLClient, gql } from 'graphql-request';
 
-const ENVIO_API_URL = process.env.NEXT_PUBLIC_ENVIO_API_URL || 'https://indexer.dev.hyperindex.xyz/d0df97f/v1/graphql';
+const ENVIO_API_URL = process.env.NEXT_PUBLIC_ENVIO_API_URL || 'https://indexer.dev.hyperindex.xyz/3a6abc4/v1/graphql';
 
 export const envioClient = new GraphQLClient(ENVIO_API_URL);
 
