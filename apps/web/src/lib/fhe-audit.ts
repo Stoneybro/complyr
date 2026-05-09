@@ -32,6 +32,9 @@ let fhevmInstance: FhevmInstance | null = null;
 let sdkInitialized = false;
 const MAX_CATEGORY_ID = 10;
 const MAX_JURISDICTION_ID = 13;
+const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
+const DEFAULT_SEPOLIA_RPC_URL =
+    process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
 
 export type EncryptedAuditInput = {
     amountHandles: `0x${string}`[];
@@ -66,13 +69,32 @@ async function getFhevmInstance() {
         sdkInitialized = true;
     }
 
-    const network = (window as typeof window & { ethereum?: unknown }).ethereum ?? "https://1rpc.io/sepolia";
+    const network = await getFhevmNetwork();
     fhevmInstance = await createInstance({
         ...SepoliaConfig,
         network,
     });
 
     return fhevmInstance;
+}
+
+async function getFhevmNetwork() {
+    const ethereum = (window as typeof window & {
+        ethereum?: { request?: (args: { method: string }) => Promise<unknown> };
+    }).ethereum;
+
+    if (ethereum?.request) {
+        try {
+            const chainId = await ethereum.request({ method: "eth_chainId" });
+            if (typeof chainId === "string" && chainId.toLowerCase() === SEPOLIA_CHAIN_ID_HEX) {
+                return ethereum;
+            }
+        } catch (error) {
+            console.warn("[FHE] Failed to read injected wallet chain id, falling back to Sepolia RPC.", error);
+        }
+    }
+
+    return DEFAULT_SEPOLIA_RPC_URL;
 }
 
 function validateAuditInput(params: {

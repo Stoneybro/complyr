@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, parseUnits } from "viem";
+import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, parseUnits } from "viem";
 import { AuditRegistryABI } from "@/lib/abi/AuditRegistryABI";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { AuditRegistryAddress } from "@/lib/CA";
 import { complyrChain } from "@/lib/chain";
+import { getPublicClient } from "@/lib/client";
 import { encryptThresholdInput, userDecryptAuditHandles } from "@/lib/fhe-audit";
 import { safeJsonStringify } from "@/utils/helper";
 import {
@@ -38,6 +39,15 @@ import {
 const REGISTRY_ADDRESS = AuditRegistryAddress as `0x${string}`;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+const EMPTY_ROLLUP_HANDLES = {
+    global: ZERO_HANDLE as `0x${string}`,
+    categories: Object.fromEntries(
+        Array.from({ length: 10 }, (_, index) => [index + 1, ZERO_HANDLE as `0x${string}`])
+    ) as Record<number, `0x${string}`>,
+    jurisdictions: Object.fromEntries(
+        Array.from({ length: 13 }, (_, index) => [index + 1, ZERO_HANDLE as `0x${string}`])
+    ) as Record<number, `0x${string}`>,
+};
 
 type Eip1193Provider = {
     request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -157,12 +167,13 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     const [categoryScope, setCategoryScope] = useState("INVOICE");
     const [jurisdictionScope, setJurisdictionScope] = useState("US-CA");
     const [reviewerAccess, setReviewerAccess] = useState<ReviewerAccess>(0);
-    const [rollupHandles, setRollupHandles] = useState<{ global?: `0x${string}`; categories: Record<number, `0x${string}`>; jurisdictions: Record<number, `0x${string}`>; }>({ categories: {}, jurisdictions: {} });
+    const [rollupHandles, setRollupHandles] = useState<{ global?: `0x${string}`; categories: Record<number, `0x${string}`>; jurisdictions: Record<number, `0x${string}`>; }>(EMPTY_ROLLUP_HANDLES);
     const [rollupDecrypted, setRollupDecrypted] = useState<RollupDecrypted>({ categories: {}, jurisdictions: {} });
     const [isDecryptingReports, setIsDecryptingReports] = useState(false);
     const [records, setRecords] = useState<AuditRecord[]>([]);
     const [isLoadingRecords, setIsLoadingRecords] = useState(false);
     const [isDecryptingRecords, setIsDecryptingRecords] = useState(false);
+    const [historicalScanTestId, setHistoricalScanTestId] = useState<string | null>(null);
 
     const normalizedProxyAccount = proxyAccount.toLowerCase();
     const isAuthorizedAuditor = activeAddress && auditors.includes(activeAddress.toLowerCase());
@@ -172,10 +183,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     const fetchAuditors = useCallback(async () => {
         setIsLoadingAuditors(true);
         try {
-            const publicClient = createPublicClient({
-                chain: complyrChain,
-                transport: http(),
-            });
+            const publicClient = getPublicClient();
 
             const current = await publicClient.readContract({
                 address: REGISTRY_ADDRESS,
@@ -197,10 +205,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
 
         setIsLoadingReviewData(true);
         try {
-            const publicClient = createPublicClient({
-                chain: complyrChain,
-                transport: http(),
-            });
+            const publicClient = getPublicClient();
             const account = getAddress(activeAddress);
             const access = await publicClient.readContract({
                 account,
@@ -289,7 +294,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     const fetchReportHandles = useCallback(async () => {
         if (!activeAddress || !isAuthorizedAuditor || !canViewReports) return;
         try {
-            const publicClient = createPublicClient({ chain: complyrChain, transport: http() });
+            const publicClient = getPublicClient();
             const account = getAddress(activeAddress);
             const global = await publicClient.readContract({
                 account,
@@ -323,6 +328,8 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
             setRollupHandles({ global, categories, jurisdictions });
         } catch (err) {
             console.error(err);
+            setRollupHandles(EMPTY_ROLLUP_HANDLES);
+            toast.error(getErrorMessage(err, "Failed to fetch analytics handles"));
         }
     }, [activeAddress, isAuthorizedAuditor, canViewReports, proxyAccount]);
 
@@ -379,7 +386,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
         if (!activeAddress || !isAuthorizedAuditor || !canViewRecords) return;
         setIsLoadingRecords(true);
         try {
-            const publicClient = createPublicClient({ chain: complyrChain, transport: http() });
+            const publicClient = getPublicClient();
             const account = getAddress(activeAddress);
             const count = Number(await publicClient.readContract({
                 account,
@@ -430,22 +437,26 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                 signTypedData: async (typedData: unknown) =>
                     provider.request({ method: "eth_signTypedData_v4", params: [account, safeJsonStringify(typedData)] }) as Promise<`0x${string}`>,
             };
-            const next = await Promise.all(records.map(async (record) => {
-                const handles = [...record.amountHandles, ...record.categoryHandles, ...record.jurisdictionHandles];
-                const decrypted = await userDecryptAuditHandles({
+            const handles = records.flatMap((record) => [
+                ...record.amountHandles,
+                ...record.categoryHandles,
+                ...record.jurisdictionHandles,
+            ]);
+            const decrypted = handles.length > 0
+                ? await userDecryptAuditHandles({
                     handles,
                     contractAddress: REGISTRY_ADDRESS,
                     userAddress: account,
                     signer,
-                });
-                return {
-                    ...record,
-                    decrypted: {
-                        amounts: record.amountHandles.map((h) => String(BigInt(decrypted[h]))),
-                        categories: record.categoryHandles.map((h) => CATEGORY_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
-                        jurisdictions: record.jurisdictionHandles.map((h) => JURISDICTION_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
-                    },
-                };
+                })
+                : {};
+            const next = records.map((record) => ({
+                ...record,
+                decrypted: {
+                    amounts: record.amountHandles.map((h) => String(BigInt(decrypted[h]))),
+                    categories: record.categoryHandles.map((h) => CATEGORY_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
+                    jurisdictions: record.jurisdictionHandles.map((h) => JURISDICTION_DISPLAY[Number(decrypted[h])] ?? "Unknown"),
+                },
             }));
             setRecords(next);
             toast.success("Evidence decrypted.", { id: loadingId });
@@ -613,6 +624,69 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
             toast.error(getErrorMessage(err, "Failed to create review test"), { id: loadingId });
         } finally {
             setIsCreatingTest(false);
+        }
+    };
+
+    const runHistoricalScan = async (testId: bigint) => {
+        if (!activeAddress) return;
+
+        const provider = getInjectedProvider();
+        if (!provider) {
+            toast.error("No Web3 wallet found.");
+            return;
+        }
+
+        setHistoricalScanTestId(testId.toString());
+        const loadingId = toast.loading("Scanning historical records...");
+
+        try {
+            await provider.request({
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: `0x${complyrChain.id.toString(16)}` }],
+            });
+
+            const account = getAddress(activeAddress);
+            const walletClient = createWalletClient({
+                account,
+                chain: complyrChain,
+                transport: custom(provider),
+            });
+            const publicClient = createPublicClient({
+                chain: complyrChain,
+                transport: custom(provider),
+            });
+
+            const recordCount = Number(await publicClient.readContract({
+                account,
+                address: REGISTRY_ADDRESS,
+                abi: AuditRegistryABI,
+                functionName: "getRecordCount",
+                args: [proxyAccount as `0x${string}`],
+            }));
+
+            if (recordCount === 0) {
+                toast.success("No historical records to scan.", { id: loadingId });
+                return;
+            }
+
+            const recordIndexes = Array.from({ length: recordCount }, (_, index) => BigInt(index));
+            const { request } = await publicClient.simulateContract({
+                account,
+                address: REGISTRY_ADDRESS,
+                abi: AuditRegistryABI,
+                functionName: "evaluateHistoricalRecords",
+                args: [proxyAccount as `0x${string}`, testId, recordIndexes],
+            });
+            const hash = await walletClient.writeContract(request);
+            await publicClient.waitForTransactionReceipt({ hash });
+
+            await fetchReviewData();
+            toast.success("Historical records scanned for this test.", { id: loadingId });
+        } catch (err) {
+            console.error(err);
+            toast.error(getErrorMessage(err, "Failed to scan historical records"), { id: loadingId });
+        } finally {
+            setHistoricalScanTestId(null);
         }
     };
 
@@ -1026,7 +1100,21 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                                             Limit: {test.decryptedThreshold ? `${test.decryptedThreshold} USDC` : "Encrypted"}
                                                         </span>
                                                     </div>
-                                                    <span className="text-[10px] font-mono text-muted-foreground">#{test.id.toString()}</span>
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => runHistoricalScan(test.id)}
+                                                            disabled={historicalScanTestId !== null}
+                                                        >
+                                                            {historicalScanTestId === test.id.toString() ? (
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                            ) : (
+                                                                <RefreshCw className="h-4 w-4 mr-2" />
+                                                            )}
+                                                            Run Test
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             ))
                                         )}
@@ -1223,7 +1311,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                         records.slice(0, 25).map((record) => (
                                             <div key={record.txHash} className="border rounded p-4 text-sm flex flex-col gap-2">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="font-mono font-medium">#{record.index} {record.txHash.slice(0, 10)}...{record.txHash.slice(-8)}</div>
+                                                    <div className="font-mono font-medium">{record.txHash.slice(0, 10)}...{record.txHash.slice(-8)}</div>
                                                     <Badge variant={record.decrypted ? "outline" : "secondary"} className="font-mono text-[10px] uppercase">
                                                         {record.decrypted ? "Decrypted" : "Encrypted"}
                                                     </Badge>

@@ -439,44 +439,24 @@ contract AuditRegistry is ZamaEthereumConfig {
         if (test.proxyAccount != proxyAccount) revert AuditRegistry__NotAuthorized();
         if (!test.active) revert AuditRegistry__NotAuthorized();
 
-        _checkRecordIndex(proxyAccount, recordIndex);
-        AuditRecord storage record = _ledgers[proxyAccount][recordIndex];
+        _evaluateHistoricalRecord(test, proxyAccount, recordIndex);
+    }
 
-        // Ensure we don't evaluate records that were auto-evaluated
-        if (record.timestamp >= test.createdAt) return;
+    /**
+     * @notice Manually trigger a private review test against multiple historical audit records.
+     * @param proxyAccount The company wallet to audit.
+     * @param testId The id of the auditor's private test.
+     * @param recordIndexes The indexes of historical records in the ledger.
+     */
+    function evaluateHistoricalRecords(address proxyAccount, uint256 testId, uint256[] calldata recordIndexes) external {
+        ReviewTest storage test = _reviewTests[testId];
+        if (test.id == 0) revert AuditRegistry__ReviewTestNotFound();
+        if (msg.sender != test.auditor) revert AuditRegistry__NotAuthorized();
+        if (test.proxyAccount != proxyAccount) revert AuditRegistry__NotAuthorized();
+        if (!test.active) revert AuditRegistry__NotAuthorized();
 
-        for (uint256 j = 0; j < record.recipients.length; j++) {
-            address recipient = record.recipients[j];
-            euint128 amount = record.amounts[j];
-            euint8 category = record.categories[j];
-            euint8 jurisdiction = record.jurisdictions[j];
-
-            if (test.testType == ReviewTestType.LargePayment) {
-                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, FHE.gt(amount, test.threshold));
-            } else if (test.testType == ReviewTestType.RecipientExposure && test.recipientScope == recipient) {
-                _storeReviewResult(
-                    test,
-                    record.txHash,
-                    recipient,
-                    amount,
-                    category,
-                    jurisdiction,
-                    _historicalRecipientExposureExceedsThreshold(proxyAccount, recordIndex, recipient, test.threshold)
-                );
-            } else if (test.testType == ReviewTestType.CategoryExposure) {
-                ebool isCategory = FHE.eq(category, test.numericScope);
-                ebool triggered = FHE.and(
-                    isCategory, _historicalCategoryExposureExceedsThreshold(proxyAccount, recordIndex, test.numericScope, test.threshold)
-                );
-                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, triggered);
-            } else if (test.testType == ReviewTestType.JurisdictionExposure) {
-                ebool isJurisdiction = FHE.eq(jurisdiction, test.numericScope);
-                ebool triggered = FHE.and(
-                    isJurisdiction,
-                    _historicalJurisdictionExposureExceedsThreshold(proxyAccount, recordIndex, test.numericScope, test.threshold)
-                );
-                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, triggered);
-            }
+        for (uint256 i = 0; i < recordIndexes.length; i++) {
+            _evaluateHistoricalRecord(test, proxyAccount, recordIndexes[i]);
         }
     }
 
@@ -967,6 +947,48 @@ contract AuditRegistry is ZamaEthereumConfig {
     function _allowFindingValue(euint8 value, address auditor) internal returns (euint8) {
         value = FHE.allowThis(value);
         return FHE.allow(value, auditor);
+    }
+
+    function _evaluateHistoricalRecord(ReviewTest storage test, address proxyAccount, uint256 recordIndex) internal {
+        _checkRecordIndex(proxyAccount, recordIndex);
+        AuditRecord storage record = _ledgers[proxyAccount][recordIndex];
+
+        // Ensure we don't evaluate records that were auto-evaluated
+        if (record.timestamp >= test.createdAt) return;
+
+        for (uint256 j = 0; j < record.recipients.length; j++) {
+            address recipient = record.recipients[j];
+            euint128 amount = record.amounts[j];
+            euint8 category = record.categories[j];
+            euint8 jurisdiction = record.jurisdictions[j];
+
+            if (test.testType == ReviewTestType.LargePayment) {
+                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, FHE.gt(amount, test.threshold));
+            } else if (test.testType == ReviewTestType.RecipientExposure && test.recipientScope == recipient) {
+                _storeReviewResult(
+                    test,
+                    record.txHash,
+                    recipient,
+                    amount,
+                    category,
+                    jurisdiction,
+                    _historicalRecipientExposureExceedsThreshold(proxyAccount, recordIndex, recipient, test.threshold)
+                );
+            } else if (test.testType == ReviewTestType.CategoryExposure) {
+                ebool isCategory = FHE.eq(category, test.numericScope);
+                ebool triggered = FHE.and(
+                    isCategory, _historicalCategoryExposureExceedsThreshold(proxyAccount, recordIndex, test.numericScope, test.threshold)
+                );
+                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, triggered);
+            } else if (test.testType == ReviewTestType.JurisdictionExposure) {
+                ebool isJurisdiction = FHE.eq(jurisdiction, test.numericScope);
+                ebool triggered = FHE.and(
+                    isJurisdiction,
+                    _historicalJurisdictionExposureExceedsThreshold(proxyAccount, recordIndex, test.numericScope, test.threshold)
+                );
+                _storeReviewResult(test, record.txHash, recipient, amount, category, jurisdiction, triggered);
+            }
+        }
     }
 
     function _historicalRecipientExposureExceedsThreshold(

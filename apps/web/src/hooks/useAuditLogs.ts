@@ -126,22 +126,27 @@ export function useAuditLogs(walletAddress?: string) {
                 },
             };
 
-            const mappedRecords = await Promise.all(records.map(async (record) => {
-                if (record.decrypted) return record;
+            const encryptedRecords = records.filter((record) => !record.decrypted);
+            const handles = encryptedRecords.flatMap((record) => [
+                ...record.encryptedAmountHandles,
+                ...record.encryptedCategoryHandles,
+                ...record.encryptedJurisdictionHandles,
+            ]);
 
-                try {
-                    const handles = [
-                        ...record.encryptedAmountHandles,
-                        ...record.encryptedCategoryHandles,
-                        ...record.encryptedJurisdictionHandles,
-                    ];
-                    const decrypted = await userDecryptAuditHandles({
+            const decrypted =
+                handles.length > 0
+                    ? await userDecryptAuditHandles({
                         handles,
                         contractAddress: REGISTRY_ADDRESS,
                         userAddress: getAddress(address as string),
                         signer,
-                    });
+                    })
+                    : {};
 
+            const mappedRecords = records.map((record) => {
+                if (record.decrypted) return record;
+
+                try {
                     const decCats: string[] = [];
                     const decJurs: string[] = [];
                     const decAmounts: string[] = [];
@@ -165,10 +170,10 @@ export function useAuditLogs(walletAddress?: string) {
                         decrypted: true
                     };
                 } catch (e) {
-                    console.error("Failed to decrypt record", record.recordIndex, e);
-                    return record; // Keep it as undecrypted if decryption fails
+                    console.error("Failed to map decrypted record", record.recordIndex, e);
+                    return record;
                 }
-            }));
+            });
 
             setRecords(mappedRecords);
             toast.success("Records successfully decrypted with Zama.", { id: loadingId });

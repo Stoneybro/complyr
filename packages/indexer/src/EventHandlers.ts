@@ -23,6 +23,7 @@ const SELECTORS: Record<string, string> = {
 
 const PERFORM_UPKEEP_SELECTOR = "0x4585e33b";
 const EXECUTE_BATCH_INTENT_SELECTOR = "0x4cc42f81";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 function isAutomatedUpkeep(input: string): boolean {
   const selector = input.slice(0, 10).toLowerCase();
@@ -32,6 +33,32 @@ function isAutomatedUpkeep(input: string): boolean {
 // Helper to format timestamp
 function formatTimestamp(timestamp: number): string {
   return new Date(timestamp * 1000).toISOString();
+}
+
+async function ensureWallet(
+  context: any,
+  walletId: string,
+  event: {
+    block: { timestamp: number; number: number };
+    transaction: { hash: string };
+  },
+  owner: string = ZERO_ADDRESS
+): Promise<Wallet> {
+  let wallet = await context.Wallet.get(walletId);
+
+  if (!wallet) {
+    wallet = {
+      id: walletId,
+      owner,
+      deployedAt: BigInt(event.block.timestamp),
+      deployedBlock: BigInt(event.block.number),
+      deployedTx: event.transaction.hash,
+      totalTransactionCount: 0,
+    };
+    context.Wallet.set(wallet);
+  }
+
+  return wallet;
 }
 
 // ============================================
@@ -82,9 +109,7 @@ SmartWalletFactory.AccountCreated.handler(async ({ event, context }) => {
 
 MockUSDC.Transfer.handler(async ({ event, context }) => {
   const walletId = event.params.from.toString().toLowerCase();
-  const wallet = await context.Wallet.get(walletId);
-  
-  if (!wallet) return;
+  const wallet = await ensureWallet(context, walletId, event);
 
   // Skip if this transfer is part of an automated upkeep/intent execution
   // to avoid duplicate entries in the transaction history
@@ -166,9 +191,7 @@ MockUSDC.Transfer.handler(async ({ event, context }) => {
 
 SmartWallet.WalletAction.handler(async ({ event, context }) => {
   const walletId = event.srcAddress.toString().toLowerCase();
-  const wallet = await context.Wallet.get(walletId);
-  
-  if (!wallet) return;
+  const wallet = await ensureWallet(context, walletId, event);
 
   // Skip if this transfer is part of an automated upkeep/intent execution
   // to avoid duplicate entries in the transaction history
@@ -275,8 +298,7 @@ SmartWallet.TransferFailed.handler(async ({ event, context }) => {
 
 SmartWallet.ERC20Transferred.handler(async ({ event, context }) => {
   const walletId = event.srcAddress.toString().toLowerCase();
-  const wallet = await context.Wallet.get(walletId);
-  if (!wallet) return;
+  await ensureWallet(context, walletId, event);
   if (isAutomatedUpkeep(event.transaction.input)) return;
 
   const txHash = event.transaction.hash;
@@ -306,8 +328,7 @@ SmartWallet.ERC20Transferred.handler(async ({ event, context }) => {
 
 SmartWallet.AuditRecorded.handler(async ({ event, context }) => {
   const walletId = event.srcAddress.toString().toLowerCase();
-  const wallet = await context.Wallet.get(walletId);
-  if (!wallet) return;
+  await ensureWallet(context, walletId, event);
 
   const txHash = event.transaction.hash;
   const transactionId = `${txHash}-audit`;
@@ -335,6 +356,8 @@ SmartWallet.AuditRecorded.handler(async ({ event, context }) => {
 
 AuditRegistry.AccountRegistered.handler(async ({ event, context }) => {
   const walletId = event.params.proxyAccount.toString().toLowerCase();
+  (context as any).addSmartWallet?.(walletId);
+  await ensureWallet(context, walletId, event, event.params.masterEOA.toString());
   
   const transaction: Transaction = {
     id: `${event.transaction.hash}-${event.logIndex}`,
@@ -359,6 +382,8 @@ AuditRegistry.AccountRegistered.handler(async ({ event, context }) => {
 IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
+  (context as any).addSmartWallet?.(walletId);
+  await ensureWallet(context, walletId, event);
   
   const tokenSymbol = event.params.token.toString() === "0x0000000000000000000000000000000000000000" 
     ? "ETH" 
@@ -412,6 +437,7 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
   const txHash = event.transaction.hash;
+  await ensureWallet(context, walletId, event);
 
   const intent = await context.Intent.get(intentId);
   const existingTxForHash = await context.Transaction.get(txHash);
@@ -460,6 +486,7 @@ IntentRegistry.IntentExecuted.handler(async ({ event, context }) => {
 IntentRegistry.IntentCancelled.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
+  await ensureWallet(context, walletId, event);
   const intent = await context.Intent.get(intentId);
 
   const details = JSON.stringify({

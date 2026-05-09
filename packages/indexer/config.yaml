@@ -11,7 +11,7 @@ networks:
   - id: 11155111
     rpc_config:
       url: https://ethereum-sepolia-rpc.publicnode.com
-    start_block: 10808746
+    start_block: 10818080
     contracts:
       - name: SmartWallet
         address: []
@@ -26,24 +26,24 @@ networks:
           - event: AuditRecorded(bytes32 indexed txHash)
           - event: ERC20Transferred(address indexed token, address indexed to, uint256 amount)
       - name: SmartWalletFactory
-        address: "0xA349D1d53AD0BFc314837CeAF540605150C9177D"
+        address: "0x1e1998e05B2271FD7a14074f692443a1aAcaE32D"
         handler: src/EventHandlers.ts
         events:
           - event: AccountCreated(address indexed account, address indexed owner)
       - name: IntentRegistry
-        address: "0x04Be2a8Fa00feB4cE96a5fA619397E746A72041F"
+        address: "0x19A989adEE3c0351bd7a0592C9517740FBF643ac"
         handler: src/EventHandlers.ts
         events:
           - event: IntentCreated(address indexed wallet, bytes32 indexed intentId, string name, address indexed token, uint256 totalCommitment, uint256 totalTransactionCount, uint256 interval, uint256 duration, uint256 transactionStartTime, uint256 transactionEndTime, address[] recipients, uint256[] amounts)
           - event: IntentExecuted(address indexed wallet, bytes32 indexed intentId, string name, uint256 transactionCount, uint256 totalAmount)
           - event: IntentCancelled(address indexed wallet, bytes32 indexed intentId, string name, uint256 amountRefunded, uint256 failedAmountRecovered)
       - name: MockUSDC
-        address: "0x744AF7D646d0A1FAa197F8423d41F2513738B943"
+        address: "0x006fEC94D36F4bBc584aA84824136F9ACeF8C7E1"
         handler: src/EventHandlers.ts
         events:
           - event: Transfer(address indexed from, address indexed to, uint256 value)
       - name: AuditRegistry
-        address: "0x10b5eC04ab7B783892E364bD92790E271A6e1B01"
+        address: "0x6914914dED5a65d9c53D004664649939E6dD7cbf"
         handler: src/EventHandlers.ts
         events:
           - event: AccountRegistered(address indexed proxyAccount, address indexed masterEOA)

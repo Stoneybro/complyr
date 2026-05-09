@@ -318,6 +318,52 @@ export const AuditRegistryABI = [
   },
   {
     "type": "function",
+    "name": "evaluateHistoricalRecord",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "evaluateHistoricalRecords",
+    "inputs": [
+      {
+        "name": "proxyAccount",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "testId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordIndexes",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "factory",
     "inputs": [],
     "outputs": [
