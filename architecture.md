@@ -20,12 +20,12 @@ The system has four runtime parts:
 
 This document describes the architecture implemented in the current repository.
 
-At the product level, Complyr should be understood as an audit-first payments system rather than a generic audit tracker. Payment execution is the operational surface, but the differentiating capability is the external reviewer flow:
+At the product level, Complyr should be understood as an audit-first payments system rather than a generic audit tracker. Payment execution is the operational surface, but the differentiating capability is the Auditor Portal flow:
 
 - businesses create payments through smart accounts;
-- the system writes encrypted audit context onchain alongside those payments;
-- approved external reviewers create private threshold tests against that encrypted data;
-- reviewer-specific result queues and encrypted rollups support downstream audit workflows without turning the business ledger into a public reporting surface.
+- the system writes to an encrypted ledger onchain alongside those payments;
+- approved external auditors create private audit limits against that encrypted data using Zama encryption;
+- auditor-specific finding queues and encrypted analytics rollups support downstream workflows without turning the business ledger into a public reporting surface.
 
 ## 2. System Context
 
@@ -71,7 +71,7 @@ Primary responsibilities:
 - encrypt audit context in the browser before contract submission;
 - query indexed activity from Envio GraphQL;
 - read encrypted audit records directly from `AuditRegistry`;
-- support the external reviewer portal, including private threshold creation, result retrieval, report decryption, and ledger decryption where access allows;
+- support the external auditor portal, including private audit limit creation, finding retrieval, encrypted analytics decryption, and ledger decryption where access allows;
 - manage contacts through server routes backed by PostgreSQL;
 - serve the public docs site from the same app.
 
@@ -95,8 +95,8 @@ Important internal modules:
 - `src/hooks/useAuditLogs.ts`
   Reads `AuditRegistry` records directly and decrypts them client-side for authorized users.
 
-- `src/app/auditors/[proxyAccount]/AuditorPortalClient.tsx`
-  Implements the external reviewer workflow: reviewer verification, test creation, result inspection, encrypted rollup access, and optional ledger decryption.
+- `src/app/auditors/[proxyAccount]/AuditorsPortalClient.tsx`
+  Implements the external auditor workflow: auditor verification, test creation, finding inspection, encrypted analytics access, and optional ledger decryption.
 
 - `src/lib/envio/client.ts`
   Queries the Envio GraphQL endpoint for wallet activity.
@@ -117,7 +117,7 @@ Core contracts:
   Stores recurring payment intents, locks committed funds, exposes Chainlink Automation-compatible execution hooks, and calls back into wallets to execute scheduled transfers.
 
 - `AuditRegistry`
-  Despite the legacy contract name, this is the core audit infrastructure contract. It stores encrypted audit records and encrypted reviewer data. It also maintains wallet-to-master ownership, reviewer access, encrypted rollups, reviewer tests, and reviewer result queues.
+  Despite the legacy contract name, this is the core audit infrastructure contract. It stores the encrypted ledger and encrypted auditor data. It also maintains wallet-to-master ownership, auditor access levels, encrypted analytics rollups, auditor private limits (tests), and auditor finding queues.
 
 - `MockUSDC`
   Test token used by the Sepolia demo flows.
@@ -165,8 +165,8 @@ Owned by contracts and treated as canonical:
 - recurring intent state;
 - audit records;
 - company master mappings;
-- reviewer access levels;
-- encrypted rollups, thresholds, and review results.
+- auditor access levels;
+- encrypted analytics rollups, private audit limits, and review findings.
 
 ### Indexed Read Model
 
@@ -202,9 +202,9 @@ Encrypted onchain data includes:
 - payment amounts copied into audit records;
 - category values;
 - jurisdiction values;
-- reviewer thresholds;
-- reviewer result signals;
-- encrypted rollups stored for reporting and threshold checks.
+- auditor's private limits;
+- auditor finding signals;
+- encrypted analytics rollups stored for reporting and threshold checks.
 
 Important trust boundaries:
 
@@ -248,54 +248,46 @@ Important trust boundaries:
 4. The connected authorized wallet signs Zama decrypt permissions.
 5. The browser decrypts the encrypted handles locally for display.
 
-### 7.5 External Reviewer Flow
+### 7.5 External Auditor Portal Flow
 
-The external reviewer flow is the showcase path in the current architecture.
+The external auditor portal is the primary showcase path in the current architecture.
 
-It is the clearest expression of what makes Complyr different from a standard treasury dashboard: the system does not stop at recording encrypted audit context. It also lets an approved third party define private review rules, have the contract evaluate new records against those rules, and then decrypt only the signals and evidence that their access level permits.
+It is the clearest expression of what makes Complyr different from a standard treasury dashboard: the system does not stop at recording encrypted audit context. It also provides an active workflow for authorized external auditors to define private audit tests, have the contract natively evaluate the business's encrypted ledger against those rules, and decrypt only the flagged transactions or aggregate analytics, preserving strict data privacy.
 
-The flow works as follows:
+The flow is orchestrated using Zama's Fully Homomorphic Encryption (FHE) on the blockchain:
 
-1. A business owner adds a reviewer in `AuditRegistry` and assigns an access level.
-2. The reviewer opens the dedicated portal route for the business wallet.
-3. The portal verifies that the connected reviewer address is active for that wallet and loads its access level from `AuditRegistry`.
-4. If the reviewer has signal-creation rights, they create encrypted review tests in the browser. The current codebase supports:
-   - large payment thresholds;
-   - recipient exposure thresholds;
-   - category exposure thresholds;
-   - jurisdiction exposure thresholds.
-5. Threshold values are encrypted client-side with the Zama SDK before submission. The reviewer creates tests without publishing the threshold in plaintext.
-6. `AuditRegistry` stores the test under the reviewer account and attaches it to the target company wallet's active test set.
-7. As new payment records are written, `AuditRegistry` evaluates each record against the active tests for that company wallet.
-8. Triggered or non-triggered outcomes are written into reviewer-owned encrypted result queues, rather than emitted as public business-facing signals.
-9. When the reviewer returns to the portal, the app loads:
-   - the reviewer test inventory;
-   - the encrypted result queue;
-   - encrypted rollup handles for reports when access permits;
-   - ledger records when the reviewer has ledger-level access.
-10. Decryption authorization happens client-side. The reviewer signs the Zama authorization payload and decrypts only the handles they are permitted to read.
-11. Depending on access level, the reviewer can inspect:
-   - signal-only results;
-   - encrypted aggregate reports;
-   - record-level ledger evidence.
+1. A business owner adds an auditor in `AuditRegistry` and assigns an access level (Signal-only, Analytics, or Full Ledger access).
+2. The auditor opens the dedicated portal route (`/auditors/[proxyAccount]`) for the business wallet.
+3. The portal verifies the connected auditor's address is active and reads their access permissions directly from the contract.
+4. If the auditor has signal-creation rights, they can create private audit limits (tests) in the browser. Tests include large payment limits, and specific exposure limits for recipients, categories, or jurisdictions.
+5. **Zama Encryption at Source:** Threshold values are encrypted client-side using the Zama relayer SDK before submission. The auditor creates tests without ever publishing the threshold in plaintext to the chain.
+6. `AuditRegistry` stores the encrypted test under the auditor's account.
+7. **Encrypted Ledger Evaluation:** As new payment records are added to the encrypted ledger, `AuditRegistry` evaluates each record against the active auditor tests using FHE operations (`FHE.gt`, `FHE.eq`, etc.). The blockchain computes the results over encrypted data without ever decrypting the underlying payment amounts or categories.
+8. Findings (triggered tests) are written into auditor-owned encrypted finding queues.
+9. When the auditor returns to the portal, depending on their access level, the app loads:
+   - The private audit tests they created;
+   - The auditor's encrypted findings queue;
+   - Encrypted analytics rollups (aggregating payments by category/jurisdiction);
+   - Ledger records (if granted Full access).
+10. **Client-Side Decryption:** Decryption authorization happens locally. The auditor signs a Zama EIP-712 authorization payload and decrypts only the FHE handles they are permitted to read. This securely decrypts the findings, analytics, or the ledger evidence (amounts, categories, jurisdictions) in the browser.
 
-This design is important because it preserves the product's audit-first posture:
+This design is crucial for a compliance-focused protocol:
 
-- the business can operate through a normal payment workflow;
-- reviewer logic can remain private;
-- evaluation can happen against encrypted amounts and encrypted rollups;
-- the reviewer experience is isolated from treasury controls;
-- the app can support selective disclosure instead of granting blanket ledger access by default.
+- The business operates through normal payment workflows with the benefit of an encrypted on-chain ledger.
+- Auditor logic and thresholds remain entirely private.
+- The auditor portal provides granular access controls (Analytics vs Ledger Records) so businesses only disclose what is necessary.
+- Evaluation happens deterministically against encrypted amounts and encrypted rollups via FHE, guaranteeing trustless verification without sacrificing privacy.
 
-### 7.6 Why The Reviewer Flow Matters
+### 7.6 Why The Auditor Portal Matters
 
-Most systems can store metadata next to payments. The stronger architectural idea in Complyr is that external oversight is part of the runtime model, not an afterthought built on exported spreadsheets.
+Most systems can simply store metadata next to payments. The foundational architectural breakthrough in Complyr is that external auditing is integrated directly into the runtime model using Fully Homomorphic Encryption, rather than being an afterthought built on exported spreadsheets or trusted off-chain execution environments.
 
-In this repository, that idea shows up concretely in three places:
+In this repository, this breakthrough is showcased in four ways:
 
-1. `AuditRegistry` does not only store records; it also stores reviewer access, encrypted tests, encrypted rollups, and encrypted results.
-2. The auditor portal is not a read-only dashboard; it is an active workflow for creating checks and decrypting reviewer-scoped outputs.
-3. The business-facing audit interface and the reviewer-facing interface are intentionally separated, which keeps treasury operations, internal reporting, and external review concerns distinct.
+1. **The Encrypted Ledger:** `AuditRegistry` doesn't just act as a datastore; it acts as an encrypted ledger where payment amounts and categorizations remain hidden from the public but mathematically verifiable.
+2. **Zama Encryption:** By leveraging Zama's FHE, Complyr allows smart contracts to perform conditional logic (e.g., checking if an encrypted payment exceeds an encrypted threshold) natively on the blockchain, eliminating the need for a trusted third party.
+3. **Auditor-Specific Workflows:** The auditor portal provides an active, read-and-execute environment for oversight. It is not just a read-only dashboard but an interface for creating complex private checks and securely decrypting scoped outputs.
+4. **Strict Separation of Concerns:** The business-facing treasury interfaces and the auditor-facing portals are intentionally separated. This ensures treasury operations remain distinct from external review, and businesses can enforce selective disclosure—granting an auditor access to high-level analytics without revealing the underlying ledger records.
 
 ## 8. Integration Points
 
@@ -341,4 +333,4 @@ This codebase follows a standard split:
 The two important non-standard aspects are intentional product choices:
 
 - audit payloads are encrypted in the browser before they are written onchain;
-- audit and reviewer dashboards read encrypted records from the contract directly instead of relying only on the indexer.
+- audit and auditor dashboards read encrypted records from the contract directly instead of relying only on the indexer.

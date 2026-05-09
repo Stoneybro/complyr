@@ -1,0 +1,124 @@
+---
+title: How Complyr Works
+
+---
+
+Complyr has two user-facing surfaces:
+
+- **The business interface**, where payments are created, records are reviewed, and auditors are given access to the business' payment transactions.
+- **The auditor portal**, where an authorized external auditor runs private audit tests against the business payment transactions.
+
+Both surfaces rely on the same onchain source of truth: the business wallet and the encrypted audit registry.
+
+## 1. Business-facing flow
+
+### Wallet onboarding
+The business signs in through Privy and deploys or reconnects its smart wallet. In the codebase, that wallet is an ERC-4337 account created through `SmartWalletFactory`.
+
+Once deployed, the wallet becomes the treasury account used for:
+
+- One-off payments
+- Batch payouts
+- Internal record review
+- Auditor access management
+
+### Creating a payment
+In the wallet interface, the business enters:
+
+- Recipient address
+- Amount
+- Reference ID
+- Jurisdiction
+- Expense category
+
+Those fields are visible in the UI, but the sensitive audit values do not leave the browser in plaintext. The frontend encrypts the audit information (amount, jurisdiction and expense category) before submission.
+
+### Sending the payment
+The payment is then submitted through the ERC-4337 client.
+
+The current implementation supports:
+- Single and batch transfers
+
+Plain transfer helpers are intentionally disabled and revert. This is an important product decision: in Complyr, a business payment is expected to carry audit data atomically.
+
+### Recording the audit trail
+When the transfer is executed, the wallet writes an audit record into `AuditRegistry`.
+
+Each record contains:
+
+- Transaction or intent identifier
+- Token address
+- Recipient addresses
+- Encrypted amount handles
+- Encrypted category handles
+- Encrypted jurisdiction handles
+- Plaintext reference IDs
+- Timestamp
+
+This gives the business an immutable audit trail that lives with the payment flow rather than in a separate spreadsheet.
+
+After payment, the business can open the **Records** view and load audit records directly from `AuditRegistry`. The records are presented to the business in a way that allows them to easily decrypt and view the audit information.
+
+### Granting Access to external Auditors
+The business adds an auditor from the wallet interface. That action writes auditor approval and access level onchain through `AuditRegistry`.
+
+The current contract supports two practical access levels:
+
+- **Findings access**: The auditor can create private audit tests and decrypt findings and aggregate report values.
+- **Full records access**: The auditor can also decrypt ledger records.
+
+The business then shares a dedicated portal URL with the auditor: `/auditors/[proxyAccount]`
+
+> **Note:** All audit tests created are encrypted and the business can't access them. This is to prevent the business from making payments that pass the tests (e.g. dividing payments so as not to trigger a large payment test).
+
+## 2. Auditor-facing flow
+
+### Entering the auditor portal
+The auditor enters the link shared by the business and enters the auditor portal page. The auditor connects a wallet in the portal. The portal does not trust an offchain session. It checks authorization onchain by reading:
+
+- Whether the auditor is approved by the business wallet
+- What access level they were granted
+- Which audit tests and findings belong to that auditor
+
+### Creating private audit tests
+The portal allows an auditor to create private checks such as:
+
+- Large payment limits
+- Recipient exposure limits
+- Category exposure limits
+- Jurisdiction exposure limits
+
+The important detail is that the limits are encrypted in the browser before they are submitted. The business can approve the auditor without learning the auditor's internal limit settings.
+
+### Reading findings
+As new payments are made by business, `AuditRegistry` evaluates active review tests against encrypted values and stores encrypted results for the auditor. Old payments that were made before the auditor was approved are also evaluated.
+
+The auditor can then decrypt:
+
+- The list of transactions/payments flagged by the tests
+- Aggregate encrypted totals, if their access level allows it
+- The full ledger, if they have **Full** access
+
+This lets the auditor see exactly what they are allowed to see, without turning the company's entire treasury history into public data.
+
+## 3. How the two sides interact
+The interaction model is deliberately asymmetric:
+
+- The business owns the wallet and approves access
+- The auditor owns the review logic they create
+- The contract evaluates that logic over encrypted data
+- The browser handles decryption only for authorized wallets
+
+That structure gives both sides something they do not usually get from standard crypto payment tooling:
+
+- Businesses get privacy and a stronger payment record
+- Auditors get deterministic, onchain evidence instead of screenshots and spreadsheets.
+
+## 4. Why this matters
+For businesses, Complyr reduces reconciliation work, improves audit readiness, and makes each payment easier to defend later.
+
+For auditors, regulators, and compliance teams, it creates a review path that is:
+
+- More trustworthy than offchain exports
+- More private than handing over a full ledger
+- More actionable than a raw transaction list with no business context.

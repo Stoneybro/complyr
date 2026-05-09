@@ -1,59 +1,65 @@
 ---
 title: Introduction
-description: Overview of Complyr and the problem it solves.
+description: What Complyr is, and the problem it solves.
 ---
 
-> Payment infrastructure that attaches encrypted audit records to onchain transactions.
+Complyr is an onchain business payments system with a built-in private audit layer.
 
-## Introduction
+Every payment made through Complyr carries encrypted audit information, specifically the expense category and jurisdiction, stored permanently onchain alongside the transaction itself.
 
-Complyr is a audit infrastructure layer for onchain business payments.
+External auditors can run tests against that information without it ever being decrypted. For example, an auditor can check whether any payment exceeded a certain amount or whether payments to a specific jurisdiction crossed a limit. The system's smart contract evaluates those tests directly on encrypted data and returns an encrypted result. The auditor decrypts only the outcome, and all other audit data remains private.
 
-When a company sends money from a blockchain wallet, the public record shows *who* was paid and *how much*. It says nothing about *why*. That gap — between raw transaction data and structured financial records — is the problem Complyr solves. Complyr solves the missing "why" in blockchain payments by attaching encrypted audit metadata to every transaction.
+This is made possible by Zama’s Fully Homomorphic Encryption. FHE allows computation directly on encrypted data. Complyr uses it not just to store private information, but to execute audit logic on top of it.
 
-Complyr attaches an encrypted, immutable audit record to every payment. Each record captures the business context of a transaction: its regulatory jurisdiction, expense category, and entity identifiers. Sensitive audit values are encrypted with Zama FHE tooling before they are submitted onchain.
+## The problem Complyr solves
 
-The result is an ERC-4337 smart-treasury system on Ethereum Sepolia for outbound corporate payouts, with every payment flow routed through a privacy-preserving audit layer that supports encrypted storage, encrypted checks, and scoped decryption.
+Onchain businesses already enjoy fast settlement, global reach, and programmable treasury operations. What they usually do not have is audit-ready context.
 
-![Complyr Wallet Dashboard](/complyr-wallet-dashboard.png)
+That creates friction in at least three common situations:
 
-**Live demo:** [usecomplyr.vercel.app](https://usecomplyr.vercel.app)
+- A startup pays global contractors in stablecoins but later needs defensible records for tax deductions, payroll classification, and reporting.
+- A fintech or crypto platform moves treasury funds onchain and needs private oversight controls without publishing internal limits or exposing transaction details to every auditor it engages.
+- An external auditor needs evidence, but the business does not want to hand over its full ledger in plaintext.
 
-<br/>
+The standard response is manual work: spreadsheets, screenshots, and separate databases reconciled against the chain after the fact. That approach is slow, easy to dispute, and breaks down completely when an auditor needs to verify records without being handed full access to the business's financial data. No conventional encryption tool solves that last problem. Encrypting data at rest still requires decryption before any meaningful check can be run, and whoever runs that check sees everything.
 
-<div className="relative w-full overflow-hidden rounded-xl border border-black/10 dark:border-white/10" style={{ paddingTop: '56.25%' }}>
-  <iframe
-    className="absolute top-0 left-0 w-full h-full"
-    src="https://www.youtube.com/embed/DXcpSvD3kkA?si=6G-i6YwNF229ETro"
-    title="Complyr Platform Demo"
-    frameBorder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowFullScreen
-  ></iframe>
-</div>
+## The regulatory pressure behind the product
 
----
+Complyr does not make a company automatically compliant. It does reduce one of the most common failure modes in onchain operations: weak records.
 
-## The Problem
+Examples from current official guidance:
 
-### The regulatory gap in onchain finance
+- The IRS says business records must clearly show income and expenses, support deductions, and remain available for inspection. It also states employment tax records must be kept for at least four years. If an onchain business cannot connect a payment to a business purpose, it risks losing deductions or failing an examination.
+- HMRC says the onus is on the taxpayer to keep records for cryptoasset transactions, and UK reporting cryptoasset service providers now face additional data-collection and reporting duties under the Cryptoasset Reporting Framework.
+- FinCEN's Travel Rule guidance requires specified sender and recipient information for covered transfers at or above the threshold. A payments business that intermediates value flows cannot rely on bare wallet movement alone.
 
-Traditional finance has always required businesses to explain their spending, not just record it. Tax authorities need proof of business purpose. Auditors need traceable documentation. Regulators expect structured records that can be inspected on demand and retained for five to seven years in most jurisdictions.
 
-Blockchain payments, as they currently work, produce none of this.
+In practice, the highest-risk pattern is not merely "using crypto." It is sending business payments without enough retained context to support tax, audit, AML, sanctions, or regulatory review later.
 
-Consider a company that makes three payments in a single week:
+## Where Complyr helps
 
-- $2,000 to a contractor
-- $500 for a SaaS subscription
-- $1,000 for a marketing agency
+Complyr gives the business a stronger evidentiary layer for each payment by preserving:
 
-Each transaction executes correctly on-chain. The amounts are correct. The recipients are correct. But the public record contains no indication that these are business expenses. Without structured documentation linking each payment to its purpose, those deductions may be disallowed by a tax authority. Unexplained outflows can be reclassified as personal income or, in more severe cases, flagged as evidence of financial misconduct.
+- the recipient list;
+- a business reference ID;
+- a category label such as payroll, contractor, vendor, or invoice;
+- a jurisdiction tag;
+- an encrypted copy of the payment amount for private review and reporting.
 
-The audit liability compounds for businesses operating across jurisdictions. A payroll payment to a contractor in Nigeria, an invoice to a vendor in Germany, and a salary disbursement to an employee in California each carry different regulatory obligations — different withholding requirements, different reporting thresholds, different document retention rules. On-chain, these payments are indistinguishable. The problem applies just as much to inbound revenue: an e-commerce checkout via a hosted protocol lacks context about the customer's jurisdiction and product category.
+That helps businesses keep payment context attached to the ledger instead of rebuilding it later. It also helps auditors and regulators work from a tamper-resistant record while still respecting commercial privacy.
 
-### Why existing solutions fall short
+## What Complyr is not
 
-The conventional responses to this problem — off-chain accounting software, manual reconciliation, centralised audit databases — require trusting a third party with sensitive financial data and maintaining a separate system that must be kept in sync with the blockchain. They introduce the very fragility and opacity that onchain finance is meant to eliminate.
+Complyr is not a substitute for legal advice, tax filing, KYC, sanctions screening, payroll withholding, or statutory reporting. It is infrastructure for better records, stronger privacy, and more credible oversight.
 
-Complyr takes a different approach: the audit record travels with the payment, is stored on-chain, and is protected by cryptography rather than access controls.
+That distinction matters. The product makes it easier to prove and review what happened. It does not claim that every payment entered by a user is legally correct.
+
+## Sources
+
+- [IRS: Recordkeeping](https://www.irs.gov/businesses/small-businesses-self-employed/recordkeeping)
+- [HMRC: Cryptoassets Manual, record keeping](https://www.gov.uk/hmrc-internal-manuals/cryptoassets-manual/crypto10400)
+- [HMRC: Check if you need to report cryptoasset data to HMRC](https://www.gov.uk/guidance/check-if-youll-need-to-report-cryptoasset-data-to-hmrc)
+- [FinCEN: Application of FinCEN's Regulations to Persons Administering, Exchanging, or Using Virtual Currencies](https://www.fincen.gov/resources/statutes-regulations/guidance/application-fincens-regulations-persons-administering)
+- [FinCEN: Funds "Travel" Regulations Questions and Answers](https://www.fincen.gov/resources/statutes-regulations/guidance/funds-travel-regulations-questions-answers)
+- [OFAC: Sanctions Compliance Guidance for the Virtual Currency Industry](https://ofac.treasury.gov/recent-actions/20211015)
+- [European Commission: DAC8](https://taxation-customs.ec.europa.eu/taxation/tax-transparency-cooperation/administrative-co-operation-and-mutual-assistance/directive-administrative-cooperation-dac/dac8_en)

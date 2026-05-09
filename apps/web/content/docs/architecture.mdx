@@ -1,42 +1,41 @@
 ---
 title: Architecture
-description: Actual system architecture of the Complyr codebase.
+description: Runtime architecture of the current Complyr codebase and how the major components interact.
 ---
 
 ## Overview
 
-Complyr is a monorepo with four active parts:
+Complyr is a monorepo with four runtime layers:
 
-1. A Next.js web application in `apps/web`
-2. Solidity contracts in `packages/contracts`
-3. An Envio indexer in `packages/indexer`
-4. A PostgreSQL-backed contacts store used by the web app
+1. a Next.js application in `apps/web`;
+2. Solidity contracts in `packages/contracts`;
+3. an Envio indexer in `packages/indexer`;
+4. a PostgreSQL store for app-owned records such as contacts.
 
-The codebase follows a standard pattern:
+The architecture is built around a simple division of responsibility:
 
-- the web app handles UX, orchestration, and client-side encryption;
-- the contracts are the source of truth for payments and audit records;
-- the indexer builds a GraphQL activity feed from contract events;
-- PostgreSQL stores app-owned data that does not belong onchain.
+- the web app handles user experience, wallet orchestration, and client-side encryption;
+- the contracts are the source of truth for payments, intents, access control, and encrypted audit state;
+- the indexer builds a derived activity feed from emitted events;
+- PostgreSQL stores data that belongs to the app, not to the chain.
 
-## System Diagram
+## System diagram
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│                            Next.js Web App                          │
-│  Privy auth • ERC-4337 client • payment flows • audit UI • docs    │
-│  contacts API • relay funding API • Zama client-side encryption    │
+│                           Next.js Web App                           │
+│  Privy auth • ERC-4337 client • payment UI • records UI            │
+│  auditor portal • docs • contacts API • Zama browser encryption    │
 └───────────────┬───────────────────────────────┬──────────────────────┘
                 │                               │
-                │ UserOperations                │ GraphQL queries
-                │ and contract reads            │
+                │ UserOperations, reads         │ GraphQL queries
                 ▼                               ▼
 ┌──────────────────────────────────┐   ┌──────────────────────────────┐
-│       Ethereum Sepolia           │   │        Envio Indexer         │
+│        Ethereum Sepolia          │   │         Envio Indexer        │
 │ SmartWallet                      │   │ Wallet / Transaction / Intent│
 │ SmartWalletFactory               │   │ derived read model           │
 │ IntentRegistry                   │   └──────────────────────────────┘
-│ AuditRegistry               │
+│ AuditRegistry                    │
 │ MockUSDC                         │
 └───────────────┬──────────────────┘
                 │
@@ -44,165 +43,191 @@ The codebase follows a standard pattern:
                 ▼
 ┌──────────────────────────────────┐
 │ PostgreSQL via Drizzle ORM       │
-│ contacts, addresses, app records │
+│ contacts and related records     │
 └──────────────────────────────────┘
 ```
 
-## Component Responsibilities
+## Core components
 
-### Web App
+### Web application
 
-The web app is responsible for:
+The web app is doing more than frontend rendering. It is the orchestration layer for the whole product.
 
-- authenticating users with Privy;
-- creating or connecting a smart account;
-- submitting single, batch, and recurring payment flows;
-- encrypting audit inputs in the browser with the Zama relayer SDK;
-- querying indexed wallet activity from Envio;
-- reading encrypted audit records directly from `AuditRegistry`;
-- managing contacts through server routes backed by PostgreSQL;
-- serving the documentation site.
+Its main responsibilities are:
 
-Important modules:
+- authenticate users with Privy;
+- deploy or reconnect the business smart wallet;
+- submit single, batch, and recurring payment flows;
+- encrypt audit inputs in the browser with the Zama SDK;
+- load and decrypt audit records for authorized users;
+- run the external auditor portal flow;
+- manage contacts through server routes backed by PostgreSQL;
+- host the docs site.
 
-- `src/app/provider.tsx`
+Key modules:
+
 - `src/lib/SmartAccountProvider.tsx`
 - `src/lib/customSmartAccount.ts`
 - `src/hooks/payments/*`
 - `src/lib/fhe-audit.ts`
 - `src/hooks/useAuditLogs.ts`
+- `src/app/auditors/[proxyAccount]/AuditorsPortalClient.tsx`
 - `src/lib/envio/client.ts`
 
-### Smart Contracts
+### Smart contracts
 
-The contracts are the canonical backend of the product.
+The contracts form the product backend.
 
-**`SmartWallet`**
+#### `SmartWallet`
 
-- ERC-4337 account implementation
-- executes direct and batch payments
-- executes registry-triggered recurring transfers
-- records audit entries on successful payment flows
+The business treasury wallet is an ERC-4337 account.
 
-**`SmartWalletFactory`**
+It:
 
-- deploys deterministic wallet clones
-- registers each wallet in `AuditRegistry`
-- can seed new wallets with ETH and a configured token drip
+- validates user operations;
+- executes direct and batch transfers;
+- executes recurring transfers when called by the intent registry;
+- records audit data alongside audited payment flows;
+- rejects plain financial calls that bypass audit recording.
 
-**`IntentRegistry`**
+That last point is important. In the current design, the contract intentionally pushes users toward audited transfer methods.
 
-- stores recurring payment intents
-- tracks committed wallet funds
-- exposes Chainlink Automation-compatible execution methods
-- triggers scheduled transfers through the wallet
+#### `SmartWalletFactory`
 
-**`AuditRegistry`**
+The factory:
 
-- stores encrypted audit records
-- stores encrypted rollups for reporting
-- manages company master wallets and reviewer access
-- stores reviewer threshold tests and result queues
+- deploys wallet clones;
+- initializes wallet ownership;
+- registers new wallets in `AuditRegistry`;
+- can seed new wallets with testnet assets.
 
-**`MockUSDC`**
+#### `IntentRegistry`
 
-- test token used by demo flows on Sepolia
+This contract manages recurring payment schedules.
+
+It:
+
+- stores intents;
+- reserves committed wallet funds;
+- exposes `checkUpkeep` and `performUpkeep` for automation-style execution;
+- triggers wallet execution when an intent becomes due.
+
+In the current codebase, recurring-payment audit data is written when the intent is created, not every time a later scheduled execution occurs.
+
+#### `AuditRegistry`
+
+This is the audit core of the protocol.
+
+It:
+
+- stores encrypted ledger entries;
+- stores wallet-to-master ownership mappings;
+- manages auditor approvals and access levels;
+- maintains encrypted rollups for totals by recipient, category, and jurisdiction;
+- stores encrypted private review tests and encrypted finding queues.
+
+This contract is where most of the Zama-specific logic lives.
+
+#### `MockUSDC`
+
+Test token for the Sepolia demo environment.
 
 ### Indexer
 
-The Envio indexer listens to selected contract events and materializes a GraphQL read model.
+The Envio indexer materializes a read model for frontend activity.
 
-It currently maintains:
+Current indexed entities include:
 
 - `Wallet`
 - `Transaction`
 - `Intent`
 
-The frontend uses this for dashboard activity and transaction history. It does not replace direct chain reads for encrypted audit data.
+The indexer is useful for history and dashboards, but it is not the source of truth for encrypted audit data. That still comes from direct reads against `AuditRegistry`.
 
 ### PostgreSQL
 
-The web app uses Drizzle ORM with PostgreSQL for offchain application data.
+The app uses Drizzle with PostgreSQL for non-chain records.
 
-The active product-facing schema here is the contacts subsystem:
+The clearest active use today is the contacts subsystem:
 
-- contacts
-- contact addresses
+- contacts;
+- contact addresses;
+- saved metadata that helps the payment UI prefill audit fields.
 
-These records are accessed through the Next.js API routes under `/api/contacts`.
+## Data classification
 
-## Data Classification
+### Public onchain data
 
-### Public Onchain Data
-
-The following data is visible onchain:
+The current design leaves some values public on purpose:
 
 - wallet addresses;
-- recipients;
+- recipient addresses;
 - token addresses;
-- timestamps and transaction hashes;
-- plaintext reference IDs stored in audit records.
+- transaction hashes;
+- timestamps;
+- plaintext reference IDs.
 
-### Encrypted Onchain Data
+### Encrypted onchain data
 
-The following values are encrypted before they are written onchain:
+The following values are encrypted before they are committed:
 
-- audit copy of payment amounts;
-- category codes;
-- jurisdiction codes;
-- reviewer thresholds;
-- reviewer result signals;
-- encrypted rollups used for reporting and checks.
+- payment amounts stored in audit records;
+- category values;
+- jurisdiction values;
+- auditor thresholds;
+- auditor finding signals;
+- encrypted rollup totals used for private analytics.
 
-## Main Flows
+## Primary flows
 
-### Wallet Deployment
+### Wallet deployment
 
-1. The user logs in with Privy.
-2. The app predicts or deploys a wallet through `SmartWalletFactory`.
-3. The factory registers the new wallet with `AuditRegistry`.
-4. The frontend initializes an ERC-4337 client for future operations.
+1. The user signs in.
+2. The web app deploys or predicts a wallet through `SmartWalletFactory`.
+3. The wallet is registered in `AuditRegistry`.
+4. The app initializes the ERC-4337 client for later payment submission.
 
-### Single and Batch Payments
+### Single and batch payments
 
-1. The user enters recipients, amounts, and audit metadata.
-2. The browser encrypts the audit payload with the Zama SDK.
-3. The frontend submits a UserOperation through Pimlico.
+1. The business enters payment and audit metadata.
+2. The browser encrypts the sensitive audit fields.
+3. The app submits a UserOperation.
 4. `SmartWallet` executes the payment.
-5. `SmartWallet` writes the encrypted audit record to `AuditRegistry`.
-6. The indexer captures emitted events for the activity feed.
+5. `SmartWallet` records the encrypted audit entry in `AuditRegistry`.
+6. Envio indexes the emitted events for the dashboard.
 
-### Recurring Payments
+### Recurring payments
 
-1. The user creates a recurring payment intent.
-2. The app encrypts the audit data in the browser.
-3. `IntentRegistry` stores the schedule and reserves committed funds.
-4. A keeper-compatible caller executes the next due payment.
-5. The wallet performs the transfer and audit data is recorded.
-6. The indexer updates intent and transaction history.
+1. The business creates a recurring intent.
+2. The browser encrypts the audit metadata.
+3. `IntentRegistry` stores the intent and locks committed funds.
+4. `IntentRegistry` writes the audit record associated with that intent.
+5. A later automation-compatible caller executes due payments through `performUpkeep`.
+6. `SmartWallet` performs the scheduled transfer batch.
 
-### Audit and Reviewer Access
+### Internal records view
 
-The audit surfaces read directly from `AuditRegistry`.
+1. The business opens the records interface.
+2. The app reads audit records directly from `AuditRegistry`.
+3. The connected authorized wallet signs decryption authorization.
+4. The browser decrypts amounts, categories, and jurisdictions locally.
 
-- the business audit dashboard loads ledger records and decrypts them client-side when the connected wallet is authorized;
-- the auditor portal verifies reviewer access onchain, creates encrypted threshold tests, reads reviewer results, and decrypts permitted data client-side.
+### External auditor portal
 
-## Integrations
+1. The business approves an auditor onchain.
+2. The auditor opens the shared portal URL.
+3. The portal checks authorization and access level directly onchain.
+4. The auditor creates encrypted review tests in the browser.
+5. `AuditRegistry` evaluates those tests against encrypted records and rollups.
+6. The auditor decrypts findings, analytics, and optionally the ledger depending on access.
 
-Complyr depends on these external systems:
+## Why the architecture is split this way
 
-- Privy for authentication and embedded wallets
-- Pimlico for bundling and paymaster support
-- Ethereum Sepolia RPC endpoints
-- Zama FHE relayer tooling
-- PostgreSQL for app-managed data
+The split is deliberate:
 
-## Why The Split Looks This Way
+- settlement and audit commitments belong onchain;
+- derived activity views belong in the indexer;
+- app-owned convenience data belongs in PostgreSQL;
+- encryption and decryption authorization stay close to the user's wallet in the browser.
 
-This architecture keeps the responsibilities clean:
-
-- settlement, commitments, and audit records live onchain;
-- dashboard history is optimized through an indexer;
-- contacts and app-only records stay in a relational database;
-- encryption and decryption authorization remain in the client where the user controls the signing wallet.
+That architecture is what allows Complyr to behave like a real payments application while still showcasing private onchain auditing as its differentiating feature.

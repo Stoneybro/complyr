@@ -1,58 +1,61 @@
 ---
 title: Limitations & Roadmap
-description: Known constraints, trust model edges, and future milestones.
+description: Honest constraints in the current implementation and the most important next steps for the product.
 ---
 
-## Limitations & Known Constraints
+## Current limitations
 
-This section documents the honest edges of the current implementation. We are not a company hiding problems — we are builders who understand their own system.
+### Testnet product
 
-### Testnet only
+Complyr currently targets Ethereum Sepolia. This is demo-stage infrastructure, not production-ready treasury software. The contracts have not been through the security and operational review expected for live business funds.
 
-Complyr currently runs on Ethereum Sepolia. The infrastructure is not deployed to any mainnet. Contract security has not been audited. Do not use this for real financial transactions.
+### Auditor removal is not full cryptographic revocation
 
-### Decryption authorization dependency
+Removing an auditor does not retroactively revoke every past FHE permission already granted to ciphertexts. It removes the auditor from the active access list and prevents future access flows, but historical permissions may remain usable through the KMS path.
 
-Historical record reading depends on the FHE decryption authorization flow working correctly for the permitted wallet. If the decryption flow, signer path, or granted handle permissions fail, the records remain stored onchain but unreadable in practice until the authorization issue is resolved.
+This is an important trust-model limitation and should be understood clearly by anyone evaluating the system.
 
-### Recurring payment execution reliability
+### Narrow scope enums and limits
 
-Recurring payments rely on external automation triggering `performUpkeep`. If automation is misconfigured or unavailable, executions are skipped — there is no catch-up mechanism or queuing. The execution window logic only runs when upkeep is called; missed windows are not backfilled.
+The current contracts enforce hard-coded bounds:
 
-### Maximum recipients per intent
+- maximum `5` auditors per company wallet
+- maximum `20` active review tests per company wallet
+- category IDs limited to `1..10`
+- jurisdiction IDs limited to `1..13`
 
-The IntentRegistry enforces a hard limit of 10 recipients per intent. This is sufficient for most payroll and subscription use cases but is not suitable for large-scale airdrop-style distributions.
+These limits are sensible for a demo, but not enough for a broader enterprise product.
 
-### Single jurisdiction + category per recipient
+### Reference IDs remain plaintext
 
-The current schema supports one jurisdiction and one category code per recipient per transaction. Multi-jurisdiction or multi-category payments — where a single payment has mixed audit implications — are not supported in this version.
+Amounts, categories, and jurisdictions are encrypted, but reference IDs are not. This was a deliberate usability tradeoff. Reference IDs link an onchain payment record back to a business's internal accounting system — without them, the audit trail is cryptographically strong but difficult to reconcile against real business records.
 
----
+Encrypting them with Zama FHE is non-trivial. The Zama type system supports fixed-size numeric types but has no native string type. The most viable path would be to hash the reference ID onchain and store the plaintext offchain — but that would break the current audit trail linkability. This is included in the near-term roadmap.
+
+### No native regulatory rules engine
+
+Complyr stores context and enables private review, but does not enforce jurisdiction-specific rules such as tax withholding logic, sanctions screening, invoice validation, or reporting deadlines. It is better described as private audit infrastructure than a complete compliance automation stack.
 
 ## Roadmap
 
-The following capabilities are planned for development after the current release.
-
 ### Near term
 
-**Recurring payments stabilisation.** The recurring payment flow (intent creation → scheduled execution via automation → audit record linking) is fully designed and implemented but requires additional testing and edge case handling before it can be considered production-ready.
+**Stronger auditor workflow.** The current portal proves the concept. The next step is a fuller workflow for historical review, exports, and cleaner regulator-facing reporting.
 
-**Dedicated auditor dashboard.** A purpose-built interface for external auditors and regulators to browse, filter, and export audit records. The current auditor portal is functional but minimal.
+**Better privacy controls for identifiers.** Reference IDs should become optionally private — either encrypted offchain or replaced with a hash — so teams can choose between usability and stricter privacy.
 
 ### Medium term
 
-**Tax reporting interface.** Aggregation of encrypted audit records into jurisdiction-specific report formats (e.g., IRS Schedule C summaries, HMRC categorisation, FIRS-compatible formats for Nigeria). The report generator infrastructure is already in place in the frontend; this extends it with structured export formats.
+**Jurisdiction-aware reporting packs.** The current dashboards can summarize and export decrypted records, but do not yet produce regulator-ready reporting packages by jurisdiction.
 
-**Multi-jurisdiction and multi-category support.** Extending the audit schema to allow a single recipient to have multiple applicable jurisdictions or categories, necessary for cross-border contractor payments with split reporting obligations.
+**Richer policy primitives.** Businesses should be able to define rules such as required categories, approved jurisdictions, and budget thresholds before a payment is allowed through.
 
-**Audit health scoring.** A richer scoring model that incorporates completeness of metadata, consistency with prior periods, anomaly detection, and jurisdiction-specific threshold checks.
+**Broader payment coverage.** The model should expand beyond the current fixed category and jurisdiction enums to handle more realistic global treasury operations.
 
 ### Long term
 
-**Mainnet deployment.** A security-audited deployment to Base mainnet once the testnet implementation is validated.
+**Mainnet deployment with formal review.** Production use requires audited contracts, hardened relayer and automation assumptions, and a clearer operational trust model.
 
-**On-chain audit proofs.** Rather than relying on auditors to manually decrypt and verify records, generate ZK proofs that attest to specific audit properties (e.g., "all payments in Q3 were categorised" or "no payments were made to sanctioned jurisdictions") without requiring full decryption.
+**Proof-based regulatory attestations.** Complyr should move from "decrypt and inspect" toward "prove and verify," where businesses generate attestations about their ledger without exposing raw records.
 
-**DAO treasury integration.** Support for multi-sig governance over audit metadata, allowing DAOs to attach audit records to grant distributions and contributor payments through their existing governance flows.
-
-**Programmable audit rules.** Allow companies to define on-chain audit policy (minimum metadata completeness, jurisdiction whitelists/blacklists, category budget caps) that the smart wallet enforces at transaction time.
+**Deeper compliance integrations.** The long-term opportunity is connecting private onchain audit data to the real workflows businesses and regulators already use.

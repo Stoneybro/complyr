@@ -1,107 +1,116 @@
 ---
 title: Zama FHE Implementation
-description: How Complyr uses Zama FHE in the browser, contracts, and auditor flows.
+description: How Complyr uses Zama's Fully Homomorphic Encryption to power private audit logic on encrypted payment data.
 ---
 
-## Zama FHE Implementation
+## Overview
 
-This page is the technical center of the Complyr documentation.
+Conventional encryption methods such as AES-GCM or ECIES protect data at rest and in transit. To compute anything on the data, you have to decrypt it first. For an auditor, that means the only way to check whether payments meet their criteria is to receive the decryption key and read the entire payment ledger in plaintext. Privacy and oversight become mutually exclusive: you either encrypt and lose the ability to audit, or you decrypt and lose the privacy the encryption was meant to provide.
 
-Complyr uses Zama's FHE stack to:
+Zama's Fully Homomorphic Encryption resolves this directly. FHE allows a program to perform calculations on encrypted values and produce an encrypted result, without the inputs ever leaving ciphertext. The contract can compare two encrypted numbers, add them together, or branch on their relationship, all without knowing what those numbers are.
 
-- encrypt payment amounts, categories, and jurisdictions in the browser;
-- submit encrypted inputs and proofs onchain;
-- store FHE ciphertext handles in `AuditRegistry`;
-- compute reviewer tests over encrypted values in Solidity;
-- expose only authorized decryptable handles back to the business or external auditor.
+Complyr uses this as the foundation for its entire audit layer.
 
-## What Is Encrypted
+**What gets encrypted**
 
-For each payment recipient, Complyr encrypts:
+Every payment made through Complyr is accompanied by an encrypted audit record. For each recipient in that payment, the following values are encrypted in the business browser before the transaction is submitted:
 
-- amount as `euint128`
-- category as `euint8`
-- jurisdiction as `euint8`
+- the expense category
+- the jurisdiction
 
-The frontend implementation lives in `apps/web/src/lib/fhe-audit.ts`.
+Encryption happens client-side using the Zama relayer SDK. The plaintext values never reach the chain. What is stored onchain are FHE ciphertexts that authorised wallets can decrypt, and that the contract can compute over directly.
 
-The browser builds a Zama encrypted input with:
+**How audit tests work**
 
-- `add128()` for amounts
-- `add8()` for categories
-- `add8()` for jurisdictions
+When a business grants an auditor access, the auditor can create private audit tests from their portal. The available test types are:
 
-The result is converted into:
+- flag any single payment above a set amount
+- flag when total payments to a specific recipient cross a set amount
+- flag when total spending in a category crosses a set amount
+- flag when total payments tied to a jurisdiction cross a set amount
 
-- ciphertext handles
-- input proofs
+For each test, the auditor sets a limit. That limit is encrypted in the auditor's browser before submission. Once stored onchain, it is unreadable by the business.
 
-## Browser Encryption Pipeline
+This has a consequence worth stating plainly. If the business could see an auditor's test limits, it could structure payments to stay just below them, splitting a large payment into smaller ones to avoid triggering a flag, for example. Because the limits are encrypted and the business has no access to them, that kind of evasion is not possible. The audit criteria are as private as the payment data itself.
 
-The client-side flow is:
+**What happens when a payment is recorded**
 
-1. The app loads the `relayer-sdk-js` bundle.
-2. `initSDK()` is called in the browser.
-3. A Sepolia FHEVM instance is created.
-4. `createEncryptedInput(contractAddress, userAddress)` builds the encrypted payload.
-5. The payload is packed and encrypted locally.
-6. The app receives ciphertext handles and a proof.
-7. The handles and proofs are submitted to the contract.
+Every time a payment is made, the contract automatically evaluates all active audit tests against that payment's encrypted data using FHE comparison and arithmetic operations.
 
-This means the sensitive audit values are encrypted before they leave the user's browser.
+The contract never decrypts any value during this process. It produces an encrypted result indicating whether the test's limit was triggered and stores it in the auditor's findings list. The list accumulates silently as payments come in. Nothing is revealed to the auditor until they choose to decrypt.
 
-## Contract-Side FHE Usage
+**What the auditor actually sees**
 
-`packages/contracts/src/AuditRegistry.sol` is where the FHE-specific contract logic lives.
+When the auditor reviews their findings, they sign a decryption request with their wallet. The Zama KMS validates that signature against the contract's access control list and returns only the values that wallet has been explicitly permitted to read.
 
-The contract:
+For each finding, the auditor sees whether their test was triggered and, if it was, the associated payment that caused the flag. The auditor learns nothing about business payments that fell below their criteria.
 
-- reconstructs encrypted values from external handles with `FHE.fromExternal(...)`;
-- stores them as `euint128` and `euint8` values;
-- grants decryption permissions with `FHE.allowThis(...)` and `FHE.allow(...)`;
-- maintains encrypted rollups for totals by recipient, category, and jurisdiction;
-- evaluates encrypted reviewer tests with operations like `FHE.gt`, `FHE.eq`, and `FHE.and`.
+Access levels determine how much an auditor can see beyond their findings. Auditors with standard access can decrypt findings and aggregate report totals. Auditors granted full access can also decrypt individual payment records from the business ledger. Both levels are enforced at the FHE layer by the contract's permission system, not by the application.
 
-## Reviewer Tests Powered by FHE
+> **A note on what Complyr encrypts and why.** Payment amounts and recipient addresses remain publicly visible on the blockchain, as with any onchain transaction. What Complyr encrypts is the audit context attached to each payment: the expense category and the jurisdiction. An encrypted copy of the amount is also stored so the contract can run private calculations, such as totalling spend by category or checking whether a limit was crossed. It is a computation input, not a privacy feature. Reference IDs remain plaintext by design, as a usability tradeoff. Complyr is audit infrastructure leveraging Zama's FHE at its core for private computations, not a payment privacy tool.
 
-The external auditor flow is built around private reviewer tests:
+---
 
-- large payment limit
-- recipient exposure limit
-- category exposure limit
-- jurisdiction exposure limit
+## Technical detail
 
-An auditor encrypts a private limit in the browser and submits it to `AuditRegistry`.
+### Client-side encryption
 
-The contract stores that limit as an encrypted `euint128`. Later, when new records are appended, the contract evaluates encrypted logic such as:
+Encryption is handled in `apps/web/src/lib/fhe-audit.ts` using the Zama relayer SDK, loaded in the browser via a `<Script>` tag.
 
-- `FHE.gt(amount, test.threshold)`
-- encrypted running-total comparisons
-- encrypted category and jurisdiction matching
+When a business submits a payment, `encryptAuditInput()` is called. For each recipient it encrypts three values in a single input object:
 
-The business cannot read the auditor's limit. The auditor only decrypts the result handles they are allowed to read.
+- the payment amount as `euint128` (`add128`)
+- the expense category as `euint8` (`add8`)
+- the jurisdiction as `euint8` (`add8`)
 
-## User Decryption Flow
+The SDK produces a set of ciphertext handles and a zero-knowledge input proof. These are what gets submitted to the contract. The plaintext values are discarded in the browser and never sent anywhere.
 
-Decryption is also wired through the Zama stack in the browser.
+When an auditor creates a test, `encryptThresholdInput()` follows the same pattern, encrypting a single `euint128` threshold bound to the auditor's address and the registry contract. The business cannot read it because it is never granted `FHE.allow`.
 
-Complyr:
+### Onchain storage and permissions
 
-- generates a temporary keypair through the SDK;
-- creates an EIP-712 authorization payload;
-- asks the connected wallet to sign it;
-- sends the authorization to the Zama user decryption flow;
-- receives decrypted clear values for only the permitted handles.
+The contract (`AuditRegistry.sol`) accepts the ciphertext handles and materialises them into internal encrypted types using `FHE.fromExternal(handle, proof)`. It then immediately assigns access using two primitives:
 
-This flow is implemented in `userDecryptAuditHandles()` in `apps/web/src/lib/fhe-audit.ts`.
+- `FHE.allowThis(value)` — permits the contract itself to read the value in future operations
+- `FHE.allow(value, address)` — permits a specific wallet to decrypt the value via the KMS
 
-## Why This Matters
+For each audit record, the business owner (`masterEOA`) is always granted `FHE.allow`. Auditors with full ledger access are also granted `FHE.allow` at record time. Auditors with findings-only access are not — they can only decrypt the outputs of their own tests.
 
-The Zama integration is not ornamental. It changes the product model:
+Audit test thresholds are permitted only to the contract and the auditor who created the test. The business is never in the allow list.
 
-- businesses keep payment context private by default;
-- auditors can define their own private limits;
-- contracts can evaluate those limits without seeing the raw numbers;
-- only explicit, permitted outputs are decrypted.
+### FHE operations used in test evaluation
 
-That is the core demonstration Complyr should emphasize in hackathon judging.
+Every time a payment is recorded, `_evaluateActiveReviewTests()` runs against all active tests. The operations used are:
+
+| Operation | Purpose |
+|---|---|
+| `FHE.gt(amount, threshold)` | Large payment test: is this amount above the limit? |
+| `FHE.gt(recipientTotal, threshold)` | Recipient exposure: has cumulative spend to this address crossed the limit? |
+| `FHE.eq(category, scope)` + `FHE.and(...)` | Category exposure: does this record match the category, and has total spend in it crossed the limit? |
+| `FHE.eq(jurisdiction, scope)` + `FHE.and(...)` | Jurisdiction exposure: same pattern for jurisdiction. |
+| `FHE.add(total, amount)` | Encrypted running totals updated on every payment. |
+| `FHE.select(triggered, value, 0)` | Mask finding evidence to zero if the test was not triggered. |
+
+None of these operations reveal a plaintext value. The result of each comparison is an `ebool`, which is itself a ciphertext.
+
+### Finding storage and masking
+
+When a test runs, `_storeReviewResult()` stores four encrypted values in the auditor's queue:
+
+- `result`: an `euint8` that is `1` if triggered, `0` if not
+- `maskedAmount`: the payment amount if triggered, `0` if not
+- `maskedCategory`: the category if triggered, `0` if not
+- `maskedJurisdiction`: the jurisdiction if triggered, `0` if not
+
+The masking is done with `FHE.select(triggered, value, asEuint(0))` before the values are stored. An auditor who decrypts a non-triggered finding receives only zeros. They learn nothing about payments that did not meet their criteria.
+
+### Decryption flow
+
+Decryption is handled in the browser by `userDecryptAuditHandles()`. The flow is:
+
+1. A temporary keypair is generated client-side.
+2. An EIP-712 typed data payload is constructed, scoped to the registry contract with a time-limited validity window.
+3. The connected wallet signs the payload.
+4. The signature and public key are sent to the Zama KMS.
+5. The KMS checks the contract's permission list for each requested handle. It returns decrypted values only for handles that have `FHE.allow` set for the requesting address.
+6. Decrypted values are returned to the browser. Nothing is decrypted server-side or by the application backend.
