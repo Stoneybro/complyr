@@ -78,20 +78,83 @@ For each audit record, the business owner (`masterEOA`) is always granted `FHE.a
 
 Audit test thresholds are permitted only to the contract and the auditor who created the test. The business is never in the allow list.
 
-### FHE operations used in test evaluation
+### The Auditor Portal
 
-Every time a payment is recorded, `_evaluateActiveReviewTests()` runs against all active tests. The operations used are:
+The Auditor Portal is a dedicated interface for compliance teams, external auditors, and regulators. Once a business grants an auditor access, they use this portal to interact with the encrypted ledger. It serves as the control center where auditors can deploy active audit tests, view triggered findings, and securely decrypt the specific payment records that require investigation—all without ever exposing the company's full plaintext transaction history.
 
-| Operation | Purpose |
-|---|---|
-| `FHE.gt(amount, threshold)` | Large payment test: is this amount above the limit? |
-| `FHE.gt(recipientTotal, threshold)` | Recipient exposure: has cumulative spend to this address crossed the limit? |
-| `FHE.eq(category, scope)` + `FHE.and(...)` | Category exposure: does this record match the category, and has total spend in it crossed the limit? |
-| `FHE.eq(jurisdiction, scope)` + `FHE.and(...)` | Jurisdiction exposure: same pattern for jurisdiction. |
-| `FHE.add(total, amount)` | Encrypted running totals updated on every payment. |
-| `FHE.select(triggered, value, 0)` | Mask finding evidence to zero if the test was not triggered. |
+### Active Audit Tests
 
-None of these operations reveal a plaintext value. The result of each comparison is an `ebool`, which is itself a ciphertext.
+At the core of the auditor portal are active compliance rules, known internally in the contract as `ReviewTests`. For clarity, we will refer to them as Audit Tests. An auditor can define limits against encrypted financial activity, allowing the smart contract to act as an automated compliance engine.
+
+#### 1. Test Creation and Privacy
+An auditor creates a test by setting an exposure limit (for example, a maximum spend amount) via the portal. Before this limit ever touches the blockchain, the Zama relayer SDK encrypts it directly in the auditor's browser. 
+
+The privacy model here is strict:
+*   **The Business** cannot see the auditor's limits, meaning they cannot split payments to intentionally evade detection.
+*   **The Public** sees only encrypted activity and cannot determine payment amounts, categories, or the auditor's rules.
+*   **The Auditor** does not see the plaintext ledger unless explicitly granted full access. If they only have signaling access, they simply receive an encrypted "Yes/No" flag when a rule is broken.
+
+#### 2. The Four Types of Audit Tests
+The contract supports four types of tests to evaluate risk and exposure.
+
+**Large Payment Tests**
+Flags any single transaction that strictly exceeds a defined limit. 
+```solidity
+// LargePayment evaluation
+FHE.gt(amount, test.threshold) // compares the encrypted amount to the encrypted limit
+```
+
+**Recipient Exposure Tests**
+Monitors the cumulative total paid to a specific recipient address. The contract aggregates payments over time and triggers a finding if the running total crosses the auditor's limit.
+```solidity
+// RecipientExposure evaluation
+FHE.gt(_recipientTotals[proxyAccount][recipient], test.threshold)
+```
+
+**Category Exposure Tests**
+Tracks overall spending across specific business categories (e.g., Contractor payouts or Bonuses). 
+*Example: "Alert me if the total combined spending for bonuses ever crosses $20,000."*
+*   Payment 1: $4,000 to bonus -> (Running Total: $4,000) -> No alert.
+*   Payment 2: $8,000 to bonus -> (Running Total: $12,000) -> No alert.
+*   Payment 3: $12,000 to bonus -> (Running Total: $24,000) -> **ALERT!**
+```solidity
+// CategoryExposure evaluation
+ebool isCategory = FHE.eq(category, test.numericScope);
+ebool triggered = FHE.and(
+    isCategory, 
+    FHE.gt(_categoryTotals[proxyAccount][test.numericScope], test.threshold)
+);
+```
+
+**Jurisdiction Exposure Tests**
+Functions exactly like the category test, but tracks aggregate spending within a specific jurisdiction.
+```solidity
+// JurisdictionExposure evaluation
+ebool isJurisdiction = FHE.eq(jurisdiction, test.numericScope);
+ebool triggered = FHE.and(
+    isJurisdiction, 
+    FHE.gt(_jurisdictionTotals[proxyAccount][test.numericScope], test.threshold)
+);
+```
+
+#### 3. Execution Workflow: The "Blind Accumulation" Problem
+
+Tracking cumulative exposure on a public blockchain usually destroys privacy. If a business makes a payment and the public sees the "Bonus" running total increase, they instantly know the payment was a bonus. 
+
+To solve this, Complyr updates *every single category and jurisdiction total at the exact same time*. When a new payment comes in, the contract uses `FHE.select` to add the real encrypted amount to the correct category, and a completely encrypted `$0` to all the other categories. Observers see every total update simultaneously with ciphertext, making it mathematically impossible to tell which category actually received the funds.
+
+Tests evaluate in two modes:
+*   **Real-time**: The contract runs active tests automatically against every new payment.
+*   **Historical Backtesting**: Auditors can deploy a new limit today and instruct the contract to evaluate it against the entire historical ledger.
+
+#### Appendix: Data Mappings
+For reference, the system maps plaintext UI categories to numeric IDs onchain.
+
+**Categories:**
+`1`: Payroll (W2) | `2`: Payroll (1099) | `3`: Contractor | `4`: Bonus | `5`: Invoice | `6`: Vendor | `7`: Grant | `8`: Dividend | `9`: Reimbursement | `10`: Other
+
+**Jurisdictions:**
+`1`: US-CA | `2`: US-NY | `3`: US-TX | `4`: US-FL | `5`: US-OTHER | `6`: UK | `7`: EU-DE | `8`: EU-FR | `9`: EU-OTHER | `10`: NG | `11`: SG | `12`: AE | `13`: OTHER
 
 ### Finding storage and masking
 

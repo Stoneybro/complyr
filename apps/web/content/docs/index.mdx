@@ -3,26 +3,23 @@ title: Introduction
 description: What Complyr is, and the problem it solves.
 ---
 
-Complyr is an onchain business payments system with a built-in private audit layer.
+Complyr is a private audit infrastructure for onchain business payments.
 
-Every payment made through Complyr carries encrypted audit information, specifically the expense category and jurisdiction, stored permanently onchain alongside the transaction itself.
+Every payment made through Complyr permanently attaches encrypted audit records (such as the expense category and jurisdiction) directly to the transaction. External auditors can run active compliance tests against these records without them ever being decrypted. By evaluating audit logic directly on encrypted data, the auditor gets the answers they need while the business's sensitive payment details remain completely private.
 
-External auditors can run tests against that information without it ever being decrypted. For example, an auditor can check whether any payment exceeded a certain amount or whether payments to a specific jurisdiction crossed a limit. The system's smart contract evaluates those tests directly on encrypted data and returns an encrypted result. The auditor decrypts only the outcome, and all other audit data remains private.
+This is made possible by **Zama's Fully Homomorphic Encryption (FHE)**. FHE allows computation on encrypted data without decrypting it first. Complyr leverages this technology to turn passive encrypted storage into an active, private audit engine.
 
-This is made possible by Zama’s Fully Homomorphic Encryption. FHE allows computation directly on encrypted data. Complyr uses it not just to store private information, but to execute audit logic on top of it.
+> **Important Note:** The actual payment transactions on Complyr are public and are **not** encrypted. What gets encrypted are the specific **audit records** (such as expense categories and jurisdictions) that accompany each payment to enable private compliance checks.
 
 ## The problem Complyr solves
 
-Onchain businesses already enjoy fast settlement, global reach, and programmable treasury operations. What they usually do not have is audit-ready context.
+Onchain businesses face two core challenges when trying to maintain compliance and privacy simultaneously.
 
-That creates friction in at least three common situations:
+**The Double Ledger Problem**
+A blockchain transaction records who received funds and how much, but it does not record *why*. To maintain compliance, businesses are forced to maintain a separate, offchain ledger (like a spreadsheet) to track whether a payment was a contractor payout, a vendor invoice, or payroll. This creates a disconnected audit trail that is manually reconciled and easily disputed. Complyr solves this by attaching encrypted audit records directly to the onchain transaction, removing the need for an offchain ledger entirely.
 
-- A startup pays global contractors in stablecoins but later needs defensible records for tax deductions, payroll classification, and reporting.
-- A fintech or crypto platform moves treasury funds onchain and needs private oversight controls without publishing internal limits or exposing transaction details to every auditor it engages.
-- An external auditor needs evidence, but the business does not want to hand over its full ledger in plaintext.
-
-The standard response is manual work: spreadsheets, screenshots, and separate databases reconciled against the chain after the fact. That approach is slow, easy to dispute, and breaks down completely when an auditor needs to verify records without being handed full access to the business's financial data. No conventional encryption tool solves that last problem. Encrypting data at rest still requires decryption before any meaningful check can be run, and whoever runs that check sees everything.
-
+**The Business Data Exposure Problem**
+When a business is audited, the conventional approach requires handing over the entire ledger. This exposes sensitive information about every single transaction, including those that are completely legitimate and irrelevant to the audit. Complyr solves this by allowing auditors to review a business's ledger without ever viewing the full ledger in plaintext. Using Zama's FHE, compliance tests are performed directly on encrypted records. The auditor only ever decrypts the specific payment records that are flagged for violating a rule.
 ## The regulatory pressure behind the product
 
 Complyr does not make a company automatically compliant. It does reduce one of the most common failure modes in onchain operations: weak records.
