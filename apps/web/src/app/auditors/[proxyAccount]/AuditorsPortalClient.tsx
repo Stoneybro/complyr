@@ -1157,7 +1157,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                     {reviewResults.length === 0 ? (
                                         /* Empty — no tests have run yet */
                                         <div className="bg-muted/30 border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
-                                            No findings yet. Findings are created when new payments are recorded after a matching test exists.
+                                            No findings yet. Run your tests against payment records to generate findings.
                                         </div>
                                     ) : !anyDecrypted ? (
                                         /* Pre-decryption: sealed state — don't expose individual rows */
