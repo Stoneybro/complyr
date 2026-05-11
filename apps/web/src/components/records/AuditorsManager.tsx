@@ -138,8 +138,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     throw new Error("Insufficient Sepolia ETH to pay for gas and auto-funding failed.");
                 }
                 
-                // Wait for chain sync
-                await new Promise(r => setTimeout(r, 2000));
+                toast.loading("Waiting for funding transaction...", { id: loadingId });
+                await publicClient.waitForTransactionReceipt({ hash: fundData.txHash });
             }
 
             toast.loading("Requesting signature to approve reviewer...", { id: loadingId });
@@ -245,8 +245,8 @@ export function AuditorsManager({ proxyAccount }: { proxyAccount?: string }) {
                     throw new Error("Insufficient Sepolia ETH to pay for gas and auto-funding failed.");
                 }
                 
-                // Wait for chain sync
-                await new Promise(r => setTimeout(r, 2000));
+                toast.loading("Waiting for funding transaction...", { id: loadingId });
+                await publicClient.waitForTransactionReceipt({ hash: fundData.txHash });
             }
 
             toast.loading("Requesting signature to remove reviewer...", { id: loadingId });

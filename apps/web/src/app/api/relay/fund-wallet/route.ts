@@ -56,11 +56,6 @@ export async function POST(req: NextRequest) {
 
         console.log(`[relay-fund] Transfer initiated (tx: ${hash})`);
 
-        await publicClient.waitForTransactionReceipt({
-            hash,
-            timeout: 60_000,
-        });
-
         return NextResponse.json({
             success: true,
             txHash: hash,
