@@ -354,9 +354,12 @@ SmartWallet.AuditRecorded.handler(async ({ event, context }) => {
 // AUDIT REGISTRY EVENTS
 // ============================================
 
+AuditRegistry.AccountRegistered.contractRegister(async ({ event, context }) => {
+  context.addSmartWallet(event.params.proxyAccount.toString().toLowerCase());
+});
+
 AuditRegistry.AccountRegistered.handler(async ({ event, context }) => {
   const walletId = event.params.proxyAccount.toString().toLowerCase();
-  (context as any).addSmartWallet?.(walletId);
   await ensureWallet(context, walletId, event, event.params.masterEOA.toString());
   
   const transaction: Transaction = {
@@ -379,10 +382,13 @@ AuditRegistry.AccountRegistered.handler(async ({ event, context }) => {
 // INTENT REGISTRY EVENTS
 // ============================================
 
+IntentRegistry.IntentCreated.contractRegister(async ({ event, context }) => {
+  context.addSmartWallet(event.params.wallet.toString().toLowerCase());
+});
+
 IntentRegistry.IntentCreated.handler(async ({ event, context }) => {
   const walletId = event.params.wallet.toString().toLowerCase();
   const intentId = event.params.intentId.toString();
-  (context as any).addSmartWallet?.(walletId);
   await ensureWallet(context, walletId, event);
   
   const tokenSymbol = event.params.token.toString() === "0x0000000000000000000000000000000000000000" 

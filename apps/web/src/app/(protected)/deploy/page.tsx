@@ -58,6 +58,7 @@ function Page() {
 
           <div className="mt-2 text-xs text-muted-foreground bg-muted p-3 rounded text-left flex flex-col gap-2">
              <p><strong>Recommended View:</strong> Complyr is optimised for desktop. Mobile may have layout issues.</p>
+             <p><strong>Note:</strong> Activation may take a few seconds while your account is set up on-chain.</p>
           </div>
 
         </div>

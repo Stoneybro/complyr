@@ -28,7 +28,6 @@ type RelayerSdk = {
     SepoliaConfig: Record<string, unknown>;
 };
 
-let fhevmInstance: FhevmInstance | null = null;
 let sdkInitialized = false;
 const MAX_CATEGORY_ID = 10;
 const MAX_JURISDICTION_ID = 13;
@@ -58,7 +57,6 @@ declare global {
 }
 
 async function getFhevmInstance() {
-    if (fhevmInstance) return fhevmInstance;
     if (typeof window === "undefined" || !window.relayerSDK) {
         throw new Error("Zama relayer-sdk-js bundle not loaded. Check the <Script> tag in your layout.");
     }
@@ -70,12 +68,10 @@ async function getFhevmInstance() {
     }
 
     const network = await getFhevmNetwork();
-    fhevmInstance = await createInstance({
+    return await createInstance({
         ...SepoliaConfig,
         network,
     });
-
-    return fhevmInstance;
 }
 
 async function getFhevmNetwork() {

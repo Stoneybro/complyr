@@ -815,10 +815,10 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     };
 
     const exportFindingsCSV = () => {
-        if (reviewResults.length === 0) return;
+        if (displayedResults.length === 0) return;
 
         const headers = ["Record ID", "Recipient", "Amount", "Reason", "Jurisdiction", "Category", "Status", "Timestamp"];
-        const rows = reviewResults.map((result) => {
+        const rows = displayedResults.map((result) => {
             const test = testsById.get(result.testId.toString());
             const reason = getFindingReason(test);
             const status = result.decrypted === undefined ? "Encrypted" : result.decrypted === 1 ? "Flagged" : "Clear";
@@ -852,6 +852,22 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
     };
 
     const testsById = useMemo(() => new Map(reviewTests.map((test) => [test.id.toString(), test])), [reviewTests]);
+    // Deduplicate by (testId, recordId, recipient) — running a test twice appends duplicates on-chain.
+    const deduplicatedByPayment = useMemo(() => {
+        const seen = new Set<string>();
+        return reviewResults.filter((result) => {
+            const key = `${result.testId}-${result.recordId}-${result.recipient}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [reviewResults]);
+    // After decryption: only show flagged (result=1). Before decryption: show all (sealed).
+    const anyDecrypted = deduplicatedByPayment.some((r) => r.decrypted !== undefined);
+    const displayedResults = useMemo(() => {
+        if (!anyDecrypted) return deduplicatedByPayment;
+        return deduplicatedByPayment.filter((r) => r.decrypted === undefined || r.decrypted === 1);
+    }, [deduplicatedByPayment, anyDecrypted]);
     if (isLoadingAuditors) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-pulse">
@@ -1049,6 +1065,11 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                             {isCreatingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
                                             Save Test
                                         </Button>
+                                        {isCreatingTest && (
+                                            <p className="text-[12px] text-muted-foreground text-center animate-in fade-in duration-300">
+                                                Encrypting and saving your test — this may take a few seconds. Do not reload the page.
+                                            </p>
+                                        )}
                                     </CardContent>
                                 </Card>
 
@@ -1056,7 +1077,7 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                     <CardHeader className="flex flex-row items-start justify-between gap-4">
                                         <div>
                                             <CardTitle className="text-xl">Saved Tests</CardTitle>
-                                            <CardDescription>Tests run automatically against encrypted payment records.</CardDescription>
+                                            <CardDescription>Run your active tests against recent encrypted payment records.</CardDescription>
                                         </div>
                                         <Button
                                             variant="outline"
@@ -1122,93 +1143,100 @@ export function AuditorsPortalClient({ proxyAccount }: { proxyAccount: string })
                                 </Card>
                             </div>
                         </TabsContent>
-
                         <TabsContent value="queue" className="m-0">
                             <Card>
                                 <CardHeader className="gap-3">
                                     <div>
                                         <CardTitle className="text-xl">Flagged Transactions</CardTitle>
                                         <CardDescription>
-                                            Encrypted outcomes from the contract checking your tests against payments. Flagged findings include scoped transaction evidence without exposing the full  business payment data.
+                                            Payments that triggered your audit tests. Decrypt to reveal which transactions were flagged.
                                         </CardDescription>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-5">
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                                        <Button variant="outline" size="sm" onClick={exportFindingsCSV} disabled={reviewResults.length === 0} className="sm:min-w-[180px] justify-center">
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Export CSV
-                                        </Button>
-                                        <Button size="sm" onClick={decryptResults} disabled={isDecryptingResults || reviewResults.length === 0 || reviewResults.every((result) => result.decrypted !== undefined)} className="sm:min-w-[180px] justify-center">
-                                                {isDecryptingResults ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                                                Decrypt Findings
-                                        </Button>
-                                    </div>
                                     {reviewResults.length === 0 ? (
+                                        /* Empty — no tests have run yet */
                                         <div className="bg-muted/30 border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
                                             No findings yet. Findings are created when new payments are recorded after a matching test exists.
                                         </div>
-                                    ) : (
-                                        <div className="overflow-x-auto w-full">
-                                            <div className="min-w-[800px]">
-                                                <div className="grid grid-cols-12 gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b pb-3 mb-3 px-2">
-                                                    <div className="col-span-2">Record ID</div>
-                                                    <div className="col-span-2">Recipient</div>
-                                                    <div className="col-span-2">Amount</div>
-                                                    <div className="col-span-2">Reason</div>
-                                                    <div className="col-span-2">Jurisdiction</div>
-                                                    <div className="col-span-1">Category</div>
-                                                    <div className="col-span-1 text-right">Time</div>
+                                    ) : !anyDecrypted ? (
+                                        /* Pre-decryption: sealed state — don't expose individual rows */
+                                        <div className="flex flex-col items-center gap-6 py-8">
+                                            <div className="flex flex-col items-center gap-3 text-center">
+                                                <div className="w-14 h-14 rounded-full bg-muted/50 border border-muted-foreground/20 flex items-center justify-center">
+                                                    <Lock className="h-6 w-6 text-muted-foreground" />
                                                 </div>
-                                                <div className="flex flex-col gap-2">
-                                                    {reviewResults.map((result, index) => {
-                                                        const test = testsById.get(result.testId.toString());
-                                                        const evidence = result.decryptedEvidence;
-                                                        const amountDisplay = evidence
-                                                            ? `${formatUnits(BigInt(evidence.amount), 6)} USDC`
-                                                            : result.decrypted === undefined
-                                                                ? "Encrypted"
-                                                                : "Not disclosed";
-                                                        const categoryDisplay = evidence
-                                                            ? evidence.category
-                                                            : result.decrypted === undefined
-                                                                ? "Encrypted"
-                                                                : "Not disclosed";
-                                                        const jurisdictionDisplay = evidence
-                                                            ? evidence.jurisdiction
-                                                            : result.decrypted === undefined
-                                                                ? "Encrypted"
-                                                                : "Not disclosed";
-
-                                                        return (
-                                                            <div key={`${result.resultHandle}-${index}`} className="grid grid-cols-12 gap-4 items-center border rounded-lg p-3 text-sm">
-                                                                <div className="col-span-2 font-mono text-xs truncate">
-                                                                    {result.recordId.slice(0, 10)}...{result.recordId.slice(-8)}
-                                                                </div>
-                                                                <div className="col-span-2 font-mono text-xs truncate">
-                                                                    {result.recipient === ZERO_ADDRESS ? "Any" : `${result.recipient.slice(0, 8)}...${result.recipient.slice(-6)}`}
-                                                                </div>
-                                                                <div className="col-span-2 font-mono text-xs">
-                                                                    {amountDisplay}
-                                                                </div>
-                                                                <div className="col-span-2 text-xs">
-                                                                    <div className="font-semibold text-foreground">{getFindingReason(test)}</div>
-                                                                </div>
-                                                                <div className="col-span-2 text-xs">
-                                                                    {jurisdictionDisplay}
-                                                                </div>
-                                                                <div className="col-span-1 text-xs">
-                                                                    {categoryDisplay}
-                                                                </div>
-                                                                <div className="col-span-1 text-xs text-right text-muted-foreground truncate">
-                                                                    {result.timestamp.toLocaleDateString()}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                <div>
+                                                    <p className="font-semibold text-foreground">Results Ready</p>
+                                                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                                                        The contract has evaluated your tests against recent payments. Decrypt to see which ones triggered a finding.
+                                                    </p>
                                                 </div>
                                             </div>
+                                            <Button size="sm" onClick={decryptResults} disabled={isDecryptingResults} className="min-w-[200px]">
+                                                {isDecryptingResults ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                                                {isDecryptingResults ? "Decrypting..." : "Decrypt Findings"}
+                                            </Button>
                                         </div>
+                                    ) : displayedResults.length === 0 ? (
+                                        /* Post-decryption: nothing flagged */
+                                        <div className="bg-muted/30 border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
+                                            No flagged findings. All evaluated payments cleared your tests.
+                                        </div>
+                                    ) : (
+                                        /* Post-decryption: show only flagged findings */
+                                        <>
+                                            <div className="flex justify-end">
+                                                <Button variant="outline" size="sm" onClick={exportFindingsCSV} className="min-w-[160px] justify-center">
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Export CSV
+                                                </Button>
+                                            </div>
+                                            <div className="overflow-x-auto w-full">
+                                                <div className="min-w-[800px]">
+                                                    <div className="grid grid-cols-12 gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest border-b pb-3 mb-3 px-2">
+                                                        <div className="col-span-2">Record ID</div>
+                                                        <div className="col-span-2">Recipient</div>
+                                                        <div className="col-span-2">Amount</div>
+                                                        <div className="col-span-2">Reason</div>
+                                                        <div className="col-span-2">Jurisdiction</div>
+                                                        <div className="col-span-1">Category</div>
+                                                        <div className="col-span-1 text-right">Time</div>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {displayedResults.map((result, index) => {
+                                                            const test = testsById.get(result.testId.toString());
+                                                            const evidence = result.decryptedEvidence;
+                                                            return (
+                                                                <div key={`${result.resultHandle}-${index}`} className="grid grid-cols-12 gap-4 items-center border rounded-lg p-3 text-sm">
+                                                                    <div className="col-span-2 font-mono text-xs truncate">
+                                                                        {result.recordId.slice(0, 10)}...{result.recordId.slice(-8)}
+                                                                    </div>
+                                                                    <div className="col-span-2 font-mono text-xs truncate">
+                                                                        {result.recipient === ZERO_ADDRESS ? "Any" : `${result.recipient.slice(0, 8)}...${result.recipient.slice(-6)}`}
+                                                                    </div>
+                                                                    <div className="col-span-2 font-mono text-xs">
+                                                                        {evidence ? `${formatUnits(BigInt(evidence.amount), 6)} USDC` : "—"}
+                                                                    </div>
+                                                                    <div className="col-span-2 text-xs">
+                                                                        <div className="font-semibold text-foreground">{getFindingReason(test)}</div>
+                                                                    </div>
+                                                                    <div className="col-span-2 text-xs">
+                                                                        {evidence ? evidence.jurisdiction : "—"}
+                                                                    </div>
+                                                                    <div className="col-span-1 text-xs">
+                                                                        {evidence ? evidence.category : "—"}
+                                                                    </div>
+                                                                    <div className="col-span-1 text-xs text-right text-muted-foreground truncate">
+                                                                        {result.timestamp.toLocaleDateString()}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
                                 </CardContent>
                             </Card>

@@ -750,10 +750,10 @@ export function PaymentForm({ walletAddress }: PaymentFormProps) {
                         </div>
 
                         <div className="space-y-4 mt-4">
-                            {transactionStatus === "Encrypting..." && (
+                        {(transactionStatus === "Encrypting..." || transactionStatus === "Signing...") && (
                                 <div className="animate-in fade-in duration-500">
                                     <p className="text-[10px] text-muted-foreground italic">
-                                        Tip: Zama FHE encryption runs locally in your browser. This takes a few seconds to secure your records.
+                                        Audit records are being encrypted with Zama FHE before leaving your browser — this takes a few seconds per payment.
                                     </p>
                                 </div>
                             )}
